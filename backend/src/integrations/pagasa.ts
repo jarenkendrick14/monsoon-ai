@@ -22,8 +22,10 @@ export async function fetchPagasa(): Promise<PagasaData> {
     const signal = extractSignal(title);
 
     return { signal, bulletinTitle: title, issuedAt: pubDate };
-  } catch (err) {
-    logger.warn('PAGASA RSS fetch failed', err);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.warn(`PAGASA RSS fetch failed (${status ?? 'no response'}): ${msg}`);
     return { signal: 0, bulletinTitle: 'No active bulletin', issuedAt: new Date().toISOString() };
   }
 }
