@@ -26,6 +26,7 @@ import smsRouter from './routes/smsRoutes.js';
 import govRouter from './routes/govRoutes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: false,

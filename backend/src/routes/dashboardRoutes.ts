@@ -15,12 +15,16 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
   const weather = await getCondition<OpenMeteoData>('weather');
   const conditions = await getCurrentConditions();
 
-  const activeAlert = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
-    filter: `userId="${user.id}" && resolved=false`,
-    sort: '-created',
-  });
-
-  const alertLevel = activeAlert.items[0]?.level ?? 'none';
+  let alertLevel = 'none';
+  try {
+    const activeAlert = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+      filter: `userId="${user.id}" && resolved=false`,
+      sort: '-created',
+    });
+    alertLevel = activeAlert.items[0]?.level ?? 'none';
+  } catch {
+    // alerts collection may not exist yet or field missing — treat as no alert
+  }
 
   const forecast7day = (weather?.forecast7day ?? []).map(day => ({
     day: day.day,
@@ -47,10 +51,16 @@ router.get('/api/alerts/active', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
 
-  const result = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
-    filter: `userId="${user.id}" && resolved=false`,
-    sort: '-created',
-  });
+  let result;
+  try {
+    result = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+      filter: `userId="${user.id}" && resolved=false`,
+      sort: '-created',
+    });
+  } catch {
+    res.status(404).json({ error: 'No active alert' });
+    return;
+  }
 
   if (!result.items.length) {
     res.status(404).json({ error: 'No active alert' });
