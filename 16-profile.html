@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Profile</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    /* Avatar */
+    .avatar { width: 64px; height: 64px; border-radius: 999px; background: var(--orange-tint); color: var(--orange); font-family: var(--font-display); font-weight: 800; font-size: 26px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--orange); flex-shrink: 0; }
+
+    /* Section */
+    .profile-section { margin-top: 14px; }
+    .profile-section-title { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; padding: 0 4px 6px; }
+    .profile-card { background: #fff; border-radius: 14px; border: 1px solid var(--hairline); overflow: hidden; }
+
+    /* Row */
+    .profile-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; }
+    .profile-row + .profile-row { border-top: 1px solid var(--hairline); }
+    .profile-row .key { font-size: 12px; color: var(--ink-2); flex-shrink: 0; }
+    .profile-row .val { font-size: 12.5px; color: var(--ink); font-weight: 600; text-align: right; flex: 1; }
+    .profile-row .val.critical { color: var(--critical); }
+    .profile-row .val.warn { color: var(--warn); }
+    .profile-row .val.mono { font-family: var(--font-mono); font-size: 11px; }
+
+    /* Risk gauge SVG */
+    .gauge-wrap { width: 86px; height: 86px; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     GET /api/user/profile  (auth required)
+     Response: {
+       firstName, middleName, lastName,
+       address, coordinates: { lat, lng },
+       mobile, email,
+       avatar: null | string  (initials fallback),
+       household: {
+         homeType, floorLevel, occupantCount,
+         specialNeedsFlags, additionalNote
+       },
+       risk: {
+         score: number (0-10),
+         tier: 'critical'|'high'|'medium'|'low',
+         tier: string,
+         lastEvaluated: ISO string,
+         isOnRescueList: boolean,
+       },
+       alerts: { smsLocale, smsPhone, quietHours: null | string }
+     }
+
+     EDIT: PATCH /api/user/profile (same shape, partial update allowed)
+     LOGOUT: DELETE /api/auth/session → clear localStorage → redirect to 03-signin.html
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
+      <span class="app-logo-name">MONSOON<span> AI</span></span>
+    </div>
+    <div class="flood-pill pill-ok"><span class="dot"></span>ALL CLEAR</div>
+  </div>
+
+  <div class="scroll-area" style="padding:8px 16px 40px;">
+
+    <!-- Profile header row -->
+    <div style="display:flex;align-items:center;gap:14px;padding:6px 4px 16px;">
+      <!-- BACKEND: If user has avatar URL → <img>. Else show initials. -->
+      <div class="avatar" id="avatarEl">MS</div>
+      <div>
+        <!-- BACKEND: Populate from /api/user/profile -->
+        <div style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink);line-height:1.1;" id="profileFullName">
+          Maria Santos
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-2);" id="profileSince">
+          Cutcut District, Angeles · since Aug 2026
+        </div>
+      </div>
+      <!-- Edit button -->
+      <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="editProfile()">Edit</button>
+    </div>
+
+    <!-- Household section -->
+    <div class="profile-section">
+      <div class="profile-section-title">Household</div>
+      <div class="profile-card">
+        <!-- BACKEND: All values from user.household -->
+        <div class="profile-row"><span class="key">Address</span><span class="val" id="profileAddress">123 Sampaguita St., Cutcut</span></div>
+        <div class="profile-row"><span class="key">Pinned coordinates</span><span class="val mono" id="profileCoords">15.1463° N, 120.5796° E</span></div>
+        <div class="profile-row"><span class="key">Home type</span><span class="val critical" id="profileHomeType">Nipa hut · ground floor</span></div>
+        <div class="profile-row"><span class="key">Occupants</span><span class="val" id="profileOccupants">3 (1 elderly, 2 adults)</span></div>
+        <div class="profile-row"><span class="key">Special needs</span><span class="val warn" id="profileNeeds">Lola Concha · 78, mobility-limited</span></div>
+      </div>
+    </div>
+
+    <!-- Risk profile section -->
+    <div class="profile-section">
+      <div class="profile-section-title">Risk profile</div>
+      <div class="profile-card">
+        <div class="profile-row" style="align-items:center;gap:14px;">
+          <div>
+            <!-- BACKEND: risk.score from API -->
+            <div style="font-family:var(--font-display);font-weight:800;font-size:30px;color:var(--critical);line-height:1;" id="riskScore">
+              8.4 / 10
+            </div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:2px;max-width:160px;line-height:1.3;">
+              Composite vulnerability · structure × flood × demographic
+            </div>
+          </div>
+          <!-- Risk gauge SVG (dynamic, drawn by JS) -->
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 86 86" width="86" height="86" id="riskGaugeSvg">
+              <!-- BACKEND: Update strokeDashoffset based on risk.score -->
+              <!-- Circle formula: r=36, C=2πr≈226.2 -->
+              <circle cx="43" cy="43" r="36" fill="none" stroke="var(--hairline)" stroke-width="8"/>
+              <circle id="gaugeArc" cx="43" cy="43" r="36" fill="none" stroke="var(--critical)" stroke-width="8"
+                stroke-dasharray="226.2" stroke-dashoffset="33.9" stroke-linecap="round"
+                transform="rotate(-90 43 43)"/>
+              <text x="43" y="48" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="18" fill="var(--ink)" id="gaugeText">84</text>
+            </svg>
+          </div>
+        </div>
+        <div class="profile-row"><span class="key">Tier</span><span class="val critical" id="riskTierRow">HIGH PRIORITY · pre-storm rescue list</span></div>
+        <div class="profile-row"><span class="key">Last evaluated</span><span class="val" id="riskLastEval">Today · 9:52 PM</span></div>
+      </div>
+    </div>
+
+    <!-- Alerts section -->
+    <div class="profile-section">
+      <div class="profile-section-title">Alerts</div>
+      <div class="profile-card">
+        <!-- BACKEND: user.alerts values -->
+        <div class="profile-row"><span class="key">SMS language</span><span class="val" id="alertLocale">English</span></div>
+        <div class="profile-row"><span class="key">Send alerts to</span><span class="val mono" id="alertPhone">+63 917 555 0114</span></div>
+        <div class="profile-row"><span class="key">Quiet hours</span><span class="val" id="alertQuiet">None during typhoon season</span></div>
+      </div>
+    </div>
+
+    <!-- Account actions -->
+    <div class="profile-section">
+      <div class="profile-section-title">Account</div>
+      <div class="profile-card">
+        <div class="profile-row" onclick="location.href='15-sms-commands.html'" style="cursor:pointer;">
+          <span class="key">SMS commands reference</span>
+          <span style="color:var(--orange);">›</span>
+        </div>
+        <!-- BACKEND: DELETE /api/auth/session then clear localStorage -->
+        <div class="profile-row" onclick="logout()" style="cursor:pointer;">
+          <span class="key" style="color:var(--critical);">Sign out</span>
+          <span style="color:var(--critical);">›</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:86px;"></div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item active" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+/* ── RISK GAUGE RENDERER ── */
+function setGauge(score0to100, color) {
+  const r = 36, C = 2 * Math.PI * r; // C ≈ 226.2
+  const offset = C - (score0to100 / 100) * C;
+  const arc = document.getElementById('gaugeArc');
+  const text = document.getElementById('gaugeText');
+  if (arc) { arc.setAttribute('stroke-dashoffset', offset.toFixed(1)); arc.setAttribute('stroke', color || 'var(--critical)'); }
+  if (text) text.textContent = score0to100;
+}
+
+/* ── LOAD PROFILE FROM API ── */
+async function loadProfile() {
+  if (window.location.protocol === 'file:') {
+    setGauge(84, 'var(--critical)');
+    return;
+  }
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    const res = await fetch('/api/user/profile', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    // Populate fields
+    document.getElementById('avatarEl').textContent =
+      (data.firstName[0] + data.lastName[0]).toUpperCase();
+    document.getElementById('profileFullName').textContent =
+      `${data.firstName} ${data.lastName}`;
+    document.getElementById('profileAddress').textContent = data.address;
+    document.getElementById('profileCoords').textContent =
+      `${data.coordinates.lat}° N, ${data.coordinates.lng}° E`;
+    document.getElementById('profileHomeType').textContent =
+      `${data.household.homeType} · ${data.household.floorLevel} floor`;
+    document.getElementById('profileOccupants').textContent = data.household.occupantCount;
+    document.getElementById('riskScore').textContent = `${data.risk.score} / 10`;
+    document.getElementById('riskTierRow').textContent =
+      data.risk.isOnRescueList ? `${data.risk.tier.toUpperCase()} · pre-storm rescue list` : data.risk.tier.toUpperCase();
+
+    // Gauge: score 0-10 → 0-100
+    const gColor = data.risk.tier === 'critical' ? 'var(--critical)'
+      : data.risk.tier === 'high' ? 'var(--warn)' : 'var(--ok)';
+    setGauge(Math.round(data.risk.score * 10), gColor);
+  } catch (err) {
+    setGauge(84);
+    console.warn('[DEV] Could not load profile:', err.message);
+  }
+}
+
+function editProfile() {
+  location.href = '05-onboarding-basic.html';
+}
+
+function logout() {
+  if (!confirm('Sign out of MonsoonAI?')) return;
+  localStorage.clear();
+  // BACKEND: DELETE /api/auth/session
+  location.href = '03-signin.html';
+}
+
+loadProfile();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Map</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    /* Full-screen map */
+    .map-container {
+      flex: 1; position: relative; background: #e8f0fe; overflow: hidden;
+    }
+    .map-container::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(rgba(30,91,217,.05) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(30,91,217,.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Condition pills overlay */
+    .map-pills {
+      position: absolute; top: 14px; left: 14px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 10;
+    }
+    .map-pill {
+      display: flex; align-items: center; gap: 8px; background: #fff;
+      padding: 6px 12px 6px 6px; border-radius: 999px;
+      border: 1px solid var(--hairline); box-shadow: 0 4px 10px rgba(0,0,0,.06);
+    }
+    .map-pill-dot { width: 28px; height: 28px; border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; flex-shrink: 0; }
+    .map-pill-val { font-family: var(--font-display); font-weight: 800; font-size: 14px; color: var(--ink); line-height: 1; }
+    .map-pill-sub { font-size: 10px; color: var(--muted); }
+
+    /* Legend */
+    .map-legend {
+      position: absolute; top: 14px; right: 14px; z-index: 10;
+      background: #fff; border-radius: 14px; border: 1px solid var(--hairline);
+      padding: 10px; font-size: 10.5px;
+    }
+    .legend-title { font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+    .legend-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+    /* Flood zone polygons */
+    .flood-zone-25 { position: absolute; top: 35%; left: 18%; width: 44%; height: 35%; border-radius: 40%; background: rgba(232,58,44,.18); border: 2px solid rgba(232,58,44,.5); }
+    .flood-zone-100 { position: absolute; top: 25%; left: 10%; width: 60%; height: 52%; border-radius: 40%; background: rgba(230,117,25,.08); border: 1.5px dashed rgba(230,117,25,.4); }
+
+    /* Evac centre pin */
+    .evac-pin { position: absolute; top: 22%; right: 22%; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+    .evac-pin-icon { width: 32px; height: 32px; border-radius: 999px; background: var(--ok); border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.15); display: flex; align-items: center; justify-content: center; }
+    .evac-pin-label { background: rgba(255,255,255,.9); border-radius: 6px; padding: 2px 6px; font-size: 9px; font-weight: 700; color: var(--ink); white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+
+    /* User dot */
+    .user-dot { position: absolute; top: 55%; left: 30%; width: 16px; height: 16px; border-radius: 999px; background: var(--orange); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(242,107,31,.4); z-index: 5; }
+
+    /* Layer toggles */
+    .layer-toggles {
+      position: absolute; bottom: 14px; left: 14px; right: 14px;
+      display: flex; gap: 8px; overflow-x: auto; z-index: 10; scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .layer-toggles::-webkit-scrollbar { display: none; }
+    .layer-btn {
+      flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 999px;
+      background: #fff; border: 1.5px solid var(--hairline);
+      font-size: 12px; font-weight: 700; color: var(--ink);
+      cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+    }
+    .layer-btn.active { background: var(--orange); color: #fff; border-color: var(--orange); }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     Map library: Leaflet.js (recommended for offline support) or Mapbox GL JS
+     
+     Map tiles: OpenStreetMap (free) or Mapbox (better visuals)
+     
+     Layers to implement:
+       1. Flood zones: GeoJSON polygons (25-yr, 100-yr return periods)
+          Source: NAMRIA / NOAH flood hazard data
+          GET /api/map/flood-zones?bbox=
+       2. Evac centres: Point markers with capacity data
+          GET /api/evac/centers (returns GeoJSON FeatureCollection)
+       3. Hotspots: Cluster of at-risk households (gov only, or anonymised)
+       4. Wind: Animated arrows (TyphoonTrack API or PAGASA)
+     
+     Real-time overlays:
+       - River gauge stations: GET /api/conditions/rivers?near=lat,lng
+       - Rain radar: WMS tile layer from PAGASA
+     
+     User location: navigator.geolocation.watchPosition()
+     
+     Condition pills (top-left): GET /api/conditions/current
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
+      <span class="app-logo-name">MONSOON<span> AI</span></span>
+    </div>
+    <div class="flood-pill pill-critical">
+      <span class="dot"></span>
+      FLOOD WARNING
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div class="map-container" id="mapContainer">
+
+    <!-- Flood zone polygons (visual placeholder) -->
+    <div class="flood-zone-100"></div>
+    <div class="flood-zone-25"></div>
+
+    <!-- User location -->
+    <div class="user-dot"></div>
+
+    <!-- Evac centre pin -->
+    <div class="evac-pin" onclick="showEvacInfo()">
+      <div class="evac-pin-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg>
+      </div>
+      <div class="evac-pin-label">Evac Center · 60/240</div>
+    </div>
+
+    <!-- Condition pills (top-left) -->
+    <!-- BACKEND: Values from GET /api/conditions/current -->
+    <div class="map-pills">
+      <div class="map-pill">
+        <div class="map-pill-dot" style="background:var(--warn);">🌡</div>
+        <div><div class="map-pill-val">38°C</div><div class="map-pill-sub">Heat</div></div>
+      </div>
+      <div class="map-pill">
+        <div class="map-pill-dot" style="background:var(--ok);">💨</div>
+        <div><div class="map-pill-val">11 AQI</div><div class="map-pill-sub">Air · US scale</div></div>
+      </div>
+      <div class="map-pill">
+        <div class="map-pill-dot" style="background:var(--critical);">💧</div>
+        <div><div class="map-pill-val">502 NHWL</div><div class="map-pill-sub">River</div></div>
+      </div>
+    </div>
+
+    <!-- Legend (top-right) -->
+    <div class="map-legend">
+      <div class="legend-title">Flood zones</div>
+      <div class="legend-row"><div class="legend-dot" style="background:rgba(232,58,44,.6);"></div><span style="color:var(--ink-2);">25-yr return</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:rgba(230,117,25,.5);border:1px dashed var(--warn);"></div><span style="color:var(--ink-2);">100-yr return</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--ok-soft);"></div><span style="color:var(--ink-2);">Negligible</span></div>
+    </div>
+
+    <!-- Layer toggles (bottom) -->
+    <div class="layer-toggles">
+      <button class="layer-btn active" onclick="toggleLayer(this,'evac')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/></svg>
+        Evac centres
+      </button>
+      <button class="layer-btn" onclick="toggleLayer(this,'flood')">💧 Flood zones</button>
+      <button class="layer-btn" onclick="toggleLayer(this,'rain')">🌧 Rain radar</button>
+      <button class="layer-btn" onclick="toggleLayer(this,'wind')">💨 Wind</button>
+      <button class="layer-btn" onclick="location.href='13-air-quality.html'">🌫 Air &amp; haze →</button>
+    </div>
+
+    <!-- Dev note -->
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-family:monospace;padding:6px 14px;border-radius:99px;text-align:center;z-index:20;pointer-events:none;">
+      Map placeholder — integrate Leaflet.js or Mapbox GL JS<br/>
+      <span style="font-size:9px;opacity:.8;">Center: Angeles City [15.1348, 120.5869] · Zoom: 13</span>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='09-dashboard-critical.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+function toggleLayer(btn, layer) {
+  btn.classList.toggle('active');
+  // BACKEND: Show/hide corresponding Leaflet layer group
+  console.log('[DEV] Toggle layer:', layer, btn.classList.contains('active'));
+}
+
+function showEvacInfo() {
+  // BACKEND: Show bottom sheet with evac centre details
+  // GET /api/evac/centers/:id
+  alert('[DEV] Show evac centre details:\nAngeles City Evac Center\n60/240 capacity · gym + medical post\n2.4 km · 32 min walk');
+}
+
+// BACKEND: Initialize Leaflet.js here
+// Example:
+// const map = L.map('mapContainer').setView([15.1348, 120.5869], 13);
+// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+</script>
+
+</body>
+</html>

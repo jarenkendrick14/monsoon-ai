@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — You're All Set!</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; padding: 40px 28px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 760px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow-y: auto; }
+    }
+    .headline { text-align: center; margin-top: 40px; }
+    .headline h1 { font-family: var(--font-display); font-weight: 800; font-size: 56px; color: var(--orange); line-height: 1; }
+    .headline p { font-size: 13.5px; color: var(--ink-2); margin-top: 14px; max-width: 280px; margin-left: auto; margin-right: auto; line-height: 1.55; }
+    .profile-card {
+      padding: 16px; border-radius: 18px;
+      background: var(--warm-bg); border: 1px solid var(--hairline);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .profile-card-header { display: flex; justify-content: space-between; align-items: center; }
+    .profile-card-header .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+    .profile-card-header .edit-link { font-size: 12px; color: var(--orange); font-weight: 700; cursor: pointer; }
+    .profile-name { font-size: 14px; color: var(--ink); font-weight: 600; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .risk-score-line { font-size: 11.5px; color: var(--ink-2); margin-top: 4px; }
+    .risk-score-line strong { color: var(--critical); }
+
+    /* Confetti pulse on load */
+    @keyframes popIn { 0% { transform: scale(.7); opacity:0; } 80%{ transform: scale(1.05); } 100% { transform: scale(1); opacity:1; } }
+    .headline h1 { animation: popIn .5s ease-out; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     On page load: GET /api/user/risk-summary  (auth required)
+     Response: {
+       user: { fullName, address },
+       riskScore: number (e.g. 8.4),
+       riskTier: 'critical'|'high'|'medium'|'low',
+       vulnerabilityFlags: string[],  ← e.g. ['nipa_hut','ground_floor','elderly']
+       nextEvaluation: ISO string
+     }
+
+     Populate:
+       - .profile-name → user.fullName + address
+       - .chip-row → vulnerabilityFlags (use critical/warn/blue color chips)
+       - .risk-score-line → riskScore + riskTier
+
+     "Open dashboard" button: Route based on riskTier:
+       critical → 09-dashboard-critical.html
+       else → 08-dashboard-calm.html
+     ============================================================ -->
+
+<div class="app-shell" id="shell">
+
+  <!-- Step indicator (all complete) -->
+  <div class="steps">
+    <div class="step-dot done">1</div>
+    <div class="step-line done"></div>
+    <div class="step-dot done">2</div>
+    <div class="step-line done"></div>
+    <div class="step-dot done">3</div>
+  </div>
+
+  <!-- Headline -->
+  <div class="headline">
+    <h1>You're all<br/>set.</h1>
+    <p>Your home is now in our risk model. We'll text the moment thresholds cross — no spam, ever.</p>
+  </div>
+
+  <!-- Profile summary card -->
+  <!-- BACKEND: Populate from GET /api/user/risk-summary -->
+  <div class="profile-card" id="profileCard">
+    <div class="profile-card-header">
+      <span class="label">Your profile</span>
+      <span class="edit-link" onclick="location.href='05-onboarding-basic.html'">Edit</span>
+    </div>
+
+    <!-- BACKEND: Replace with user.fullName + user.address from API -->
+    <div class="profile-name" id="profileName">Maria L. Santos · Cutcut District, Angeles</div>
+
+    <!-- BACKEND: Render chips from vulnerabilityFlags array -->
+    <div class="chip-row" id="flagChips">
+      <span class="chip chip-critical selected" style="height:26px;font-size:11px;">Nipa hut</span>
+      <span class="chip chip-warn selected" style="height:26px;font-size:11px;">Ground floor</span>
+      <span class="chip chip-blue selected" style="height:26px;font-size:11px;">Elderly +1</span>
+      <span class="chip selected" style="height:26px;font-size:11px;">3 occupants</span>
+    </div>
+
+    <!-- BACKEND: Replace with actual riskScore from API -->
+    <div class="risk-score-line" id="riskScoreLine">
+      Initial risk score · <strong id="riskTierLabel">HIGH</strong> · re-evaluated every 3 hours.
+    </div>
+  </div>
+
+  <!-- Notification opt-in notice -->
+  <div style="padding:12px 14px;border-radius:14px;background:var(--orange-tint);border:1px solid var(--orange-soft);">
+    <div style="font-size:11px;font-weight:800;color:var(--orange-deep);letter-spacing:.4px;text-transform:uppercase;">SMS alerts enabled</div>
+    <!-- BACKEND: Show the mobile number from user profile -->
+    <p style="font-size:12.5px;color:var(--ink-2);margin-top:4px;" id="smsNotice">
+      Alerts will be sent to your registered number. Text HELP to 21587 anytime.
+    </p>
+  </div>
+
+  <!-- CTA -->
+  <button class="btn btn-primary btn-lg btn-full" style="margin-top:14px;" onclick="goToDashboard()">
+    Open dashboard
+  </button>
+
+</div>
+
+<script>
+/* ── BACKEND INTEGRATION POINT ── */
+async function loadRiskSummary() {
+  if (window.location.protocol === 'file:') return; // demo mode
+
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    const res = await fetch('/api/user/risk-summary', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    // Populate profile card
+    document.getElementById('profileName').textContent =
+      data.user.fullName + ' · ' + data.user.address;
+
+    // Populate flag chips
+    const chipMap = {
+      nipa_hut:    { label: 'Nipa hut',    cls: 'chip-critical' },
+      ground_floor:{ label: 'Ground floor', cls: 'chip-warn' },
+      elderly:     { label: 'Elderly +1',  cls: 'chip-blue' },
+    };
+    const chipRow = document.getElementById('flagChips');
+    chipRow.innerHTML = data.vulnerabilityFlags.map(flag => {
+      const m = chipMap[flag] || { label: flag, cls: '' };
+      return `<span class="chip ${m.cls} selected" style="height:26px;font-size:11px;">${m.label}</span>`;
+    }).join('');
+
+    // Risk tier label
+    document.getElementById('riskTierLabel').textContent = data.riskTier.toUpperCase();
+    document.getElementById('riskTierLabel').style.color =
+      data.riskTier === 'critical' ? 'var(--critical)' :
+      data.riskTier === 'high' ? 'var(--warn)' : 'var(--ok)';
+
+    // Store risk level for routing
+    localStorage.setItem('monsoon_risk', data.riskTier);
+  } catch (err) {
+    console.warn('[DEV] Could not load risk summary:', err.message);
+  }
+}
+
+function goToDashboard() {
+  const risk = localStorage.getItem('monsoon_risk') || 'ok';
+  location.href = risk === 'critical' ? '09-dashboard-critical.html' : '08-dashboard-calm.html';
+}
+
+loadRiskSummary();
+</script>
+
+</body>
+</html>

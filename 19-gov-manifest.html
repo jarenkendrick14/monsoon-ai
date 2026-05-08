@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Rescue Priority Manifest</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: var(--warm-bg); margin: 0; font-family: var(--font-ui); overflow: hidden; }
+
+    /* ── Gov Nav ── */
+    .gov-nav {
+      display: flex; align-items: center; gap: 12px; padding: 14px 22px;
+      background: #fff; border-bottom: 1px solid var(--hairline); flex-wrap: wrap; flex-shrink: 0;
+    }
+    .gov-nav-tab {
+      padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+      background: #fff; color: var(--orange); border: 1.5px solid var(--orange);
+      cursor: pointer; white-space: nowrap; transition: background .15s, color .15s;
+    }
+    .gov-nav-tab.active { background: var(--orange); color: #fff; }
+    .gov-nav-tabs { display: flex; gap: 10px; flex: 1; flex-wrap: wrap; }
+
+    /* ── Layout ── */
+    .gov-body { display: flex; height: calc(100vh - 71px); overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .gov-sidebar {
+      width: 240px; padding: 20px 14px; flex-shrink: 0;
+      background: #fff; border-right: 1px solid var(--hairline);
+      display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+    }
+    .sidebar-eyebrow { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; padding: 0 6px 4px; }
+    .kpi-card {
+      padding: 12px 14px; border-radius: 14px; background: #fff;
+      border: 1.5px solid var(--hairline); position: relative;
+    }
+    .kpi-card.highlight { border-color: var(--orange); box-shadow: 0 6px 16px rgba(242,107,31,.12); }
+    .kpi-label { font-size: 11px; color: var(--ink-2); font-weight: 600; }
+    .kpi-value { font-family: var(--font-display); font-weight: 800; font-size: 22px; margin-top: 2px; }
+    .blink-dot { position: absolute; top: 12px; right: 12px; width: 8px; height: 8px; border-radius: 99px; background: var(--critical); animation: mm-pulse-red 1.6s ease-in-out infinite; }
+
+    /* Storm clock */
+    .storm-clock { padding: 12px; border-radius: 14px; background: var(--warm-bg); border: 1px solid var(--hairline); }
+    .storm-clock-eyebrow { font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+    .storm-clock-val { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: var(--critical); line-height: 1; margin-top: 4px; }
+
+    /* ── Main content ── */
+    .gov-main { flex: 1; padding: 20px 24px; overflow-y: auto; }
+
+    .manifest-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .manifest-title { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--ink); line-height: 1.1; }
+    .manifest-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+    .manifest-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* Filter chips */
+    .filter-chips { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+
+    /* Table */
+    .manifest-table { margin-top: 14px; border-radius: 14px; background: #fff; border: 1px solid var(--hairline); overflow: hidden; }
+    .table-header {
+      display: grid; grid-template-columns: 52px 1.6fr 80px 90px 1.4fr 110px 120px;
+      gap: 10px; padding: 12px 16px; background: var(--warm-bg);
+      font-size: 10.5px; font-weight: 800; color: var(--muted); letter-spacing: .6px; text-transform: uppercase;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .table-row {
+      display: grid; grid-template-columns: 52px 1.6fr 80px 90px 1.4fr 110px 120px;
+      gap: 10px; padding: 14px 16px; align-items: center;
+      border-bottom: 1px solid var(--hairline); cursor: pointer;
+      transition: background .1s;
+    }
+    .table-row:hover { background: var(--warm-bg); }
+    .table-row.selected { background: var(--orange-tint); border-left: 3px solid var(--orange); }
+    .table-row:last-child { border-bottom: none; }
+    .row-rank { font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
+    .row-name { font-size: 13px; color: var(--ink); font-weight: 700; }
+    .row-addr { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .row-score { font-family: var(--font-display); font-weight: 800; font-size: 18px; }
+    .tier-badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800; letter-spacing: .5px; }
+    .factors { display: flex; flex-wrap: wrap; gap: 4px; }
+    .factor-tag { padding: 2px 7px; border-radius: 999px; background: #fff; border: 1px solid var(--hairline); font-size: 10.5px; color: var(--ink-2); }
+    .phone-val { font-family: var(--font-mono); font-size: 11px; color: var(--ink-2); }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 10.5px; font-weight: 800; white-space: nowrap; }
+
+    /* Footer note */
+    .table-footnote { margin-top: 10px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* Responsive: hide sidebar on small screens */
+    @media (max-width: 900px) {
+      .gov-sidebar { display: none; }
+      html, body { overflow: auto; }
+      .gov-body { flex-direction: column; height: auto; overflow: auto; }
+      .gov-main { padding: 16px; }
+      .table-header, .table-row { grid-template-columns: 40px 1fr 60px 80px; }
+      .table-header .col-factors, .table-row .col-factors,
+      .table-header .col-phone, .table-row .col-phone { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     GET /api/gov/manifest  (auth required, role: government)
+     Query params:
+       tier: 'critical'|'high'|'medium'|'all'  (default: all)
+       district: string (barangay filter)
+       page: number, limit: number
+     Response: {
+       totalCount: number,
+       households: [{
+         rank: number,
+         id: string,
+         name: string,
+         address: string,
+         score: number,       ← 0.0–10.0
+         tier: 'crit'|'high'|'med',
+         riskFactors: string[],
+         phone: string,       ← masked for privacy: +••• ••• XXXX
+         status: 'pending'|'en_route'|'notified'|'staged'|'evacuated',
+         assignedTeam: string | null
+       }],
+       reScoreAt: ISO string  ← next re-evaluation
+     }
+
+     Actions:
+       "Pre-position teams" → POST /api/gov/teams/dispatch
+         Body: { households: string[], teamId: string }
+       "Export CSV" → GET /api/gov/manifest/export?format=csv
+       Row click → show household detail panel / modal
+       Status update → PATCH /api/gov/households/:id/status { status }
+
+     Auto-refresh: Poll every 15 minutes (manifest re-scores with storm data)
+     WebSocket: ws://HOST/ws/gov?token=... → push status updates in real-time
+     ============================================================ -->
+
+<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden;">
+
+  <!-- ── Top Navigation ── -->
+  <nav class="gov-nav">
+    <!-- Logo + wordmark -->
+    <img src="assets/short_logo.png" alt="" width="40" height="40" style="object-fit:contain;flex-shrink:0;" />
+    <div style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--orange);letter-spacing:-.2px;flex-shrink:0;">
+      MONSOON<span style="color:var(--blue);"> AI</span>
+      <span style="font-family:var(--font-ui);font-weight:700;font-size:11px;color:var(--muted);margin-left:6px;letter-spacing:.6px;">· GOVERNMENT CONSOLE</span>
+    </div>
+
+    <!-- Nav tabs -->
+    <!-- BACKEND: Route each tab to a separate page/view -->
+    <div class="gov-nav-tabs">
+      <div class="gov-nav-tab active" onclick="location.href='19-gov-manifest.html'">Rescue Priority Manifest</div>
+      <div class="gov-nav-tab" onclick="location.href='12-map.html'" title="Full triage map with all households">Interactive Triage Map</div>
+      <div class="gov-nav-tab" title="[TODO] Broadcast alerts and dispatch actions">Action &amp; Comms Controls</div>
+      <div class="gov-nav-tab" title="[TODO] Agency settings, team roster">Administrative Settings</div>
+    </div>
+
+    <!-- Storm pill + officer avatar -->
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <!-- BACKEND: level from /api/alerts/active-storm -->
+      <div class="flood-pill pill-critical mm-blink">
+        <span class="dot"></span>
+        <span id="navStormLabel">TY AGHON · LANDFALL T-21h</span>
+      </div>
+      <!-- BACKEND: officer initials from monsoon_gov_officer in localStorage -->
+      <div style="width:36px;height:36px;border-radius:999px;background:var(--orange-tint);color:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:13px;" id="officerInitials">RC</div>
+    </div>
+  </nav>
+
+  <!-- ── Body ── -->
+  <div class="gov-body">
+
+    <!-- Sidebar KPIs -->
+    <aside class="gov-sidebar">
+      <div class="sidebar-eyebrow">Live tally</div>
+
+      <!-- BACKEND: All values from GET /api/gov/stats or manifest response -->
+      <div class="kpi-card">
+        <div class="kpi-label">Households Registered</div>
+        <div class="kpi-value" style="color:var(--blue-deep);" id="kpiRegistered">4,812</div>
+      </div>
+      <div class="kpi-card highlight">
+        <div class="blink-dot"></div>
+        <div class="kpi-label">Critical Alert</div>
+        <div class="kpi-value" style="color:var(--critical);" id="kpiCritical">127</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">High Alert</div>
+        <div class="kpi-value" style="color:#B86C00;" id="kpiHigh">438</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Teams Deployed</div>
+        <div class="kpi-value" style="color:var(--ok);" id="kpiTeams">12 / 18</div>
+      </div>
+
+      <!-- Storm countdown clock -->
+      <div class="storm-clock" style="margin-top:8px;">
+        <div class="storm-clock-eyebrow">Storm clock</div>
+        <!-- BACKEND: T-minus hours to landfall from /api/alerts/active-storm -->
+        <div class="storm-clock-val" id="stormClock">T-21:14</div>
+        <div style="font-size:11px;color:var(--ink-2);margin-top:4px;" id="stormClockSub">
+          TY Aghon · projected landfall Pampanga · 230 km/h
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main: Manifest ── -->
+    <main class="gov-main">
+
+      <!-- Header row -->
+      <div class="manifest-header">
+        <div>
+          <h1 class="manifest-title">Rescue Priority Manifest · Tonight</h1>
+          <p class="manifest-sub" id="manifestSub">
+            Auto-generated 21 h before storm landfall · vulnerability × demographics · re-scored every 15 min.
+          </p>
+        </div>
+        <div class="manifest-actions">
+          <!-- BACKEND: GET /api/gov/manifest/export?format=csv -->
+          <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+          <!-- BACKEND: POST /api/gov/teams/dispatch { households: selectedIds[], teamId } -->
+          <button class="btn btn-primary" onclick="prePositionTeams()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            Pre-position teams
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <!-- BACKEND: clicking a filter chip re-fetches GET /api/gov/manifest?tier=xxx&district=xxx -->
+      <div class="filter-chips" id="filterChips">
+        <button class="chip selected" onclick="filterTier('all', this)">All · <span id="cntAll">565</span></button>
+        <button class="chip chip-critical selected" onclick="filterTier('critical', this)">Critical · <span id="cntCrit">127</span></button>
+        <button class="chip chip-warn" onclick="filterTier('high', this)">High · <span id="cntHigh">438</span></button>
+        <button class="chip chip-blue" onclick="filterTier('medium', this)">Watch · <span id="cntWatch">1,402</span></button>
+        <div style="flex:1;"></div>
+        <button class="chip" onclick="filterDistrict('Cutcut')">Cutcut</button>
+        <button class="chip" onclick="filterDistrict('Pampang')">Pampang</button>
+        <button class="chip" onclick="filterDistrict('Anunas')">Anunas</button>
+        <button class="chip" style="color:var(--muted);border-color:var(--muted);">+ 12 more</button>
+      </div>
+
+      <!-- Manifest table -->
+      <div class="manifest-table">
+        <!-- Table header -->
+        <div class="table-header">
+          <div>Rank</div>
+          <div>Household</div>
+          <div>Score</div>
+          <div>Tier</div>
+          <div class="col-factors">Risk factors</div>
+          <div class="col-phone">Phone</div>
+          <div>Status</div>
+        </div>
+
+        <!-- ── TABLE ROWS ── -->
+        <!-- BACKEND: Render from /api/gov/manifest response. Below is static demo data. -->
+
+        <div class="table-row selected" onclick="selectRow(this)" data-id="hh001">
+          <div class="row-rank">01</div>
+          <div><div class="row-name">Lola Concha Mendoza · 78</div><div class="row-addr">123 Sampaguita St · Cutcut</div></div>
+          <div class="row-score" style="color:var(--critical);">9.2</div>
+          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Light frame</span><span class="factor-tag">Ground</span>
+            <span class="factor-tag">Elderly</span><span class="factor-tag">PWD</span><span class="factor-tag">25-yr zone</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 0114</div>
+          <div><span class="status-badge" style="background:var(--critical-soft);color:var(--critical);">TEAM EN ROUTE</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh002">
+          <div class="row-rank">02</div>
+          <div><div class="row-name">Reyes household (4 occupants)</div><div class="row-addr">44 Mabini St · Cutcut</div></div>
+          <div class="row-score" style="color:var(--critical);">9.0</div>
+          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Wood</span><span class="factor-tag">Ground</span>
+            <span class="factor-tag">Infant</span><span class="factor-tag">25-yr zone</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 8821</div>
+          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh003">
+          <div class="row-rank">03</div>
+          <div><div class="row-name">Lim, Andres · 64</div><div class="row-addr">9 Riverside · Pampang</div></div>
+          <div class="row-score" style="color:var(--critical);">8.7</div>
+          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Light frame</span><span class="factor-tag">Ground</span>
+            <span class="factor-tag">Bed-bound</span><span class="factor-tag">River &lt;50m</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 7711</div>
+          <div><span class="status-badge" style="background:var(--critical-soft);color:var(--critical);">TEAM EN ROUTE</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh004">
+          <div class="row-rank">04</div>
+          <div><div class="row-name">Dela Cruz family (5)</div><div class="row-addr">201 Maharlika · Anunas</div></div>
+          <div class="row-score" style="color:var(--critical);">8.4</div>
+          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Wood</span><span class="factor-tag">Ground</span>
+            <span class="factor-tag">Infant</span><span class="factor-tag">PWD</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 4502</div>
+          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh005">
+          <div class="row-rank">05</div>
+          <div><div class="row-name">Responder hub · Pampang</div><div class="row-addr">Rescue staging · 12 cots</div></div>
+          <div class="row-score" style="color:var(--critical);">8.1</div>
+          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Hub</span><span class="factor-tag">Open</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 0001</div>
+          <div><span class="status-badge" style="background:var(--ok-soft);color:var(--ok);">STAGED</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh006">
+          <div class="row-rank">06</div>
+          <div><div class="row-name">Santos household (3)</div><div class="row-addr">55 Abad Ave · Cutcut</div></div>
+          <div class="row-score" style="color:#B86C00;">7.9</div>
+          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Concrete</span><span class="factor-tag">Ground</span><span class="factor-tag">25-yr zone</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 2299</div>
+          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh007">
+          <div class="row-rank">07</div>
+          <div><div class="row-name">Aquino, Lina · 72</div><div class="row-addr">3 Banawe · Anunas</div></div>
+          <div class="row-score" style="color:#B86C00;">7.7</div>
+          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Wood</span><span class="factor-tag">2nd flr</span><span class="factor-tag">Elderly</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 1180</div>
+          <div><span class="status-badge" style="background:var(--blue-soft);color:var(--blue-deep);">NOTIFIED</span></div>
+        </div>
+
+        <div class="table-row" onclick="selectRow(this)" data-id="hh008">
+          <div class="row-rank">08</div>
+          <div><div class="row-name">Yu household (2)</div><div class="row-addr">78 Pinatubo · Cutcut</div></div>
+          <div class="row-score" style="color:#B86C00;">7.5</div>
+          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
+          <div class="factors col-factors">
+            <span class="factor-tag">Concrete</span><span class="factor-tag">Ground</span><span class="factor-tag">Pregnant</span>
+          </div>
+          <div class="phone-val col-phone">+••• ••• 6630</div>
+          <div><span class="status-badge" style="background:var(--blue-soft);color:var(--blue-deep);">NOTIFIED</span></div>
+        </div>
+
+      </div>
+
+      <!-- Footnote -->
+      <p class="table-footnote" id="manifestFootnote">
+        Showing 1–8 of 565 · Score = (home-type vuln × flood depth × hazard zone) × (elderly + PWD + infant weight) · open-source vulnerability methodology.
+      </p>
+
+    </main>
+  </div>
+</div>
+
+<script>
+/* ── Row selection ── */
+function selectRow(row) {
+  document.querySelectorAll('.table-row.selected').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+  const id = row.dataset.id;
+  // BACKEND: Load household detail panel / modal
+  // GET /api/gov/households/:id
+  console.log('[DEV] Selected household:', id);
+}
+
+/* ── Filter chips ── */
+function filterTier(tier, btn) {
+  // BACKEND: GET /api/gov/manifest?tier=tier
+  console.log('[DEV] Filter by tier:', tier);
+  // Demo: just toggle selected visually
+  document.querySelectorAll('#filterChips .chip').forEach(b => {
+    if (['all','critical','high','medium'].some(t => b.textContent.toLowerCase().includes(t))) {
+      b.classList.remove('selected');
+    }
+  });
+  btn.classList.add('selected');
+}
+
+function filterDistrict(district) {
+  // BACKEND: GET /api/gov/manifest?district=district
+  console.log('[DEV] Filter by district:', district);
+}
+
+/* ── Actions ── */
+function exportCSV() {
+  // BACKEND: GET /api/gov/manifest/export?format=csv
+  if (window.location.protocol === 'file:') {
+    alert('[DEV] Would download manifest as CSV.\nBACKEND: GET /api/gov/manifest/export?format=csv');
+    return;
+  }
+  window.open('/api/gov/manifest/export?format=csv');
+}
+
+function prePositionTeams() {
+  const selected = [...document.querySelectorAll('.table-row.selected')].map(r => r.dataset.id);
+  if (!selected.length) { alert('Select at least one household first.'); return; }
+  // BACKEND: POST /api/gov/teams/dispatch { households: selected, teamId: 'auto' }
+  alert(`[DEV] Would dispatch rescue team to households:\n${selected.join(', ')}\n\nBACKEND: POST /api/gov/teams/dispatch`);
+}
+
+/* ── Storm clock countdown ── */
+let stormHours = 21, stormMins = 14;
+function tickClock() {
+  if (stormMins === 0) { if (stormHours > 0) { stormHours--; stormMins = 59; } }
+  else { stormMins--; }
+  document.getElementById('stormClock').textContent =
+    `T-${String(stormHours).padStart(2,'0')}:${String(stormMins).padStart(2,'0')}`;
+}
+setInterval(tickClock, 60000);
+
+/* ── Officer initials ── */
+const officer = JSON.parse(localStorage.getItem('monsoon_gov_officer') || '{"name":"R. Clemente"}');
+const parts = (officer.name || 'R C').split(' ');
+document.getElementById('officerInitials').textContent =
+  (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
+
+/* ── Auto-refresh (manifest re-scores every 15 min) ── */
+// BACKEND: Poll GET /api/gov/manifest every 15 minutes or use WebSocket
+setInterval(() => {
+  console.log('[DEV] Would re-fetch manifest data');
+  // updateManifestTable(freshData);
+}, 15 * 60 * 1000);
+</script>
+
+</body>
+</html>

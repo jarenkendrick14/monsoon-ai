@@ -1,0 +1,216 @@
+<!-- DEVELOPER INDEXXX LANGG -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Developer Screen Index</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange: #F26B1F; --blue: #1E5BD9; --ink: #1A1A1A;
+      --ink-2: #3A3A3A; --muted: #8A8A8A; --hairline: #E8E4DC;
+      --critical: #E83A2C; --ok: #1F8F4D; --warn: #E89B1F;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #FAF7F1; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: var(--ink); padding: 40px 24px; }
+    .header { text-align: center; margin-bottom: 48px; }
+    .header img { height: 48px; margin: 0 auto 16px; }
+    .header h1 { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; color: var(--orange); }
+    .header p { font-size: 14px; color: var(--muted); margin-top: 8px; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .badge-mobile { background: #DCE6FA; color: #143F99; }
+    .badge-desktop { background: #FFE7D6; color: #D9551A; }
+    .badge-public { background: #DDF1E2; color: #1F8F4D; }
+    .section { margin-bottom: 36px; }
+    .section-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 18px; color: var(--ink); padding-bottom: 12px; border-bottom: 2px solid var(--hairline); margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .card {
+      background: #fff; border-radius: 14px; border: 1.5px solid var(--hairline);
+      padding: 16px 18px; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .card:hover { border-color: var(--orange); box-shadow: 0 6px 20px rgba(242,107,31,.12); }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .card-num { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; color: var(--hairline); line-height: 1; }
+    .card-title { font-weight: 700; font-size: 14.5px; color: var(--ink); flex: 1; }
+    .card-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .card-api { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--orange); margin-top: 4px; }
+    .legend { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 32px; font-size: 12px; color: var(--muted); }
+    .legend span { display: flex; align-items: center; gap: 6px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <img src="assets/long_logo.png" alt="MonsoonAI" />
+  <h1>Developer Screen Index</h1>
+  <p>All 19 screens — click any card to open the screen HTML. Each file is self-contained and mobile/web responsive.</p>
+</div>
+
+<div class="legend">
+  <span><span class="badge badge-mobile">MOBILE</span> Mobile-first app screen</span>
+  <span><span class="badge badge-desktop">DESKTOP</span> Desktop/gov console screen</span>
+  <span><span class="badge badge-public">PUBLIC</span> Public-facing (no auth)</span>
+</div>
+
+<div class="section">
+  <div class="section-title">01 · Public Landing</div>
+  <div class="grid">
+    <a class="card" href="01-landing.html">
+      <div class="card-top"><span class="card-num">01</span><span class="badge badge-public">PUBLIC</span></div>
+      <div class="card-title">Landing Page</div>
+      <div class="card-desc">Marketing homepage. Hero, how-it-works steps, SMS demo strip, feature list. Dark mode toggle.</div>
+      <div class="card-api">GET /api/stats (live metrics, optional)</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">02 · Citizen Onboarding</div>
+  <div class="grid">
+    <a class="card" href="02-splash.html">
+      <div class="card-top"><span class="card-num">02</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Splash / App Launch</div>
+      <div class="card-desc">App entry point. Logo animation, Get Started and Sign In CTAs.</div>
+      <div class="card-api">No API call needed</div>
+    </a>
+    <a class="card" href="03-signin.html">
+      <div class="card-top"><span class="card-num">03</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Sign In</div>
+      <div class="card-desc">Username + password login. SMS fallback hint. Forgot password link.</div>
+      <div class="card-api">POST /api/auth/login</div>
+    </a>
+    <a class="card" href="04-signup.html">
+      <div class="card-top"><span class="card-num">04</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Sign Up</div>
+      <div class="card-desc">Account creation: username, email, mobile, password. SMS consent note.</div>
+      <div class="card-api">POST /api/auth/register</div>
+    </a>
+    <a class="card" href="05-onboarding-basic.html">
+      <div class="card-top"><span class="card-num">05</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Onboarding Step 1 — Basic Info</div>
+      <div class="card-desc">Name, address, phone number. Map pin for exact coordinates.</div>
+      <div class="card-api">PATCH /api/user/profile · POST /api/geocode</div>
+    </a>
+    <a class="card" href="06-onboarding-household.html">
+      <div class="card-top"><span class="card-num">06</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Onboarding Step 2 — Household</div>
+      <div class="card-desc">Home type, floor level, occupant count, special needs flags. Enters the risk model.</div>
+      <div class="card-api">PATCH /api/user/household · POST /api/risk/score</div>
+    </a>
+    <a class="card" href="07-onboarding-complete.html">
+      <div class="card-top"><span class="card-num">07</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Onboarding Step 3 — All Set</div>
+      <div class="card-desc">Profile summary card, initial risk score, link to dashboard.</div>
+      <div class="card-api">GET /api/user/risk-summary</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">03 · Citizen Dashboard</div>
+  <div class="grid">
+    <a class="card" href="08-dashboard-calm.html">
+      <div class="card-top"><span class="card-num">08</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Dashboard — Calm State</div>
+      <div class="card-desc">All-clear mode. 7-day risk chart, condition cards (river, AQ, heat), quick-action tiles.</div>
+      <div class="card-api">GET /api/dashboard · GET /api/conditions/current</div>
+    </a>
+    <a class="card" href="09-dashboard-critical.html">
+      <div class="card-top"><span class="card-num">09</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Dashboard — Critical Flood</div>
+      <div class="card-desc">CRITICAL state with rain animation hero, evacuate CTA, flood risk breakdown.</div>
+      <div class="card-api">GET /api/alerts/active · GET /api/risk/address</div>
+    </a>
+    <a class="card" href="10-alert-detail.html">
+      <div class="card-top"><span class="card-num">10</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Alert Detail Breakdown</div>
+      <div class="card-desc">Full explanation of why to evacuate: data signals, checklist items, countdown timer.</div>
+      <div class="card-api">GET /api/alerts/:id · GET /api/checklist</div>
+    </a>
+    <a class="card" href="11-evac-route.html">
+      <div class="card-top"><span class="card-num">11</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Evacuation Route</div>
+      <div class="card-desc">Turn-by-turn walking directions to nearest evac centre. Adjusted ETA for vulnerabilities.</div>
+      <div class="card-api">GET /api/evac/route?lat=&lng= · GET /api/evac/centers/nearest</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">04 · Map View</div>
+  <div class="grid">
+    <a class="card" href="12-map.html">
+      <div class="card-top"><span class="card-num">12</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Map — Risk Overlay</div>
+      <div class="card-desc">Leaflet/Mapbox map with flood zone polygons, evac centre pins, layer toggles.</div>
+      <div class="card-api">GET /api/map/layers · GET /api/evac/centers</div>
+    </a>
+    <a class="card" href="13-air-quality.html">
+      <div class="card-top"><span class="card-num">13</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Air Quality & Heat Detail</div>
+      <div class="card-desc">AQI breakdown, heat-index detail, data source citations (Open-Meteo, FIRMS).</div>
+      <div class="card-api">GET /api/conditions/air · GET /api/conditions/heat</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">05 · Ask Monsoon Chatbot</div>
+  <div class="grid">
+    <a class="card" href="14-chatbot.html">
+      <div class="card-top"><span class="card-num">14</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Chatbot — Ask Monsoon</div>
+      <div class="card-desc">Chat UI with command pills, bot/user bubbles, evac card attachment, voice input.</div>
+      <div class="card-api">POST /api/chat/message · GET /api/chat/history</div>
+    </a>
+    <a class="card" href="15-sms-commands.html">
+      <div class="card-top"><span class="card-num">15</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">SMS Commands Reference</div>
+      <div class="card-desc">Two-way SMS fallback cheat sheet with example conversation thread. Twilio integration.</div>
+      <div class="card-api">Twilio inbound webhook · POST /api/sms/inbound</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">06 · Profile & More</div>
+  <div class="grid">
+    <a class="card" href="16-profile.html">
+      <div class="card-top"><span class="card-num">16</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">Profile & Household</div>
+      <div class="card-desc">User profile, household details, risk gauge, alert preferences, edit controls.</div>
+      <div class="card-api">GET /api/user/profile · PATCH /api/user/profile</div>
+    </a>
+    <a class="card" href="17-more.html">
+      <div class="card-top"><span class="card-num">17</span><span class="badge badge-mobile">MOBILE</span></div>
+      <div class="card-title">More — All Services Hub</div>
+      <div class="card-desc">4-column icon grid of all app services. Neighbour check-in card.</div>
+      <div class="card-api">GET /api/wardens/nearby · static navigation</div>
+    </a>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">07 · Government Console (Desktop)</div>
+  <div class="grid">
+    <a class="card" href="18-gov-login.html">
+      <div class="card-top"><span class="card-num">18</span><span class="badge badge-desktop">DESKTOP</span></div>
+      <div class="card-title">Government Sign In</div>
+      <div class="card-desc">Two-panel layout: brand/stats left, login form right. Active storm alert banner.</div>
+      <div class="card-api">POST /api/gov/auth/login · GET /api/alerts/active-storm</div>
+    </a>
+    <a class="card" href="19-gov-manifest.html">
+      <div class="card-top"><span class="card-num">19</span><span class="badge badge-desktop">DESKTOP</span></div>
+      <div class="card-title">Rescue Priority Manifest</div>
+      <div class="card-desc">Sortable table of at-risk households ranked by vulnerability score. Filter chips, export CSV.</div>
+      <div class="card-api">GET /api/gov/manifest · POST /api/gov/teams/dispatch</div>
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

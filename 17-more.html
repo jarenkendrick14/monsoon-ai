@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — More Services</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+    .search-bar { margin: 0 14px; height: 42px; border-radius: 12px; border: 1px solid var(--hairline); background: #fff; display: flex; align-items: center; padding: 0 14px; gap: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+    /* 4-column service grid */
+    .service-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 12px; }
+    .service-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; border-radius: 14px; background: #fff; border: 1px solid var(--hairline); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+    .service-item:hover { border-color: var(--orange); box-shadow: 0 4px 12px rgba(242,107,31,.1); }
+    .service-item.primary { background: var(--orange-tint); border-color: var(--orange-soft); }
+    .service-icon { width: 38px; height: 38px; border-radius: 12px; background: var(--orange-tint); display: flex; align-items: center; justify-content: center; }
+    .service-label { font-size: 10.5px; color: var(--ink); text-align: center; font-weight: 600; line-height: 1.15; }
+
+    /* Neighbour card */
+    .neighbour-card { margin: 18px 14px 0; padding: 14px; border-radius: 16px; background: var(--warm-bg); border: 1px solid var(--hairline); }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     Warden proximity: GET /api/wardens/nearby?lat=&lng=&radius=500
+     Response: { count: number, nearest: { name, distanceM, phone } }
+     
+     Navigate to each service:
+       Ask Monsoon    → 14-chatbot.html
+       Evac centres   → 12-map.html?layer=evac
+       Emergency call → tel:911
+       Report incident → POST /api/incidents { type, coords, description }
+       Checklist      → 10-alert-detail.html#checklist
+       SMS commands   → 15-sms-commands.html
+       Family chat    → External: Viber/WhatsApp deeplink (no backend needed)
+       Language       → PATCH /api/user/profile { locale: 'en'|'tl'|'vi' }
+       Past alerts    → GET /api/alerts/history
+       Settings       → PATCH /api/user/settings
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
+      <span class="app-logo-name">MONSOON<span> AI</span></span>
+    </div>
+    <div class="flood-pill pill-ok"><span class="dot"></span>ALL CLEAR</div>
+  </div>
+
+  <div class="scroll-area">
+
+    <!-- Search -->
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg>
+      <input type="search" placeholder="Search for services" style="flex:1;border:none;outline:none;font-size:13px;color:var(--muted);background:transparent;" />
+    </div>
+
+    <!-- Section title -->
+    <div style="padding:14px 18px 4px;font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.6px;">All services</div>
+
+    <!-- 4-column grid -->
+    <div class="service-grid">
+
+      <!-- Ask Monsoon (primary) -->
+      <div class="service-item primary" onclick="location.href='14-chatbot.html'">
+        <div class="service-icon">
+          <img src="assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" />
+        </div>
+        <span class="service-label">Ask Monsoon</span>
+      </div>
+
+      <!-- Evac centres -->
+      <div class="service-item" onclick="location.href='12-map.html'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg>
+        </div>
+        <span class="service-label">Evac centres</span>
+      </div>
+
+      <!-- Emergency call -->
+      <div class="service-item" onclick="window.location='tel:911'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5 12.8 12.8 0 0 0 2.8.7A2 2 0 0 1 22 16.9Z"/></svg>
+        </div>
+        <span class="service-label">Emergency call</span>
+      </div>
+
+      <!-- Report incident -->
+      <!-- BACKEND: POST /api/incidents { type: 'flood'|'road_blocked'|'injury', coords, description } -->
+      <div class="service-item" onclick="reportIncident()">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".8" fill="var(--orange)"/></svg>
+        </div>
+        <span class="service-label">Report incident</span>
+      </div>
+
+      <!-- Checklist -->
+      <div class="service-item" onclick="location.href='10-alert-detail.html'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M9 11l2.5 2.5L17 8"/><path d="M5 4h14v16H5z"/></svg>
+        </div>
+        <span class="service-label">Checklist</span>
+      </div>
+
+      <!-- SMS commands -->
+      <div class="service-item" onclick="location.href='15-sms-commands.html'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+        </div>
+        <span class="service-label">SMS commands</span>
+      </div>
+
+      <!-- Family chat (deep link to Viber/WhatsApp) -->
+      <div class="service-item" onclick="openFamilyChat()">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-15.6 4.4L3 21l5.1-2.4A8.5 8.5 0 1 0 21 11.5Z"/></svg>
+        </div>
+        <span class="service-label">Family chat</span>
+      </div>
+
+      <!-- Language -->
+      <!-- BACKEND: PATCH /api/user/profile { locale } then reload app -->
+      <div class="service-item" onclick="changeLanguage()">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+        </div>
+        <span class="service-label">Language</span>
+      </div>
+
+      <!-- Past alerts -->
+      <!-- BACKEND: GET /api/alerts/history?userId= -->
+      <div class="service-item" onclick="location.href='#past-alerts'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M5 4h14v16H5z"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+        </div>
+        <span class="service-label">Past alerts</span>
+      </div>
+
+      <!-- Settings -->
+      <div class="service-item" onclick="location.href='16-profile.html'">
+        <div class="service-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+        </div>
+        <span class="service-label">Settings</span>
+      </div>
+
+    </div>
+
+    <!-- Neighbour check-in card -->
+    <!-- BACKEND: GET /api/wardens/nearby?lat=&lng=&radius=500 -->
+    <div class="neighbour-card">
+      <div style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.6px;text-transform:uppercase;">Neighbour check-in</div>
+      <!-- BACKEND: wardens.count from API -->
+      <div style="font-size:13.5px;color:var(--ink);font-weight:600;margin-top:4px;" id="wardenCount">
+        2 wardens are within 350 m of you.
+      </div>
+      <div style="font-size:11.5px;color:var(--ink-2);margin-top:2px;line-height:1.5;">
+        If you go silent during a critical alert, the nearest registered community responder is auto-pinged.
+      </div>
+    </div>
+
+    <div style="height:86px;"></div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item active" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+function reportIncident() {
+  // BACKEND: Show incident report modal / navigate to report screen
+  // POST /api/incidents { type, coords: [lat,lng], description, photos[] }
+  alert('[DEV] Incident report modal — POST /api/incidents');
+}
+
+function openFamilyChat() {
+  // Open Viber group, or deep-link to WhatsApp
+  // No backend needed — this is a client-side native app deeplink
+  window.open('viber://add?number=21587', '_blank');
+}
+
+function changeLanguage() {
+  const lang = prompt('Choose language:\n  en = English\n  tl = Filipino\n  vi = Vietnamese', 'en');
+  if (lang && ['en','tl','vi'].includes(lang)) {
+    // BACKEND: PATCH /api/user/profile { locale: lang }
+    localStorage.setItem('monsoon_locale', lang);
+    alert(`[DEV] Language set to ${lang}. In production, PATCH /api/user/profile.`);
+  }
+}
+
+/* Load warden count */
+async function loadWardens() {
+  if (window.location.protocol === 'file:') return;
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    const user = JSON.parse(localStorage.getItem('monsoon_user') || '{}');
+    const res = await fetch(`/api/wardens/nearby?radius=500`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    document.getElementById('wardenCount').textContent =
+      `${data.count} warden${data.count !== 1 ? 's' : ''} are within 350 m of you.`;
+  } catch (e) {}
+}
+loadWardens();
+</script>
+
+</body>
+</html>

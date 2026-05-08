@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Welcome</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; overflow: hidden; }
+    .splash {
+      max-width: 430px; height: 100vh; margin: 0 auto;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 32px; position: relative; background: #fff;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .splash { height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    /* Concentric rings around the logo */
+    .logo-rings { position: relative; width: 220px; height: 220px; margin-bottom: 32px; }
+    .ring {
+      position: absolute; border-radius: 999px;
+      border: 1px solid var(--orange);
+    }
+    .ring-1 { inset: -22px; opacity: .14; }
+    .ring-2 { inset: -44px; opacity: .10; }
+    .ring-3 { inset: -66px; opacity: .06; }
+    .logo-center {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .brand-title {
+      font-family: var(--font-display); font-weight: 800; font-size: 36px;
+      color: var(--orange); line-height: 1; letter-spacing: -0.5px; text-align: center;
+    }
+    .brand-title span { color: var(--blue); }
+    .brand-tagline { font-size: 13px; color: var(--ink-2); margin-top: 10px; text-align: center; max-width: 280px; line-height: 1.5; }
+
+    .splash-actions {
+      position: absolute; bottom: 48px; left: 32px; right: 32px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .signin-link { text-align: center; font-size: 13px; color: var(--ink-2); }
+    .signin-link a { color: var(--orange); font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     - On first launch, check if user has an auth token in localStorage/cookie
+     - If authenticated → redirect to 08-dashboard-calm.html or 09-dashboard-critical.html
+       based on GET /api/alerts/active (check for active flood alert)
+     - "Get started" → 04-signup.html
+     - "Sign in" → 03-signin.html
+     - Logo image: assets/short_logo.png (the circular mark, not the lockup)
+     ============================================================ -->
+
+<div class="splash">
+
+  <!-- Logo with concentric rings -->
+  <div class="logo-rings">
+    <div class="ring ring-1"></div>
+    <div class="ring ring-2"></div>
+    <div class="ring ring-3"></div>
+    <div class="logo-center">
+      <img src="assets/short_logo.png" alt="MonsoonAI" width="200" height="200" style="object-fit:contain;" />
+    </div>
+  </div>
+
+  <!-- Brand name + tagline -->
+  <h1 class="brand-title">Monsoon<span>AI</span></h1>
+  <p class="brand-tagline">Hyper-local typhoon, flood and air-quality decisions for your home.</p>
+
+  <!-- CTAs -->
+  <div class="splash-actions">
+    <!-- BACKEND: Check if terms accepted before allowing signup -->
+    <button class="btn btn-primary btn-lg btn-full" onclick="location.href='04-signup.html'">
+      Get started
+    </button>
+    <div class="signin-link">
+      Already registered? <a onclick="location.href='03-signin.html'">Sign in</a>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

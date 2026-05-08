@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Evacuate</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; display: flex; flex-direction: column;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    .sub-nav { display: flex; align-items: center; gap: 10px; padding: 6px 18px 8px; }
+    .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; cursor: pointer; background: none; border: none; }
+    .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
+
+    /* Map area */
+    .map-area {
+      height: 280px; position: relative; background: #e8f0fe; overflow: hidden; flex-shrink: 0;
+    }
+    .map-area::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(rgba(30,91,217,.04) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(30,91,217,.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    /* Route line SVG */
+    .map-route-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* Map info overlay */
+    .map-info-card {
+      position: absolute; left: 14px; right: 14px; top: 12px;
+      padding: 12px; border-radius: 14px; background: rgba(255,255,255,.96);
+      border: 1px solid var(--hairline);
+    }
+    .map-info-label { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
+    .map-info-eta { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
+    .map-info-eta .big { font-family: var(--font-display); font-weight: 800; font-size: 24px; color: var(--ink); }
+    .map-info-note { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.4; }
+
+    /* Map pins */
+    .map-pin-start { position: absolute; bottom: 30%; left: 15%; width: 16px; height: 16px; border-radius: 999px; background: var(--orange); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+    .map-pin-dest  { position: absolute; top: 18%; right: 20%; }
+    .map-pin-dest-icon { width: 28px; height: 28px; border-radius: 999px; background: var(--ok); border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); display: flex; align-items: center; justify-content: center; }
+
+    /* Route steps */
+    .route-step {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px; border-radius: 14px; background: #fff;
+      border: 1px solid var(--hairline); margin: 0 14px;
+    }
+    .step-num { width: 28px; height: 28px; border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
+    .step-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+    .step-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* Destination step */
+    .dest-step { background: var(--orange-tint); border-color: var(--orange-soft); margin: 0 14px; }
+    .dest-step .step-num { background: var(--orange); }
+    .dest-step .step-title { color: var(--orange-deep); }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     On page load: GET /api/evac/route?lat=USER_LAT&lng=USER_LNG  (auth required)
+     Response: {
+       etaMinutes: number,               ← OSRM foot-mode, adjusted for PWD/elderly
+       distanceKm: number,
+       routingNote: string,              ← e.g. "adjusted to 3.0 km/h for elderly"
+       steps: [{ instruction, detail }],
+       destination: { name, address, capacity, occupied, hasMedial: boolean }
+     }
+
+     Map integration:
+       - Use Leaflet.js or Mapbox GL JS
+       - Fetch GeoJSON polyline from OSRM or stored route
+       - User location: navigator.geolocation or stored coordinates
+       - Update ETA in real-time as user moves (geolocation watchPosition)
+
+     "Start navigation" → Open native maps app via deep link:
+       Android: geo:LAT,LNG?q=DEST_LAT,DEST_LNG
+       iOS: maps://maps.apple.com/?daddr=DEST_LAT,DEST_LNG
+
+     "Share" → navigator.share() with route URL or SMS via Twilio
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- Sub-nav -->
+  <div class="sub-nav">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <span class="sub-nav-title">Evacuate</span>
+    <div class="flood-pill pill-critical">
+      <span class="dot"></span>
+      FLOOD WARNING
+    </div>
+  </div>
+
+  <!-- Map area -->
+  <div class="map-area">
+    <!-- Route line -->
+    <svg class="map-route-svg" viewBox="0 0 430 280" preserveAspectRatio="none">
+      <!-- BACKEND: Replace with actual GeoJSON polyline from OSRM route -->
+      <path d="M65 240 C 130 200, 180 170, 330 60"
+            stroke="var(--orange)" stroke-width="5" fill="none"
+            stroke-linecap="round" stroke-dasharray="2 8" />
+    </svg>
+
+    <!-- Map overlay: info card -->
+    <div class="map-info-card">
+      <div class="map-info-label">Walking route</div>
+      <!-- BACKEND: etaMinutes, distanceKm from API -->
+      <div class="map-info-eta">
+        <span class="big" id="etaMinutes">32</span>
+        <span style="font-size:12px;color:var(--ink-2);font-weight:600;">min</span>
+        <span style="font-size:12px;color:var(--muted);margin-left:6px;">· 2.4 km · OSRM foot mode</span>
+      </div>
+      <!-- BACKEND: routingNote from API (e.g. adjusted for elderly) -->
+      <div class="map-info-note" id="routeNote">
+        UK Design Manual base 4.5 km/h · adjusted to <strong>3.0 km/h</strong> for elderly companion.
+      </div>
+    </div>
+
+    <!-- User location pin -->
+    <div class="map-pin-start"></div>
+
+    <!-- Destination pin -->
+    <div class="map-pin-dest">
+      <div class="map-pin-dest-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m4 12 5 5 11-12"/></svg>
+      </div>
+    </div>
+
+    <!-- DEV NOTE overlay -->
+    <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-family:monospace;padding:4px 10px;border-radius:99px;white-space:nowrap;">
+      📍 Map placeholder — integrate Leaflet.js
+    </div>
+  </div>
+
+  <!-- Route steps -->
+  <div class="scroll-area" style="padding:12px 0 96px;display:flex;flex-direction:column;gap:8px;">
+
+    <!-- BACKEND: Render steps[] from API response -->
+    <div class="route-step">
+      <div class="step-num" style="background:var(--ok);">1</div>
+      <div>
+        <div class="step-title">Head NW on Sampaguita St.</div>
+        <div class="step-sub">180 m · away from canal backflow</div>
+      </div>
+    </div>
+
+    <div class="route-step">
+      <div class="step-num" style="background:var(--orange);">2</div>
+      <div>
+        <div class="step-title">Right onto MacArthur Hwy.</div>
+        <div class="step-sub">1.6 km · stay on the elevated sidewalk</div>
+      </div>
+    </div>
+
+    <!-- Destination -->
+    <div class="route-step dest-step">
+      <div class="step-num">★</div>
+      <div>
+        <!-- BACKEND: destination.name, destination.address, destination.occupied/capacity -->
+        <div class="step-title" id="destName">Angeles City Evacuation Center</div>
+        <div class="step-sub" id="destDetail">Capacity 240 · ~60 occupied · gym + medical post</div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;gap:8px;padding:6px 14px 0;">
+      <!-- BACKEND: Deep link to native maps app -->
+      <button class="btn btn-primary btn-full" onclick="startNavigation()">Start navigation</button>
+      <!-- BACKEND: navigator.share() or SMS via Twilio -->
+      <button class="btn btn-secondary" onclick="shareRoute()">Share</button>
+    </div>
+
+    <!-- Offline notice -->
+    <div style="margin:4px 14px;padding:10px 14px;border-radius:12px;background:var(--orange-tint);border:1px solid var(--orange-soft);">
+      <div style="font-size:11px;font-weight:800;color:var(--orange-deep);text-transform:uppercase;letter-spacing:.4px;">Works offline</div>
+      <p style="font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.4;">
+        Route is cached on your device. No internet required to follow the steps above.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='09-dashboard-critical.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+function startNavigation() {
+  // BACKEND: Replace lat/lng with actual destination coordinates from API
+  const destLat = 15.1620, destLng = 120.5880;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const url = isIOS
+    ? `maps://maps.apple.com/?daddr=${destLat},${destLng}`
+    : `geo:${destLat},${destLng}?q=${destLat},${destLng}(Angeles+City+Evac+Center)`;
+
+  // Try native app, fallback to Google Maps
+  window.location = url;
+  setTimeout(() => {
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}`);
+  }, 500);
+}
+
+function shareRoute() {
+  const text = 'MonsoonAI Evac Route: Head NW on Sampaguita 180m → Right MacArthur Hwy 1.6km → Angeles City Evac Center (32 min walk)';
+  if (navigator.share) {
+    navigator.share({ title: 'Evacuation Route', text });
+  } else {
+    // BACKEND: POST /api/sms/send-evac to Twilio
+    alert('[DEV] Would share route via SMS/native share');
+  }
+}
+</script>
+
+</body>
+</html>

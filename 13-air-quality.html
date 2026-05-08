@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Air Quality & Heat</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+    .sub-nav { display: flex; align-items: center; gap: 10px; padding: 6px 18px 8px; }
+    .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; cursor: pointer; background: none; border: none; }
+    .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
+
+    .metric-hero { padding: 18px; border-radius: 18px; border: 1.5px solid var(--hairline); background: #fff; margin: 0 14px; }
+    .metric-val { font-family: var(--font-display); font-weight: 800; font-size: 48px; line-height: 1; }
+    .metric-label { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+    .signal-row { display: flex; gap: 10px; padding: 10px 0; }
+    .signal-row + .signal-row { border-top: 1px solid var(--hairline); }
+    .signal-icon { width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; font-size: 11px; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     GET /api/conditions/air    → { aqi, category, pm25, pm10, no2, source, updatedAt }
+     GET /api/conditions/heat   → { heatIndex, feelsLike, humidity, uvIndex, updatedAt }
+     GET /api/conditions/haze   → { aerosolOpticalDepth, firePts: number, source: 'FIRMS' }
+
+     AQI Scale: US EPA AQI (0-500)
+       0-50: Good (green) · 51-100: Moderate · 101-150: Unhealthy for sensitive groups
+       151-200: Unhealthy · 201-300: Very Unhealthy · 301+: Hazardous
+
+     Data sources:
+       - Air quality: Open-Meteo Air Quality API (free) or IQAir
+       - Haze/fire: NASA FIRMS satellite fire-pixel data (free)
+       - Heat index: PAGASA or Open-Meteo
+     ============================================================ -->
+
+<div class="app-shell">
+  <div class="sub-nav">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <span class="sub-nav-title">Air &amp; Heat Detail</span>
+    <div class="flood-pill pill-ok"><span class="dot"></span>ALL CLEAR</div>
+  </div>
+
+  <div class="scroll-area" style="padding:0 0 40px;">
+
+    <!-- Air Quality Card -->
+    <div style="padding:0 14px 14px;">
+      <div class="metric-hero">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">Air Quality Index (US EPA)</div>
+        <!-- BACKEND: aqi value + category color -->
+        <div class="metric-val" style="color:var(--ok);" id="aqiVal">11</div>
+        <div class="metric-label">
+          <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-weight:800;font-size:12px;">EXCELLENT</span>
+          <span style="margin-left:8px;font-size:12px;color:var(--muted);">Updated 5 min ago</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signals -->
+    <div style="margin:0 14px;padding:14px;border-radius:16px;background:#fff;border:1px solid var(--hairline);">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:8px;">Signal breakdown</div>
+      <!-- BACKEND: Render from /api/conditions/air response -->
+      <div class="signal-row">
+        <div class="signal-icon" style="background:var(--ok-soft);color:var(--ok);">✓</div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--ink);">PM2.5 within safe range</div><div style="font-size:11px;color:var(--muted);">Open-Meteo · 4.2 μg/m³ (limit 25)</div></div>
+      </div>
+      <div class="signal-row">
+        <div class="signal-icon" style="background:var(--ok-soft);color:var(--ok);">✓</div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--ink);">No active fire pixels nearby</div><div style="font-size:11px;color:var(--muted);">NASA FIRMS VIIRS · 50 km radius · 0 hotspots</div></div>
+      </div>
+      <div class="signal-row">
+        <div class="signal-icon" style="background:var(--ok-soft);color:var(--ok);">✓</div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--ink);">Aerosol optical depth normal</div><div style="font-size:11px;color:var(--muted);">MODIS satellite · AOD 0.12 (haze threshold 0.5)</div></div>
+      </div>
+    </div>
+
+    <!-- Heat Index Card -->
+    <div style="padding:14px 14px 0;">
+      <div class="metric-hero">
+        <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">Heat Index</div>
+        <!-- BACKEND: heatIndex value from /api/conditions/heat -->
+        <div class="metric-val" style="color:var(--warn);" id="heatVal">32°C</div>
+        <div class="metric-label">
+          <span style="display:inline-block;padding:3px 10px;border-radius:999px;background:var(--ok-soft);color:var(--ok);font-weight:800;font-size:12px;">SAFE</span>
+          <span style="margin-left:8px;font-size:12px;color:var(--muted);">Feels like 35°C · Humidity 78%</span>
+        </div>
+        <div style="margin-top:10px;padding:10px;border-radius:10px;background:var(--warm-bg);">
+          <div style="font-size:12px;color:var(--ink-2);line-height:1.5;">
+            🌡 Drink water every 30 min when outdoors. UV Index: <strong>8 (Very High)</strong>. Limit sun exposure 10 AM–3 PM.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data sources footer -->
+    <div style="margin:14px;padding:12px 14px;border-radius:12px;background:var(--warm-bg);border:1px solid var(--hairline);">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">Data sources</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--ink-2);">
+        <div>🌫 Air quality: <strong>Open-Meteo Air Quality API</strong></div>
+        <div>🔥 Fire/haze: <strong>NASA FIRMS VIIRS satellite</strong></div>
+        <div>🌡 Heat index: <strong>PAGASA / Open-Meteo</strong></div>
+        <div>💧 Rainfall: <strong>Open-Meteo ECMWF</strong></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+</div>
+</body>
+</html>

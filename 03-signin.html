@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Sign In</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; padding: 48px 28px 40px;
+      display: flex; flex-direction: column; gap: 22px;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 760px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+    .welcome-sub { font-size: 13px; color: var(--ink-2); }
+    .welcome-brand { font-family: var(--font-display); font-weight: 800; font-size: 38px; color: var(--orange); line-height: 1.1; }
+    .form-group { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+    .error-msg { display: none; background: var(--critical-soft); color: var(--critical); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600; }
+    .sms-fallback-card {
+      margin-top: 16px; padding: 14px; border-radius: 14px;
+      background: var(--orange-tint); border: 1px solid var(--orange-soft);
+    }
+    .sms-fallback-card .label { font-size: 11px; color: var(--orange-deep); font-weight: 700; letter-spacing: .4px; text-transform: uppercase; }
+    .sms-fallback-card p { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
+    .forgot-link { text-align: right; font-size: 12.5px; color: var(--orange); font-weight: 700; cursor: pointer; }
+    .signup-link { text-align: center; font-size: 12.5px; color: var(--ink-2); margin-top: 12px; }
+    .signup-link a { color: var(--orange); font-weight: 700; cursor: pointer; }
+    .loading-overlay {
+      display: none; position: absolute; inset: 0; background: rgba(255,255,255,.8);
+      align-items: center; justify-content: center; z-index: 50; border-radius: 44px;
+    }
+    .loading-spinner {
+      width: 36px; height: 36px; border-radius: 999px;
+      border: 3px solid var(--orange-soft); border-top-color: var(--orange);
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     API: POST /api/auth/login
+     Request body: { username: string, password: string }
+     Response (200): { token: string, user: { id, name, riskLevel: 'ok'|'high'|'critical' } }
+     Response (401): { error: "Invalid credentials" }
+
+     On success:
+       - Store JWT in localStorage as 'monsoon_token'
+       - If user.riskLevel === 'critical' → redirect to 09-dashboard-critical.html
+       - Else → redirect to 08-dashboard-calm.html
+
+     On error: Show .error-msg div with the message from API response.
+
+     Social login / SSO: Not in scope for MVP.
+     Password reset: POST /api/auth/forgot-password { email }
+     ============================================================ -->
+
+<div class="app-shell" style="position:relative;">
+
+  <!-- Loading overlay (show during API call) -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Logo mark -->
+  <img src="assets/short_logo.png" alt="MonsoonAI" width="68" height="68" style="object-fit:contain;" />
+
+  <!-- Heading -->
+  <div>
+    <div class="welcome-sub">Welcome to</div>
+    <div class="welcome-brand">MonsoonAI</div>
+  </div>
+
+  <!-- Error banner (hidden by default) -->
+  <div class="error-msg" id="errorMsg" role="alert">
+    <!-- BACKEND: Populate with API error message -->
+    Invalid username or password. Please try again.
+  </div>
+
+  <!-- Sign in form -->
+  <form class="form-group" id="signinForm" onsubmit="handleSignin(event)">
+    <div class="field-wrap">
+      <label class="field-label" for="username">Username</label>
+      <div class="field-input-wrap">
+        <!-- BACKEND: Send as `username` in POST body -->
+        <input type="text" id="username" name="username" placeholder="your.username" autocomplete="username" />
+      </div>
+    </div>
+
+    <div class="field-wrap">
+      <label class="field-label" for="password">Password</label>
+      <div class="field-input-wrap">
+        <!-- BACKEND: Send as `password` in POST body (do NOT log or store in history) -->
+        <input type="password" id="password" name="password" placeholder="••••••••••" autocomplete="current-password" />
+        <!-- Toggle password visibility -->
+        <button type="button" onclick="togglePassword()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- BACKEND: "Forgot password" → POST /api/auth/forgot-password { email } -->
+    <div class="forgot-link" onclick="location.href='#forgot-password'">Forgot password?</div>
+
+    <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:6px;">
+      Enter
+    </button>
+  </form>
+
+  <!-- Sign up link -->
+  <div class="signup-link">
+    Don't have an account yet? <a onclick="location.href='04-signup.html'">Sign up here.</a>
+  </div>
+
+  <!-- SMS fallback card -->
+  <div class="sms-fallback-card">
+    <div class="label">No data? No problem.</div>
+    <p>Text <strong style="color:var(--orange)">STATUS</strong> to <strong>21587</strong> for risk over basic SMS.</p>
+  </div>
+
+</div>
+
+<script>
+/* ── BACKEND INTEGRATION POINT ── */
+async function handleSignin(e) {
+  e.preventDefault();
+  const form = e.target;
+  const username = form.username.value.trim();
+  const password = form.password.value;
+
+  if (!username || !password) return;
+
+  // Show loading
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('errorMsg').style.display = 'none';
+
+  try {
+    // TODO: Replace with actual API URL
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+
+    // Store token
+    localStorage.setItem('monsoon_token', data.token);
+    localStorage.setItem('monsoon_user', JSON.stringify(data.user));
+
+    // Route based on risk level
+    if (data.user.riskLevel === 'critical') {
+      location.href = '09-dashboard-critical.html';
+    } else {
+      location.href = '08-dashboard-calm.html';
+    }
+
+  } catch (err) {
+    document.getElementById('errorMsg').textContent = err.message;
+    document.getElementById('errorMsg').style.display = 'block';
+  } finally {
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }
+}
+
+// DEMO fallback: navigate without API (remove in production)
+document.getElementById('signinForm').addEventListener('submit', function(e) {
+  if (!navigator.onLine || window.location.protocol === 'file:') {
+    e.preventDefault();
+    location.href = '08-dashboard-calm.html'; // Demo: go to calm dashboard
+  }
+});
+
+function togglePassword() {
+  const pw = document.getElementById('password');
+  pw.type = pw.type === 'password' ? 'text' : 'password';
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Ask Monsoon</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    /* Chat messages area */
+    .messages {
+      flex: 1; overflow-y: auto; padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 12;
+      -webkit-overflow-scrolling: touch;
+    }
+    .messages-inner { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Bubbles */
+    .bubble-wrap { display: flex; gap: 8px; align-items: flex-end; max-width: 88%; }
+    .bubble-wrap.user { align-self: flex-end; flex-direction: row-reverse; max-width: 78%; }
+    .bubble-avatar { width: 26px; height: 26px; border-radius: 999px; flex-shrink: 0; border: 1.5px solid var(--orange); background: #fff; display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+    .bubble {
+      padding: 10px 14px; font-size: 13px; line-height: 1.5;
+      border-radius: 4px 18px 18px 18px;
+      background: #fff; border: 1px solid var(--hairline); color: var(--ink);
+    }
+    .bubble.user { border-radius: 18px 18px 4px 18px; background: var(--orange); color: #fff; border-color: var(--orange); }
+    .bubble.attach { background: transparent; border: none; padding: 0; }
+
+    /* Evac attachment card */
+    .evac-attach { width: 240px; border-radius: 16px; overflow: hidden; border: 1px solid var(--hairline); background: #fff; }
+    .evac-attach-map { height: 80px; background: #e8f0fe; position: relative; overflow: hidden; }
+    .evac-attach-map::before { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(30,91,217,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(30,91,217,.04) 1px, transparent 1px); background-size: 20px 20px; }
+    .evac-attach-body { padding: 10px; }
+
+    /* Command pills */
+    .cmd-pills { display: flex; gap: 8px; overflow-x: auto; padding: 4px 14px 0; scrollbar-width: none; }
+    .cmd-pills::-webkit-scrollbar { display: none; }
+    .cmd-pill {
+      flex: 0 0 auto; padding: 8px 12px; border-radius: 999px;
+      background: var(--orange); color: #fff;
+      font-family: var(--font-ui); font-size: 11.5px; font-weight: 700;
+      display: inline-flex; gap: 6px; align-items: center; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .cmd-pill:hover { opacity: .85; }
+
+    /* Composer */
+    .composer { padding: 10px 14px 14px; }
+    .composer-bar {
+      height: 50px; border-radius: 999px; background: var(--orange); color: #fff;
+      display: flex; align-items: center; padding: 0 10px 0 18px; gap: 10; cursor: pointer;
+    }
+    .composer-plus { font-family: var(--font-display); font-weight: 800; font-size: 24px; line-height: 1; }
+    .composer-input { flex: 1; font-weight: 700; font-size: 14px; opacity: .9; }
+    .composer-icon-btn { width: 32px; height: 32px; border-radius: 999px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+    .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 10px 14px; }
+    .typing-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--muted); animation: typingBounce .8s ease-in-out infinite; }
+    .typing-dot:nth-child(2) { animation-delay: .15s; }
+    .typing-dot:nth-child(3) { animation-delay: .3s; }
+    @keyframes typingBounce { 0%,100%{ transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     Chat API: POST /api/chat/message  (auth required)
+     Request body: {
+       message: string,          ← user's typed or voice input
+       sessionId: string,        ← keep for conversation context
+       locale: 'en'|'tl'|'vi'   ← user's preferred language
+     }
+     Response: {
+       reply: string,
+       attachments?: [
+         { type: 'evac_route', etaMin: number, distKm: number, centerName: string }
+       ],
+       suggestedCommands?: string[]   ← pills to show after reply
+     }
+
+     IMPORTANT ARCHITECTURE NOTE:
+       - The risk/evacuation decisions are made by a DETERMINISTIC engine
+       - The LLM (GPT-4o-mini or similar) handles LANGUAGE LAYER ONLY
+       - LLM should never be trusted to make the evacuation decision
+       - Use structured output: LLM fills template, deterministic engine drives verdict
+
+     Chat history: GET /api/chat/history?sessionId=  (last 20 messages)
+     Voice input: Use Web Speech API (SpeechRecognition) → send transcript to POST /api/chat/message
+     Image input: Base64 encode, include in message body as { imageBase64, mimeType }
+
+     Multi-language: server-side locale detection on user record
+       Filipino (Tagalog): tl · Ilocano: ilo (future) · Vietnamese: vi
+
+     Session: Generate sessionId client-side (nanoid) per page load.
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- App header -->
+  <div class="app-header">
+    <div class="app-logo">
+      <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
+      <span class="app-logo-name">MONSOON<span> AI</span></span>
+    </div>
+    <div class="flood-pill pill-critical"><span class="dot"></span>FLOOD WARNING</div>
+  </div>
+
+  <!-- Greeting -->
+  <div style="padding:8px 18px 4px;">
+    <!-- BACKEND: user.firstName from auth -->
+    <div style="font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--orange);line-height:1.1;" id="chatGreeting">Hello Maria,</div>
+    <div style="font-size:12.5px;color:var(--ink-2);margin-top:4px;">
+      I'm running the same engine that powers SMS. Ask me anything about your home's risk.
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" id="messagesArea">
+    <div class="messages-inner" id="messagesList">
+
+      <!-- USER bubble -->
+      <div class="bubble-wrap user">
+        <div class="bubble user">Is it safe to stay home tonight?</div>
+      </div>
+
+      <!-- BOT bubble -->
+      <div class="bubble-wrap">
+        <div class="bubble-avatar">
+          <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
+        </div>
+        <div class="bubble">
+          <strong>No.</strong> Your address sits inside a 25-year flood zone and rainfall in the next 6 h is forecast at <strong>67 mm</strong>.
+          Combined with the open hydrology river-discharge alert, my recommendation is to
+          <span style="color:var(--critical);font-weight:700;">evacuate within 90 minutes</span>.
+        </div>
+      </div>
+
+      <!-- BOT bubble with evac attachment -->
+      <div class="bubble-wrap">
+        <div class="bubble-avatar" style="opacity:0;pointer-events:none;">
+          <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
+        </div>
+        <div class="bubble attach">
+          <div class="evac-attach">
+            <div class="evac-attach-map">
+              <svg viewBox="0 0 240 80" style="position:absolute;inset:0;width:100%;height:100%;">
+                <!-- BACKEND: Replace with actual OSRM route polyline -->
+                <path d="M30 65 C 90 45, 130 35, 200 15" stroke="var(--orange)" stroke-width="3.5" fill="none" stroke-dasharray="2 5" stroke-linecap="round"/>
+              </svg>
+              <!-- Origin dot -->
+              <div style="position:absolute;bottom:22%;left:13%;width:12px;height:12px;border-radius:999px;background:var(--orange);border:2px solid #fff;"></div>
+              <!-- Destination pin -->
+              <div style="position:absolute;top:15%;right:15%;width:20px;height:20px;border-radius:999px;background:var(--ok);border:2px solid #fff;display:flex;align-items:center;justify-content:center;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m4 12 5 5 11-12"/></svg>
+              </div>
+            </div>
+            <div class="evac-attach-body">
+              <!-- BACKEND: Populate from /api/evac/route response -->
+              <div style="font-size:12px;font-weight:800;color:var(--ink);">Angeles City Evac Center</div>
+              <div style="font-size:11px;color:var(--ink-2);margin-top:2px;">2.4 km · 32 min walk · open · 60/240 occupancy</div>
+              <div style="display:flex;gap:6px;margin-top:8px;">
+                <button class="btn btn-primary btn-sm" onclick="location.href='11-evac-route.html'">Open route</button>
+                <!-- BACKEND: POST /api/sms/send-evac?to=contact -->
+                <button class="btn btn-secondary btn-sm" onclick="sendToContact()">Send to Lola</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER bubble (Filipino) -->
+      <div class="bubble-wrap user">
+        <div class="bubble user">Bakit hindi sapat ang ikalawang palapag?</div>
+      </div>
+
+      <!-- BOT response in Filipino -->
+      <div class="bubble-wrap">
+        <div class="bubble-avatar">
+          <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
+        </div>
+        <div class="bubble">
+          Sa hi-res LiDAR, ang ikalawang palapag ng nipa-house ninyo ay <strong>+2.4 m</strong> sa lupa, pero ang inaasahang flood crest sa Sapang Balen ay <strong>+3.1 m</strong>. Hindi ito sapat — kaya pinipili ko ang evacuate.
+        </div>
+      </div>
+
+      <!-- Typing indicator (hidden by default, show during API call) -->
+      <div id="typingIndicator" style="display:none;">
+        <div class="bubble-wrap">
+          <div class="bubble-avatar">
+            <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
+          </div>
+          <div class="bubble" style="padding:10px 14px;">
+            <div class="typing-indicator" style="padding:0;">
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+              <div class="typing-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Command pills (pre-canned quick prompts) -->
+  <!-- BACKEND: Command pills trigger POST /api/chat/message with the pill text as message -->
+  <div class="cmd-pills">
+    <div class="cmd-pill" onclick="sendCommand('Weather update')">☁️ Weather update</div>
+    <div class="cmd-pill" onclick="sendCommand('Temperature')">🌡 Temperature</div>
+    <div class="cmd-pill" onclick="sendCommand('Will it rain?')">🌧 Will it rain?</div>
+    <div class="cmd-pill" onclick="sendCommand('STATUS')">STATUS</div>
+    <div class="cmd-pill" onclick="sendCommand('EVAC')">EVAC</div>
+    <div class="cmd-pill" onclick="sendCommand('HAZE')">HAZE</div>
+    <div class="cmd-pill" onclick="sendCommand('HELP')">HELP</div>
+  </div>
+
+  <!-- Composer bar -->
+  <div class="composer">
+    <div class="composer-bar" onclick="focusInput()">
+      <span class="composer-plus">+</span>
+      <!-- BACKEND: On tap → show keyboard input. On submit → POST /api/chat/message -->
+      <input id="chatInput" type="text" placeholder="Ask Monsoon"
+             style="flex:1;background:transparent;border:none;outline:none;color:#fff;font-weight:700;font-size:14px;font-family:var(--font-ui);"
+             onkeydown="if(event.key==='Enter') sendMessage()" />
+      <!-- BACKEND: Image attach → base64 encode, include in request body -->
+      <button class="composer-icon-btn" type="button" title="Attach image">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <!-- BACKEND: Voice input → Web Speech API → SpeechRecognition → transcript → POST /api/chat/message -->
+      <button class="composer-icon-btn" type="button" id="voiceBtn" title="Voice input" onclick="startVoice()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+      </button>
+    </div>
+    <div style="text-align:center;font-size:10.5px;color:var(--muted);margin-top:6px;">
+      Powered by deterministic risk engine · LLM handles language only
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='09-dashboard-critical.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center">
+      <div class="nav-center-btn" style="background:var(--orange);border-color:var(--orange);" onclick="location.href='14-chatbot.html'">
+        <img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;" />
+      </div>
+      <span class="nav-center-label">Chat now</span>
+    </div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+const sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
+
+/* ── SEND MESSAGE ── */
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  appendBubble('user', text);
+  await callChatAPI(text);
+}
+
+function sendCommand(cmd) {
+  document.getElementById('chatInput').value = cmd;
+  sendMessage();
+}
+
+function focusInput() {
+  document.getElementById('chatInput').focus();
+}
+
+function appendBubble(who, content) {
+  const list = document.getElementById('messagesList');
+  const wrap = document.createElement('div');
+  wrap.className = `bubble-wrap ${who === 'user' ? 'user' : ''}`;
+
+  if (who === 'user') {
+    wrap.innerHTML = `<div class="bubble user">${escapeHtml(content)}</div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="bubble-avatar">
+        <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
+      </div>
+      <div class="bubble">${content}</div>`;
+  }
+  list.insertBefore(wrap, document.getElementById('typingIndicator'));
+  document.getElementById('messagesArea').scrollTop = 99999;
+}
+
+/* ── BACKEND INTEGRATION POINT ── */
+async function callChatAPI(message) {
+  document.getElementById('typingIndicator').style.display = 'flex';
+  document.getElementById('messagesArea').scrollTop = 99999;
+
+  // Demo mode (file protocol)
+  if (window.location.protocol === 'file:') {
+    await new Promise(r => setTimeout(r, 900));
+    document.getElementById('typingIndicator').style.display = 'none';
+    appendBubble('bot', `<em>[Demo mode] API response for: "${escapeHtml(message)}"</em><br/>In production, POST /api/chat/message with sessionId and locale.`);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    const user = JSON.parse(localStorage.getItem('monsoon_user') || '{}');
+    const res = await fetch('/api/chat/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ message, sessionId, locale: user.locale || 'en' })
+    });
+    const data = await res.json();
+    document.getElementById('typingIndicator').style.display = 'none';
+    appendBubble('bot', data.reply);
+    // TODO: Render data.attachments[] (evac cards)
+  } catch (err) {
+    document.getElementById('typingIndicator').style.display = 'none';
+    appendBubble('bot', 'I had trouble reaching the server. Please try again or text STATUS to 21587.');
+  }
+}
+
+/* ── VOICE INPUT (Web Speech API) ── */
+function startVoice() {
+  if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
+    alert('Voice input not supported in this browser. Try Chrome on Android.');
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'fil-PH'; // Filipino, fallback to en-US
+  rec.onresult = e => {
+    document.getElementById('chatInput').value = e.results[0][0].transcript;
+    sendMessage();
+  };
+  rec.start();
+}
+
+function sendToContact() {
+  // BACKEND: POST /api/sms/send-evac?to=contactId (send evac route to a saved contact)
+  alert('[DEV] Would send evac route to saved contact via Twilio SMS.');
+}
+
+function escapeHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Personalise greeting
+const user = JSON.parse(localStorage.getItem('monsoon_user') || '{"name":"Maria"}');
+document.getElementById('chatGreeting').textContent = `Hello ${user.name?.split(' ')[0] || 'Maria'},`;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Sign Up</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; padding: 36px 28px 40px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 760px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow-y: auto; }
+    }
+    .page-title { font-family: var(--font-display); font-weight: 800; font-size: 44px; color: var(--orange); line-height: 1; }
+    .page-sub { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+    .form-stack { display: flex; flex-direction: column; gap: 14px; }
+    .consent-text { text-align: center; font-size: 12px; color: var(--ink-2); margin-top: 4px; line-height: 1.5; }
+    .error-msg {
+      display: none; background: var(--critical-soft); color: var(--critical);
+      border-radius: 10px; padding: 10px 14px; font-size: 12.5px; font-weight: 600;
+    }
+    .password-strength {
+      height: 4px; border-radius: 99px; background: var(--hairline); margin-top: 6px; overflow: hidden;
+    }
+    .password-strength-bar { height: 100%; border-radius: 99px; width: 0%; transition: width .3s, background .3s; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     API: POST /api/auth/register
+     Request body: {
+       username: string,
+       email: string,
+       mobile: string,        ← used for SMS alerts (Twilio)
+       password: string
+     }
+     Response (201): { token: string, user: { id, name } }
+     Response (422): { errors: { field: string, message: string }[] }
+
+     After successful register:
+       → redirect to 05-onboarding-basic.html
+       (do NOT skip onboarding — household data is needed for risk scoring)
+
+     Validation rules (enforce server-side too):
+       username: 3-30 chars, alphanumeric + dots/underscores, unique
+       email: valid format, unique
+       mobile: Philippine format +63 or 09xxxxxxxxx, used for Twilio SMS
+       password: min 8 chars
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <div>
+    <h1 class="page-title">Sign up</h1>
+    <p class="page-sub">We'll need a few details to localise your alerts.</p>
+  </div>
+
+  <!-- Error banner (hidden by default) -->
+  <div class="error-msg" id="errorMsg" role="alert"></div>
+
+  <form class="form-stack" id="signupForm" onsubmit="handleSignup(event)">
+
+    <!-- BACKEND: username → check uniqueness with GET /api/auth/check-username?q= (debounced) -->
+    <div class="field-wrap">
+      <label class="field-label" for="username">Username</label>
+      <div class="field-input-wrap">
+        <input type="text" id="username" name="username" placeholder="e.g. maria.santos"
+               autocomplete="username" maxlength="30"
+               oninput="checkUsernameAvailability(this.value)" />
+        <span id="usernameStatus" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+    </div>
+
+    <!-- BACKEND: email → unique check -->
+    <div class="field-wrap">
+      <label class="field-label" for="email">Email Address</label>
+      <div class="field-input-wrap">
+        <input type="email" id="email" name="email" placeholder="you@email.com" autocomplete="email" />
+      </div>
+    </div>
+
+    <!-- BACKEND: mobile → sent to Twilio for SMS alerts.
+         Format: +63XXXXXXXXXX or 09XXXXXXXXX (normalize server-side) -->
+    <div class="field-wrap">
+      <label class="field-label" for="mobile">Mobile Number</label>
+      <div class="field-input-wrap">
+        <input type="tel" id="mobile" name="mobile" placeholder="+63 917 555 0114"
+               autocomplete="tel" />
+      </div>
+      <div class="field-helper">Used to deliver SMS alerts — works even without internet.</div>
+    </div>
+
+    <!-- BACKEND: password → bcrypt hash server-side, never store plain text -->
+    <div class="field-wrap">
+      <label class="field-label" for="password">Password</label>
+      <div class="field-input-wrap">
+        <input type="password" id="password" name="password" placeholder="Min 8 characters"
+               autocomplete="new-password" minlength="8"
+               oninput="updatePasswordStrength(this.value)" />
+        <button type="button" onclick="togglePw('password')" style="background:none;border:none;cursor:pointer;color:var(--muted);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="password-strength"><div class="password-strength-bar" id="pwStrength"></div></div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:10px;">
+      Create account
+    </button>
+  </form>
+
+  <p class="consent-text">By continuing you agree to receive SMS alerts in your chosen language.</p>
+
+  <p style="text-align:center;font-size:12.5px;color:var(--ink-2);">
+    Already registered? <a href="03-signin.html" style="color:var(--orange);font-weight:700;">Sign in</a>
+  </p>
+
+</div>
+
+<script>
+/* ── PASSWORD STRENGTH INDICATOR ── */
+function updatePasswordStrength(val) {
+  const bar = document.getElementById('pwStrength');
+  const strength = val.length >= 12 && /[A-Z]/.test(val) && /[0-9]/.test(val) ? 100
+    : val.length >= 8 ? 60 : val.length >= 5 ? 30 : 10;
+  bar.style.width = strength + '%';
+  bar.style.background = strength >= 60 ? 'var(--ok)' : strength >= 30 ? 'var(--warn)' : 'var(--critical)';
+}
+
+/* ── USERNAME AVAILABILITY CHECK (debounced) ── */
+let usernameTimer;
+async function checkUsernameAvailability(val) {
+  clearTimeout(usernameTimer);
+  const status = document.getElementById('usernameStatus');
+  if (val.length < 3) { status.textContent = ''; return; }
+  usernameTimer = setTimeout(async () => {
+    // TODO: GET /api/auth/check-username?q=val
+    status.textContent = '✓ Available'; // placeholder
+    status.style.color = 'var(--ok)';
+  }, 500);
+}
+
+function togglePw(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+/* ── FORM SUBMIT ── */
+async function handleSignup(e) {
+  e.preventDefault();
+  const form = e.target;
+  document.getElementById('errorMsg').style.display = 'none';
+
+  const payload = {
+    username: form.username.value.trim(),
+    email:    form.email.value.trim(),
+    mobile:   form.mobile.value.trim(),
+    password: form.password.value,
+  };
+
+  // Demo navigation (file:// protocol)
+  if (window.location.protocol === 'file:') {
+    location.href = '05-onboarding-basic.html'; return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.errors?.[0]?.message || data.error || 'Registration failed');
+    localStorage.setItem('monsoon_token', data.token);
+    localStorage.setItem('monsoon_user', JSON.stringify(data.user));
+    location.href = '05-onboarding-basic.html';
+  } catch (err) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = err.message;
+    el.style.display = 'block';
+  }
+}
+</script>
+
+</body>
+</html>

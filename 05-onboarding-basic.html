@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Step 1: Basic Info</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; padding: 24px 28px 40px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 760px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow-y: auto; }
+    }
+    .page-title-row { text-align: center; }
+    .page-title { font-family: var(--font-display); font-weight: 800; font-size: 40px; color: var(--orange); line-height: 1; }
+    .page-sub { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+    .form-stack { display: flex; flex-direction: column; gap: 12px; }
+    .pin-helper { font-family: var(--font-ui); font-size: 10.5px; color: var(--orange); margin-top: 4px; }
+    .map-preview {
+      height: 180px; border-radius: 14px; border: 1.5px dashed var(--orange-soft);
+      background: var(--orange-tint); position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .map-preview-inner { text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.5; z-index: 1; }
+    .map-preview::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(rgba(30,91,217,.04) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(30,91,217,.04) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    .map-user-dot {
+      position: absolute; width: 20px; height: 20px; border-radius: 999px;
+      background: var(--orange); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(242,107,31,.4);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+    }
+    .action-row { margin-top: auto; padding-top: 14px; }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     API: PATCH /api/user/profile  (auth required, Bearer token)
+     Request body: {
+       firstName: string,
+       middleName: string,
+       lastName: string,
+       address: string,
+       coordinates: { lat: number, lng: number },   ← from map pin
+       phone: string
+     }
+     Response (200): { success: true, profile: {...} }
+
+     Geocoding: POST /api/geocode { address: string }
+       → returns { lat, lng, formattedAddress }
+       Use to auto-fill coordinates when user types address.
+
+     Map pin: Use Leaflet.js or Mapbox GL JS with a draggable marker.
+       Map div id: "addressMap"
+       On marker drag: update hidden inputs lat/lng
+
+     Address autocomplete: Consider Google Places API or
+       local barangay lookup → GET /api/geo/barangay-search?q=
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step-dot done">1</div>
+    <div class="step-line"></div>
+    <div class="step-dot">2</div>
+    <div class="step-line"></div>
+    <div class="step-dot">3</div>
+  </div>
+
+  <div class="page-title-row">
+    <h1 class="page-title">Get started</h1>
+    <p class="page-sub">Please fill up the basic information.</p>
+  </div>
+
+  <form class="form-stack" id="basicInfoForm" onsubmit="handleBasicInfo(event)">
+
+    <div class="field-wrap">
+      <div class="field-input-wrap">
+        <input type="text" id="firstName" name="firstName" placeholder="First name"
+               autocomplete="given-name" required />
+      </div>
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-input-wrap">
+        <input type="text" id="middleName" name="middleName" placeholder="Middle name (optional)"
+               autocomplete="additional-name" />
+      </div>
+    </div>
+
+    <div class="field-wrap">
+      <div class="field-input-wrap">
+        <input type="text" id="lastName" name="lastName" placeholder="Last name"
+               autocomplete="family-name" required />
+      </div>
+    </div>
+
+    <!-- Address with map pin -->
+    <div class="field-wrap">
+      <div class="field-input-wrap">
+        <input type="text" id="address" name="address"
+               placeholder="House no., street, barangay, city"
+               autocomplete="street-address" required
+               oninput="debounceGeocode(this.value)" />
+        <!-- BACKEND: Tap icon → open map modal for pin dropping -->
+        <button type="button" onclick="openMapPicker()" style="background:none;border:none;cursor:pointer;color:var(--orange);padding:0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s7-7.6 7-13a7 7 0 1 0-14 0c0 5.4 7 13 7 13Z"/>
+            <circle cx="12" cy="9" r="2.5"/>
+          </svg>
+        </button>
+      </div>
+      <p class="pin-helper">Tap the 📍 icon to pin your exact location on the map.</p>
+    </div>
+
+    <!-- Map preview (Leaflet placeholder) -->
+    <!-- BACKEND: Initialize Leaflet map here. On address geocode success, pan map to coordinates. -->
+    <div class="map-preview" id="addressMap">
+      <div class="map-user-dot"></div>
+      <div class="map-preview-inner">
+        <div style="font-size:24px;margin-bottom:8px;">📍</div>
+        <!-- BACKEND DEV NOTE: Initialize Leaflet.js here.
+             Include: <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+             Include: <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+             Center: Angeles City [15.1348, 120.5869] · Zoom: 15
+             Add draggable marker, on dragend update #hiddenLat #hiddenLng -->
+        Map will render here (Leaflet.js).<br/>
+        Drag pin to exact home location.
+      </div>
+    </div>
+
+    <!-- Hidden inputs for coordinates (set by map drag) -->
+    <input type="hidden" id="hiddenLat" name="lat" value="15.1463" />
+    <input type="hidden" id="hiddenLng" name="lng" value="120.5796" />
+
+    <div class="field-wrap">
+      <div class="field-input-wrap">
+        <input type="tel" id="phone" name="phone" placeholder="Phone number (+63...)"
+               autocomplete="tel" />
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button type="submit" class="btn btn-primary btn-lg btn-full">Next</button>
+    </div>
+
+  </form>
+
+</div>
+
+<script>
+/* ── BACKEND INTEGRATION POINT ── */
+let geocodeTimer;
+function debounceGeocode(address) {
+  clearTimeout(geocodeTimer);
+  geocodeTimer = setTimeout(() => geocodeAddress(address), 600);
+}
+
+async function geocodeAddress(address) {
+  if (address.length < 8) return;
+  // TODO: POST /api/geocode { address }
+  // On success: update #hiddenLat, #hiddenLng, pan Leaflet map
+  console.log('[DEV] Would geocode:', address);
+}
+
+function openMapPicker() {
+  // TODO: Open fullscreen Leaflet map modal for precise pin drop
+  alert('[DEV PLACEHOLDER] Open Leaflet map modal here.\nOn confirm, update #hiddenLat #hiddenLng and the address field.');
+}
+
+async function handleBasicInfo(e) {
+  e.preventDefault();
+  const form = e.target;
+  const payload = {
+    firstName:  form.firstName.value.trim(),
+    middleName: form.middleName.value.trim(),
+    lastName:   form.lastName.value.trim(),
+    address:    form.address.value.trim(),
+    coordinates: { lat: parseFloat(form.lat.value), lng: parseFloat(form.lng.value) },
+    phone:      form.phone.value.trim(),
+  };
+
+  if (window.location.protocol === 'file:') {
+    location.href = '06-onboarding-household.html'; return;
+  }
+
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    const res = await fetch('/api/user/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to save profile');
+    location.href = '06-onboarding-household.html';
+  } catch (err) {
+    alert(err.message);
+  }
+}
+</script>
+
+</body>
+</html>

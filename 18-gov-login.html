@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Government Console Sign In</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: var(--warm-bg); margin: 0; font-family: var(--font-ui); }
+
+    .gov-login-shell {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 24px;
+    }
+    .gov-login-card {
+      width: 100%; max-width: 1100px; min-height: 600px;
+      display: flex; border-radius: 20px; overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,.14);
+    }
+
+    /* ── Left brand panel ── */
+    .brand-panel {
+      flex: 1.05; background: linear-gradient(160deg, var(--orange) 0%, var(--orange-deep) 100%);
+      color: #fff; padding: 56px; position: relative; overflow: hidden;
+    }
+    /* Rain drops decoration */
+    .rain-drop { position: absolute; top: -6px; width: 2px; height: 10px; border-radius: 2px; background: rgba(255,255,255,.4); animation: mm-rain 1s linear infinite; }
+    .brand-headline { font-family: var(--font-display); font-weight: 800; font-size: 34px; letter-spacing: -.4px; margin-top: 24px; line-height: 1.05; }
+    .brand-sub { font-size: 14px; opacity: .92; margin-top: 14px; max-width: 460px; line-height: 1.5; }
+    .stat-row { display: flex; align-items: baseline; gap: 14px; }
+    .stat-num { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1; min-width: 70px; }
+    .stat-label { font-size: 12.5px; opacity: .9; }
+
+    /* ── Right form panel ── */
+    .form-panel {
+      flex: 1; padding: 64px; display: flex; flex-direction: column; justify-content: center; background: #fff;
+    }
+    .form-eyebrow { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .8px; text-transform: uppercase; }
+    .form-headline { font-family: var(--font-display); font-weight: 800; font-size: 36px; color: var(--ink); margin-top: 8px; line-height: 1.1; }
+    .form-sub { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+
+    .form-field { display: flex; flex-direction: column; gap: 6px; }
+    .form-field label { font-size: 13px; font-weight: 600; color: var(--orange); }
+    .form-field input {
+      height: 46px; border-radius: 12px; border: 1.5px solid var(--orange);
+      padding: 0 14px; font-size: 14px; color: var(--ink); background: #fff;
+      font-family: var(--font-ui); outline: none;
+    }
+    .form-field input:focus { box-shadow: 0 0 0 3px rgba(242,107,31,.18); }
+
+    .remember-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+    .forgot-link { color: var(--orange); font-weight: 700; cursor: pointer; }
+
+    .alert-banner {
+      padding: 12px 14px; border-radius: 12px;
+      background: var(--critical-soft); border: 1px solid var(--critical);
+    }
+    .alert-banner .label { font-size: 11px; font-weight: 800; color: var(--critical); letter-spacing: .6px; text-transform: uppercase; }
+    .alert-banner p { font-size: 12.5px; color: var(--ink); margin-top: 2px; }
+
+    /* Responsive — stack on mobile */
+    @media (max-width: 768px) {
+      .gov-login-card { flex-direction: column; max-width: 480px; }
+      .brand-panel { padding: 36px 28px; }
+      .form-panel { padding: 36px 28px; }
+      .brand-headline { font-size: 24px; }
+      .brand-sub { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     API: POST /api/gov/auth/login
+     Request body: {
+       agencyId: string,        ← e.g. "DRRMO-AC-0312"
+       email: string,
+       password: string
+     }
+     Response (200): {
+       token: string,           ← JWT with role: 'government'
+       officer: { id, name, agency, region }
+     }
+     Response (401): { error: string }
+
+     On success → redirect to 19-gov-manifest.html
+     Store gov token as 'monsoon_gov_token' in localStorage
+     (or preferably httpOnly session cookie for government use)
+
+     Active storm banner: GET /api/alerts/active-storm (public, no auth)
+     Response: { active: boolean, name: string, signal: number, raisedAt: ISO }
+     
+     Password policy: must meet DICT government security standards
+     MFA: TOTP recommended for production (optional for MVP)
+     
+     Audit log: every login attempt should be logged with IP/timestamp
+     ============================================================ -->
+
+<div class="gov-login-shell">
+  <div class="gov-login-card">
+
+    <!-- ── LEFT: Brand + stats ── -->
+    <div class="brand-panel" id="brandPanel">
+      <div style="position:relative;z-index:1;">
+        <img src="assets/short_logo.png" alt="MonsoonAI" width="64" height="64" style="object-fit:contain;" />
+        <h1 class="brand-headline">
+          From reactive rescue to<br/>anticipatory triage.
+        </h1>
+        <p class="brand-sub">
+          The MonsoonAI government console pre-positions rescue teams 24 hours before landfall, ranked by structural × demographic risk.
+        </p>
+
+        <!-- Stats -->
+        <!-- BACKEND: These can be from GET /api/gov/stats (cached) -->
+        <div style="margin-top:36px;display:flex;flex-direction:column;gap:14px;max-width:460px;">
+          <div class="stat-row">
+            <span class="stat-num">127</span>
+            <span class="stat-label">CRITICAL households on tonight's manifest</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-num">72%</span>
+            <span class="stat-label">reduction in dispatch latency vs. SMS-driven response</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-num">&lt;3 s</span>
+            <span class="stat-label">two-way SMS query response, deterministic engine</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Login form ── -->
+    <div class="form-panel">
+      <div class="form-eyebrow">Disaster Office Sign in</div>
+      <h2 class="form-headline">Welcome back.</h2>
+      <!-- BACKEND: Replace with officer.agency from token refresh (if session active) -->
+      <p class="form-sub" id="agencyLine">
+        Signing in to <strong>Angeles City MDRRMO · Region III</strong>.
+      </p>
+
+      <form style="margin-top:24px;display:flex;flex-direction:column;gap:14px;" id="govLoginForm" onsubmit="handleGovLogin(event)">
+
+        <!-- BACKEND: agency ID field (not email) — maps to a registered government unit -->
+        <div class="form-field">
+          <label for="agencyId">Agency ID</label>
+          <input type="text" id="agencyId" name="agencyId" placeholder="DRRMO-AC-0312"
+                 autocomplete="username" />
+        </div>
+
+        <div class="form-field">
+          <label for="govEmail">Officer email</label>
+          <input type="email" id="govEmail" name="email" placeholder="officer@agency.gov.ph"
+                 autocomplete="email" />
+        </div>
+
+        <div class="form-field">
+          <label for="govPassword">Password</label>
+          <input type="password" id="govPassword" name="password" placeholder="••••••••••••••"
+                 autocomplete="current-password" />
+        </div>
+
+        <div class="remember-row">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="rememberMe" style="accent-color:var(--orange);" />
+            Stay signed in on this terminal
+          </label>
+          <!-- BACKEND: POST /api/gov/auth/forgot-password -->
+          <span class="forgot-link" onclick="govForgotPassword()">Forgot password?</span>
+        </div>
+
+        <!-- Error banner (hidden by default) -->
+        <div id="govErrorMsg" style="display:none;padding:10px 14px;background:var(--critical-soft);color:var(--critical);border-radius:10px;font-size:12.5px;font-weight:600;"></div>
+
+        <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:8px;">
+          Enter console
+        </button>
+
+      </form>
+
+      <!-- Active storm alert banner -->
+      <!-- BACKEND: Show when GET /api/alerts/active-storm returns active: true -->
+      <div class="alert-banner" style="margin-top:20px;" id="stormBanner">
+        <div class="label">Active warning</div>
+        <!-- BACKEND: name + signal from /api/alerts/active-storm -->
+        <p id="stormBannerText">
+          TY Aghon — Signal #4 raised over Pampanga at 09:48 PM. Manifest auto-generated.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── Rain ribbon animation ── */
+const panel = document.getElementById('brandPanel');
+for (let i = 0; i < 18; i++) {
+  const d = document.createElement('div');
+  d.className = 'rain-drop';
+  d.style.left = ((i * 5.4 + 4) % 100) + '%';
+  d.style.animationDuration = (0.9 + (i % 5) * 0.15) + 's';
+  d.style.animationDelay = (i * 0.07) + 's';
+  panel.appendChild(d);
+}
+
+/* ── BACKEND INTEGRATION POINT ── */
+async function handleGovLogin(e) {
+  e.preventDefault();
+  const form = e.target;
+  document.getElementById('govErrorMsg').style.display = 'none';
+
+  const payload = {
+    agencyId: form.agencyId.value.trim(),
+    email:    form.email.value.trim(),
+    password: form.password.value,
+  };
+
+  // Demo mode
+  if (window.location.protocol === 'file:') {
+    location.href = '19-gov-manifest.html'; return;
+  }
+
+  try {
+    const res = await fetch('/api/gov/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed');
+    localStorage.setItem('monsoon_gov_token', data.token);
+    localStorage.setItem('monsoon_gov_officer', JSON.stringify(data.officer));
+    location.href = '19-gov-manifest.html';
+  } catch (err) {
+    const el = document.getElementById('govErrorMsg');
+    el.textContent = err.message;
+    el.style.display = 'block';
+  }
+}
+
+function govForgotPassword() {
+  // BACKEND: POST /api/gov/auth/forgot-password { email }
+  const email = document.getElementById('govEmail').value;
+  alert(`[DEV] Would send reset link to: ${email || 'officer@agency.gov.ph'}`);
+}
+
+/* ── Load active storm banner ── */
+async function loadStormBanner() {
+  if (window.location.protocol === 'file:') return;
+  try {
+    const res = await fetch('/api/alerts/active-storm');
+    const data = await res.json();
+    const banner = document.getElementById('stormBanner');
+    if (!data.active) { banner.style.display = 'none'; return; }
+    document.getElementById('stormBannerText').textContent =
+      `${data.name} — Signal #${data.signal} raised over ${data.area} at ${new Date(data.raisedAt).toLocaleTimeString()}. Manifest auto-generated.`;
+  } catch (e) {}
+}
+loadStormBanner();
+</script>
+
+</body>
+</html>

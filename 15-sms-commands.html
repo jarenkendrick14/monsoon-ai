@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — SMS Commands</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+    .sub-nav { display: flex; align-items: center; gap: 10px; padding: 6px 18px 8px; }
+    .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; background: none; border: none; cursor: pointer; }
+    .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 16px; color: var(--ink); }
+
+    /* SMS bubbles */
+    .sms-thread { display: flex; flex-direction: column; gap: 8px; }
+    .sms-bubble {
+      padding: 9px 13px; border-radius: 16px;
+      font-family: var(--font-mono); font-size: 12px; line-height: 1.5;
+      max-width: 86%;
+    }
+    .sms-out { align-self: flex-end; background: #3478F6; color: #fff; }
+    .sms-in  { align-self: flex-start; background: #E5E5EA; color: var(--ink); }
+
+    /* Command row */
+    .cmd-row { display: flex; align-items: center; gap: 12px; }
+    .cmd-keyword {
+      padding: 7px 14px; border-radius: 999px; background: var(--orange); color: #fff;
+      font-family: var(--font-mono); font-weight: 800; font-size: 12px;
+      letter-spacing: .5px; flex-shrink: 0; min-width: 70px; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES (Twilio two-way SMS):
+     
+     Inbound SMS webhook: POST /api/sms/inbound
+       Twilio sends: { From: '+63917...', Body: 'STATUS', To: '21587' }
+       
+     Handler logic (deterministic, NOT LLM):
+       1. Normalize Body: uppercase, trim
+       2. Lookup user by From phone number → get lat/lng + household data
+       3. Run risk engine for that address
+       4. Template response (no LLM for critical paths)
+       5. Return TwiML: <Response><Message>...</Message></Response>
+     
+     Supported keywords:
+       STATUS → Full risk summary + alert level
+       EVAC   → Nearest shelter + walking time (OSRM)
+       FLOOD  → River discharge % above threshold + zone
+       HAZE   → NASA FIRMS fire pixels + AOD
+       TEMP   → Heat index + UV + recommendation
+       HELP   → List all commands (multi-language if locale set)
+       STOP   → Unsubscribe (required by Twilio)
+       START  → Re-subscribe
+     
+     Response SLA: < 3 seconds
+     Carrier: Globe, Smart, Sun, DITO, TNT (Philippine carriers)
+     Short code: 21587 (register with DICT/NTC)
+     
+     Multi-language: detect user.locale from profile
+       'tl' → reply in Filipino
+       'vi' → reply in Vietnamese
+       'en' → English (default)
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- Sub-nav -->
+  <div class="sub-nav">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <span class="sub-nav-title">SMS · 21587 · MonsoonAI</span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  </div>
+
+  <div class="scroll-area" style="padding:0 14px 40px;">
+
+    <!-- Info card -->
+    <div style="padding:14px;border-radius:16px;background:var(--warm-bg);border:1px solid var(--hairline);margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:800;color:var(--orange);letter-spacing:.6px;text-transform:uppercase;">Two-way over basic SMS</div>
+      <p style="font-size:13px;color:var(--ink-2);margin-top:4px;line-height:1.5;">
+        Works on any phone — even without internet. Text any keyword to <strong>21587</strong>. Reply ETA 5–10 sec via Twilio.
+      </p>
+    </div>
+
+    <!-- Commands list -->
+    <!-- BACKEND: These are the exact keywords the inbound SMS handler recognizes -->
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+      <div class="cmd-row">
+        <div class="cmd-keyword">STATUS</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">Full risk summary at your address</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword">EVAC</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">Nearest shelter + walking time</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword">FLOOD</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">River discharge &amp; flood zone status</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword">HAZE</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">Satellite aerosol + fire-pixel data</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword">TEMP</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">Heat-index advisory</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword">HELP</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">List of commands · multi-language</span>
+      </div>
+      <div class="cmd-row">
+        <div class="cmd-keyword" style="background:var(--muted);">STOP</div>
+        <span style="font-size:12.5px;color:var(--ink-2);">Unsubscribe from all alerts</span>
+      </div>
+    </div>
+
+    <!-- Live example SMS thread -->
+    <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;">Example conversation</div>
+
+    <div class="sms-thread">
+
+      <!-- STATUS command -->
+      <div class="sms-bubble sms-out">STATUS</div>
+      <div class="sms-bubble sms-in">
+        <strong>MonsoonAI</strong> · Cutcut District<br/>
+        <span style="color:var(--critical);font-weight:800;">CRITICAL FLOOD</span>. Evacuate w/in 90 min.<br/>
+        Walk 2.4 km to Angeles City Evac Centre (32 min).<br/>
+        Reply EVAC for steps · HELP for commands.
+      </div>
+
+      <!-- EVAC command -->
+      <div class="sms-bubble sms-out">EVAC</div>
+      <div class="sms-bubble sms-in">
+        <strong>EVAC ›</strong><br/>
+        1. NW on Sampaguita 180 m<br/>
+        2. R MacArthur Hwy 1.6 km<br/>
+        3. ★ Angeles City Evac Centre (open)<br/>
+        ETA 32 min · adj for elderly companion.
+      </div>
+
+      <!-- HAZE command -->
+      <div class="sms-bubble sms-out">HAZE</div>
+      <div class="sms-bubble sms-in">
+        <strong>AIR</strong> · Cutcut District<br/>
+        AQI: 11 (EXCELLENT) · PM2.5: 4.2 μg/m³<br/>
+        Fire pixels 50 km radius: 0<br/>
+        Source: NASA FIRMS VIIRS.
+      </div>
+
+      <!-- HELP command (Filipino) -->
+      <div class="sms-bubble sms-out">TULUNGAN</div>
+      <div class="sms-bubble sms-in">
+        <strong>MonsoonAI · Mga Utos:</strong><br/>
+        STATUS – Buod ng panganib<br/>
+        EVAC – Pinakamalapit na silungan<br/>
+        BAHA – Antas ng ilog<br/>
+        USOK – Kalidad ng hangin<br/>
+        TEMP – Heat index<br/>
+        STOP – Itigil ang alerto
+      </div>
+
+    </div>
+
+    <!-- Architecture note -->
+    <div style="margin-top:20px;padding:12px 14px;border-radius:12px;background:var(--blue-soft);border:1px solid rgba(30,91,217,.2);">
+      <div style="font-size:11px;font-weight:800;color:var(--blue-deep);letter-spacing:.4px;text-transform:uppercase;">Dev note — SMS architecture</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:6px;font-size:11.5px;color:var(--ink-2);line-height:1.5;">
+        <div>📥 Inbound: <code style="font-family:monospace;font-size:10.5px;">POST /api/sms/inbound</code> (Twilio webhook)</div>
+        <div>⚙️ Engine: deterministic risk scoring (no LLM on critical path)</div>
+        <div>📤 Outbound: TwiML response, &lt; 3 second SLA</div>
+        <div>🌐 Carriers: Globe · Smart · Sun · DITO · TNT</div>
+        <div>🔢 Short code: <strong>21587</strong> (register with NTC PH)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item active" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+</body>
+</html>

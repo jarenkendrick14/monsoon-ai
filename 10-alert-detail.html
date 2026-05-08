@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Active Alert</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; display: flex; flex-direction: column;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
+    }
+
+    /* Sub-nav row */
+    .sub-nav { display: flex; align-items: center; gap: 10px; padding: 6px 18px 8px; }
+    .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; cursor: pointer; background: none; border: none; }
+    .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
+
+    /* Hero card (critical) */
+    .alert-hero {
+      padding: 18px; border-radius: 22px; color: #fff;
+      background: linear-gradient(135deg, var(--critical), #B11A12);
+      position: relative; overflow: hidden; margin: 0 14px;
+    }
+    .rain-ribbon { position: absolute; inset: 0; overflow: hidden; border-radius: 22px; pointer-events: none; }
+    .rain-drop { position: absolute; top: -6px; width: 2px; height: 10px; border-radius: 2px; background: rgba(255,255,255,.55); animation: mm-rain .9s linear infinite; }
+    .alert-hero-inner { position: relative; }
+    .alert-label { font-size: 11px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; opacity: .9; }
+    .alert-headline { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.05; margin-top: 6px; }
+    .alert-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 12px; opacity: .85; }
+
+    /* Why card */
+    .why-card { padding: 14px; border-radius: 16px; background: #fff; border: 1px solid var(--hairline); margin: 0 14px; }
+    .why-row { display: flex; gap: 10px; padding: 8px 0; }
+    .why-row + .why-row { border-top: 1px solid var(--hairline); }
+    .why-tick { width: 20px; height: 20px; border-radius: 999px; background: var(--critical-soft); color: var(--critical); display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0; font-size: 12px; }
+    .why-title { font-size: 13px; color: var(--ink); font-weight: 600; }
+    .why-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Checklist */
+    .checklist-card { padding: 14px; border-radius: 16px; background: var(--warm-bg); border: 1px solid var(--hairline); margin: 0 14px; }
+    .check-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; cursor: pointer; }
+    .check-box { width: 18px; height: 18px; border: 2px solid var(--orange); border-radius: 5px; flex-shrink: 0; transition: background .2s; }
+    .check-row.checked .check-box { background: var(--orange); }
+    .check-label { font-size: 13px; color: var(--ink); }
+    .check-row.checked .check-label { text-decoration: line-through; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     On page load: GET /api/alerts/active  OR  GET /api/alerts/:alertId
+     Response: {
+       alertId: string,
+       level: 'critical',
+       evacuateWithin: number,     ← minutes remaining
+       issuedAt: ISO string,
+       reEvalInterval: 15,         ← minutes
+       reasons: [{title, detail}], ← "why" signals
+       checklist: string[]         ← items to bring
+     }
+
+     Checklist state: PATCH /api/user/checklist { alertId, checked: string[] }
+     Save checked items to localStorage as fallback (offline resilience)
+     
+     "Show evacuation route" → 11-evac-route.html
+     "Send to my phone via SMS" → POST /api/sms/send-evac { userId } (Twilio)
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- Sub-nav -->
+  <div class="sub-nav">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <span class="sub-nav-title">Active alert</span>
+    <div class="flood-pill pill-critical">
+      <span class="dot"></span>
+      FLOOD WARNING
+    </div>
+  </div>
+
+  <div class="scroll-area" style="padding:0 0 96px;">
+
+    <!-- Alert hero -->
+    <div class="alert-hero">
+      <div class="rain-ribbon" id="rainRibbon2"></div>
+      <div class="alert-hero-inner">
+        <div class="alert-label">Critical · Flood</div>
+        <!-- BACKEND: evacuateWithin from API → countdown -->
+        <div class="alert-headline">Evacuate within<br/><span id="alertCountdown">1 hour 28 min</span></div>
+        <div class="alert-meta">
+          <!-- BACKEND: issuedAt formatted -->
+          <span id="issuedAt">Issued 10:07 AM</span>
+          <span style="opacity:.6">·</span>
+          <span>Re-checked every 15 min</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why card -->
+    <div style="margin:14px 14px 0;">
+      <div class="why-card">
+        <div style="font-size:12px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Why we say evacuate</div>
+        <!-- BACKEND: Render from reasons[] array -->
+        <div class="why-row">
+          <div class="why-tick">✓</div>
+          <div>
+            <div class="why-title">Rain &gt;50 mm/24h</div>
+            <div class="why-sub">67 mm forecast in next 6 h (Open-Meteo ECMWF)</div>
+          </div>
+        </div>
+        <div class="why-row">
+          <div class="why-tick">✓</div>
+          <div>
+            <div class="why-title">Inside 25-yr flood polygon</div>
+            <div class="why-sub">LiDAR terrain 10 m · Cutcut S-1 zone</div>
+          </div>
+        </div>
+        <div class="why-row">
+          <div class="why-tick">✓</div>
+          <div>
+            <div class="why-title">River discharge &gt;25-yr return</div>
+            <div class="why-sub">Open hydrology dataset · 27% above threshold</div>
+          </div>
+        </div>
+        <div class="why-row">
+          <div class="why-tick">✓</div>
+          <div>
+            <div class="why-title">Ground floor · light structure</div>
+            <div class="why-sub">Household vulnerability score 8.4 / 10</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checklist -->
+    <div style="margin:14px 14px 0;">
+      <div class="checklist-card">
+        <div style="font-size:12px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Bring with you</div>
+        <!-- BACKEND: checklist[] items from API · allow checking off -->
+        <div class="check-row" onclick="toggleCheck(this)">
+          <div class="check-box"></div><span class="check-label">IDs &amp; local permits</span>
+        </div>
+        <div class="check-row" onclick="toggleCheck(this)">
+          <div class="check-box"></div><span class="check-label">Medications (3-day supply)</span>
+        </div>
+        <div class="check-row" onclick="toggleCheck(this)">
+          <div class="check-box"></div><span class="check-label">Drinking water · 1L per person</span>
+        </div>
+        <div class="check-row" onclick="toggleCheck(this)">
+          <div class="check-box"></div><span class="check-label">Phone + power bank</span>
+        </div>
+        <div class="check-row" onclick="toggleCheck(this)">
+          <div class="check-box"></div><span class="check-label">Whistle, flashlight</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTAs -->
+    <div style="display:flex;flex-direction:column;gap:10px;padding:14px;">
+      <button class="btn btn-primary btn-lg btn-full" onclick="location.href='11-evac-route.html'">
+        Show evacuation route
+      </button>
+      <!-- BACKEND: POST /api/sms/send-evac to send route via Twilio to registered number -->
+      <button class="btn btn-secondary btn-full" onclick="sendViaSMS()">
+        Send to my phone via SMS
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" onclick="history.back()">
+      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
+  </nav>
+
+</div>
+
+<script>
+// Rain ribbon
+const r2 = document.getElementById('rainRibbon2');
+for (let i = 0; i < 18; i++) {
+  const d = document.createElement('div'); d.className = 'rain-drop';
+  d.style.left = ((i * 5.4 + 4) % 100) + '%';
+  d.style.animationDuration = (0.9 + (i % 5) * 0.15) + 's';
+  d.style.animationDelay = (i * 0.07) + 's';
+  r2.appendChild(d);
+}
+
+// Checklist toggle
+function toggleCheck(row) {
+  row.classList.toggle('checked');
+  saveChecklist();
+}
+
+function saveChecklist() {
+  // BACKEND: PATCH /api/user/checklist with checked items
+  const checked = [...document.querySelectorAll('.check-row.checked .check-label')]
+    .map(el => el.textContent);
+  localStorage.setItem('monsoon_checklist', JSON.stringify(checked));
+}
+
+// Load saved checklist state
+const saved = JSON.parse(localStorage.getItem('monsoon_checklist') || '[]');
+document.querySelectorAll('.check-row').forEach(row => {
+  const label = row.querySelector('.check-label')?.textContent;
+  if (saved.includes(label)) row.classList.add('checked');
+});
+
+// SMS send
+async function sendViaSMS() {
+  if (window.location.protocol === 'file:') { alert('[DEV] Would POST /api/sms/send-evac'); return; }
+  const token = localStorage.getItem('monsoon_token');
+  await fetch('/api/sms/send-evac', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+  alert('Evacuation route sent to your registered mobile number.');
+}
+</script>
+
+</body>
+</html>

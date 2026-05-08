@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MonsoonAI — Step 2: Household</title>
+  <link rel="stylesheet" href="_brand.css" />
+  <style>
+    html, body { height: 100%; background: #fff; }
+    .app-shell {
+      max-width: 430px; min-height: 100vh; margin: 0 auto;
+      background: #fff; padding: 20px 24px 40px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    @media (min-width: 768px) {
+      body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
+      .app-shell { min-height: unset; height: 760px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow-y: auto; }
+    }
+    .section-label { font-size: 13px; color: var(--orange); font-weight: 700; margin-bottom: 8px; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip-hint { font-size: 11px; color: var(--ink-2); margin-top: 6px; line-height: 1.4; }
+    .section-title {
+      font-size: 13px; color: var(--orange); font-weight: 600;
+      text-align: center; line-height: 1.4; padding: 0 8px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BACKEND NOTES:
+     API: PATCH /api/user/household  (auth required)
+     Then: POST /api/risk/score  (triggers re-scoring of this address)
+     Request body: {
+       homeType: 'bungalow'|'standalone'|'townhouse'|'apartment'|'condo'|'duplex'|'nipa_hut'|'studio',
+       additionalNote: string,
+       floorLevel: 'ground'|'2'|'3'|'4+',
+       occupantCount: '1'|'2-4'|'5-8'|'9+',
+       hasSpecialNeeds: boolean,
+       specialNeedsFlags: ('elderly'|'infant'|'pwd'|'pregnant'|'bedridden')[],
+     }
+
+     Risk scoring notes:
+       - nipa_hut + ground floor = highest structural vulnerability
+       - elderly + ground + nipa_hut → risk score 8.4+/10 (pre-position for rescue)
+       - homeType is a key variable in the vulnerability model
+     ============================================================ -->
+
+<div class="app-shell">
+
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step-dot done">1</div>
+    <div class="step-line done"></div>
+    <div class="step-dot done">2</div>
+    <div class="step-line"></div>
+    <div class="step-dot">3</div>
+  </div>
+
+  <p class="section-title">
+    Next, kindly provide an overview of your vicinity and household members.
+  </p>
+
+  <form id="householdForm" onsubmit="handleHousehold(event)">
+
+    <!-- Home type -->
+    <div style="margin-bottom:14px;">
+      <div class="section-label">Home type</div>
+      <div class="chip-group" id="homeTypeGroup">
+        <!-- BACKEND: value attribute = API enum value -->
+        <button type="button" class="chip" data-group="homeType" data-value="bungalow"    onclick="selectChip(this)">Bungalow</button>
+        <button type="button" class="chip" data-group="homeType" data-value="standalone"  onclick="selectChip(this)">Standalone</button>
+        <button type="button" class="chip" data-group="homeType" data-value="townhouse"   onclick="selectChip(this)">Townhouse</button>
+        <button type="button" class="chip" data-group="homeType" data-value="apartment"   onclick="selectChip(this)">Apartment</button>
+        <button type="button" class="chip" data-group="homeType" data-value="condo"       onclick="selectChip(this)">Condo</button>
+        <button type="button" class="chip" data-group="homeType" data-value="duplex"      onclick="selectChip(this)">Duplex</button>
+        <button type="button" class="chip" data-group="homeType" data-value="nipa_hut" onclick="selectChip(this)">Nipa hut</button>
+        <button type="button" class="chip" data-group="homeType" data-value="studio"      onclick="selectChip(this)">Studio</button>
+      </div>
+      <p class="chip-hint">Nipa &amp; wood structures are flagged as structurally vulnerable in our risk model.</p>
+    </div>
+
+    <!-- Additional note -->
+    <div class="field-wrap" style="margin-bottom:14px;">
+      <div class="field-input-wrap" style="height:auto;padding:10px 14px;">
+        <input type="text" id="additionalNote" name="additionalNote"
+               placeholder="Additional note (optional)" />
+      </div>
+    </div>
+
+    <!-- Floor level -->
+    <div style="margin-bottom:14px;">
+      <div class="section-label">Floor level</div>
+      <div class="chip-group">
+        <button type="button" class="chip selected" data-group="floorLevel" data-value="ground" onclick="selectChip(this)">Ground</button>
+        <button type="button" class="chip"           data-group="floorLevel" data-value="2"      onclick="selectChip(this)">2</button>
+        <button type="button" class="chip"           data-group="floorLevel" data-value="3"      onclick="selectChip(this)">3</button>
+        <button type="button" class="chip"           data-group="floorLevel" data-value="4+"     onclick="selectChip(this)">4 or more</button>
+      </div>
+    </div>
+
+    <!-- Occupant count -->
+    <div style="margin-bottom:14px;">
+      <div class="section-label">How many people live with you?</div>
+      <div class="chip-group">
+        <button type="button" class="chip"           data-group="occupants" data-value="1"   onclick="selectChip(this)">1</button>
+        <button type="button" class="chip selected"  data-group="occupants" data-value="2-4" onclick="selectChip(this)">2–4</button>
+        <button type="button" class="chip"           data-group="occupants" data-value="5-8" onclick="selectChip(this)">5–8</button>
+        <button type="button" class="chip"           data-group="occupants" data-value="9+"  onclick="selectChip(this)">9 or more</button>
+      </div>
+    </div>
+
+    <!-- Special needs -->
+    <div style="margin-bottom:20px;">
+      <div class="section-label">Anyone with special needs or extra assistance?</div>
+      <div class="chip-group" id="specialNeedsToggle" style="margin-bottom:10px;">
+        <button type="button" class="chip selected" data-value="yes" onclick="toggleSpecialNeeds(true)">Yes</button>
+        <button type="button" class="chip"          data-value="no"  onclick="toggleSpecialNeeds(false)">No</button>
+      </div>
+      <!-- BACKEND: These are multi-select flags — append to specialNeedsFlags[] array -->
+      <div class="chip-group" id="specialNeedsFlags">
+        <button type="button" class="chip selected chip-sm" data-group="needs" data-value="elderly"   onclick="toggleMulti(this)" style="height:28px;font-size:11.5px;">Elderly (70+)</button>
+        <button type="button" class="chip chip-sm"          data-group="needs" data-value="infant"    onclick="toggleMulti(this)" style="height:28px;font-size:11.5px;">Infant</button>
+        <button type="button" class="chip selected chip-sm" data-group="needs" data-value="pwd"       onclick="toggleMulti(this)" style="height:28px;font-size:11.5px;">PWD</button>
+        <button type="button" class="chip chip-sm"          data-group="needs" data-value="pregnant"  onclick="toggleMulti(this)" style="height:28px;font-size:11.5px;">Pregnant</button>
+        <button type="button" class="chip chip-sm"          data-group="needs" data-value="bedridden" onclick="toggleMulti(this)" style="height:28px;font-size:11.5px;">Bedridden</button>
+      </div>
+    </div>
+
+    <input type="hidden" id="homeTypeVal"   name="homeType"   value="" />
+    <input type="hidden" id="floorLevelVal" name="floorLevel" value="ground" />
+    <input type="hidden" id="occupantsVal"  name="occupants"  value="2-4" />
+
+    <button type="submit" class="btn btn-primary btn-lg btn-full">Next</button>
+
+  </form>
+
+</div>
+
+<script>
+/* ── Chip selection helpers ── */
+function selectChip(btn) {
+  const group = btn.dataset.group;
+  document.querySelectorAll(`[data-group="${group}"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  // Update hidden input
+  const inputId = group + 'Val';
+  if (document.getElementById(inputId)) document.getElementById(inputId).value = btn.dataset.value;
+}
+
+function toggleMulti(btn) {
+  btn.classList.toggle('selected');
+}
+
+function toggleSpecialNeeds(show) {
+  document.querySelectorAll('#specialNeedsToggle .chip').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`#specialNeedsToggle [data-value="${show ? 'yes' : 'no'}"]`).classList.add('selected');
+  document.getElementById('specialNeedsFlags').style.display = show ? 'flex' : 'none';
+}
+
+/* ── BACKEND INTEGRATION POINT ── */
+async function handleHousehold(e) {
+  e.preventDefault();
+
+  const homeType = document.getElementById('homeTypeVal').value;
+  const floorLevel = document.getElementById('floorLevelVal').value;
+  const occupantCount = document.getElementById('occupantsVal').value;
+  const hasSpecialNeeds = document.querySelector('#specialNeedsToggle .chip.selected[data-value="yes"]') !== null;
+  const specialNeedsFlags = [...document.querySelectorAll('#specialNeedsFlags .chip.selected')]
+    .map(b => b.dataset.value);
+
+  const payload = {
+    homeType, floorLevel, occupantCount,
+    hasSpecialNeeds,
+    specialNeedsFlags,
+    additionalNote: document.getElementById('additionalNote').value.trim(),
+  };
+
+  if (window.location.protocol === 'file:') {
+    location.href = '07-onboarding-complete.html'; return;
+  }
+
+  try {
+    const token = localStorage.getItem('monsoon_token');
+    await fetch('/api/user/household', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify(payload)
+    });
+    // Trigger risk scoring
+    await fetch('/api/risk/score', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    location.href = '07-onboarding-complete.html';
+  } catch (err) { alert(err.message); }
+}
+</script>
+
+</body>
+</html>
