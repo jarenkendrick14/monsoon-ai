@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Step 2: Household</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -176,24 +177,11 @@ async function handleHousehold(e) {
     additionalNote: document.getElementById('additionalNote').value.trim(),
   };
 
-  if (window.location.protocol === 'file:') {
-    location.href = '07-onboarding-complete.html'; return;
-  }
-
   try {
-    const token = localStorage.getItem('monsoon_token');
-    await fetch('/api/user/household', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify(payload)
-    });
-    // Trigger risk scoring
-    await fetch('/api/risk/score', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
+    await apiFetch('/api/user/household', { method: 'PATCH', body: JSON.stringify(payload) });
+    await apiFetch('/api/risk/score', { method: 'POST' });
     location.href = '07-onboarding-complete.html';
-  } catch (err) { alert(err.message); }
+  } catch (err) { alert(err.error || err.message || 'Failed to save household'); }
 }
 </script>
 

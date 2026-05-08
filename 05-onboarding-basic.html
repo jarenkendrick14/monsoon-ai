@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Step 1: Basic Info</title>
   <link rel="stylesheet" href="_brand.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -23,20 +26,7 @@
     .pin-helper { font-family: var(--font-ui); font-size: 10.5px; color: var(--orange); margin-top: 4px; }
     .map-preview {
       height: 180px; border-radius: 14px; border: 1.5px dashed var(--orange-soft);
-      background: var(--orange-tint); position: relative; overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .map-preview-inner { text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.5; z-index: 1; }
-    .map-preview::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(rgba(30,91,217,.04) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(30,91,217,.04) 1px, transparent 1px);
-      background-size: 28px 28px;
-    }
-    .map-user-dot {
-      position: absolute; width: 20px; height: 20px; border-radius: 999px;
-      background: var(--orange); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(242,107,31,.4);
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      overflow: hidden; position: relative;
     }
     .action-row { margin-top: auto; padding-top: 14px; }
   </style>
@@ -125,21 +115,8 @@
       <p class="pin-helper">Tap the 📍 icon to pin your exact location on the map.</p>
     </div>
 
-    <!-- Map preview (Leaflet placeholder) -->
-    <!-- BACKEND: Initialize Leaflet map here. On address geocode success, pan map to coordinates. -->
-    <div class="map-preview" id="addressMap">
-      <div class="map-user-dot"></div>
-      <div class="map-preview-inner">
-        <div style="font-size:24px;margin-bottom:8px;">📍</div>
-        <!-- BACKEND DEV NOTE: Initialize Leaflet.js here.
-             Include: <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-             Include: <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-             Center: Angeles City [15.1348, 120.5869] · Zoom: 15
-             Add draggable marker, on dragend update #hiddenLat #hiddenLng -->
-        Map will render here (Leaflet.js).<br/>
-        Drag pin to exact home location.
-      </div>
-    </div>
+    <!-- Leaflet map -->
+    <div class="map-preview" id="addressMap"></div>
 
     <!-- Hidden inputs for coordinates (set by map drag) -->
     <input type="hidden" id="hiddenLat" name="lat" value="15.1463" />
@@ -161,7 +138,21 @@
 </div>
 
 <script>
-/* ── BACKEND INTEGRATION POINT ── */
+const DEFAULT_LAT = 15.1463, DEFAULT_LNG = 120.5796;
+let leafletMap, leafletMarker;
+
+function initMap(lat, lng) {
+  if (leafletMap) { leafletMap.setView([lat, lng], 15); leafletMarker.setLatLng([lat, lng]); return; }
+  leafletMap = L.map('addressMap').setView([lat, lng], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(leafletMap);
+  leafletMarker = L.marker([lat, lng], { draggable: true }).addTo(leafletMap);
+  leafletMarker.on('dragend', () => {
+    const pos = leafletMarker.getLatLng();
+    document.getElementById('hiddenLat').value = pos.lat.toFixed(6);
+    document.getElementById('hiddenLng').value = pos.lng.toFixed(6);
+  });
+}
+
 let geocodeTimer;
 function debounceGeocode(address) {
   clearTimeout(geocodeTimer);
@@ -170,14 +161,17 @@ function debounceGeocode(address) {
 
 async function geocodeAddress(address) {
   if (address.length < 8) return;
-  // TODO: POST /api/geocode { address }
-  // On success: update #hiddenLat, #hiddenLng, pan Leaflet map
-  console.log('[DEV] Would geocode:', address);
+  try {
+    const data = await apiFetch('/api/geocode', { method: 'POST', body: JSON.stringify({ address }) });
+    document.getElementById('hiddenLat').value = data.lat;
+    document.getElementById('hiddenLng').value = data.lng;
+    initMap(data.lat, data.lng);
+  } catch { /* silently ignore geocode failure */ }
 }
 
 function openMapPicker() {
-  // TODO: Open fullscreen Leaflet map modal for precise pin drop
-  alert('[DEV PLACEHOLDER] Open Leaflet map modal here.\nOn confirm, update #hiddenLat #hiddenLng and the address field.');
+  // Map is already embedded; scroll into view so user can drag the pin
+  document.getElementById('addressMap').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function handleBasicInfo(e) {
@@ -192,23 +186,15 @@ async function handleBasicInfo(e) {
     phone:      form.phone.value.trim(),
   };
 
-  if (window.location.protocol === 'file:') {
-    location.href = '06-onboarding-household.html'; return;
-  }
-
   try {
-    const token = localStorage.getItem('monsoon_token');
-    const res = await fetch('/api/user/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error('Failed to save profile');
+    await apiFetch('/api/user/profile', { method: 'PATCH', body: JSON.stringify(payload) });
     location.href = '06-onboarding-household.html';
   } catch (err) {
-    alert(err.message);
+    alert(err.error || err.message || 'Failed to save profile');
   }
 }
+
+initMap(DEFAULT_LAT, DEFAULT_LNG);
 </script>
 
 </body>

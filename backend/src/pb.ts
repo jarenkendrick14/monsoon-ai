@@ -14,7 +14,8 @@ export function getPb(): PocketBase {
 export async function authenticatePb(): Promise<void> {
   const client = getPb();
   try {
-    await client.admins.authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
+    // PocketBase v0.23+ uses collection('_superusers') instead of admins
+    await client.collection('_superusers').authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
     logger.info('PocketBase admin authenticated');
   } catch (err) {
     logger.error('PocketBase admin auth failed', err);

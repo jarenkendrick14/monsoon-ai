@@ -7,7 +7,7 @@ const PB_PASS = process.env['PB_ADMIN_PASSWORD'] ?? '';
 const pb = new PocketBase(PB_URL);
 
 async function main() {
-  await pb.admins.authWithPassword(PB_EMAIL, PB_PASS);
+  await pb.collection('_superusers').authWithPassword(PB_EMAIL, PB_PASS);
   console.log('Authenticated');
 
   // Add fields to users collection

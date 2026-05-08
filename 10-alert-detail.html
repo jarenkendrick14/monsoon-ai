@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Active Alert</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -190,7 +191,7 @@
 </div>
 
 <script>
-// Rain ribbon
+/* Rain ribbon */
 const r2 = document.getElementById('rainRibbon2');
 for (let i = 0; i < 18; i++) {
   const d = document.createElement('div'); d.className = 'rain-drop';
@@ -200,33 +201,79 @@ for (let i = 0; i < 18; i++) {
   r2.appendChild(d);
 }
 
-// Checklist toggle
-function toggleCheck(row) {
-  row.classList.toggle('checked');
-  saveChecklist();
+let currentAlertId = null;
+
+async function loadAlertDetail() {
+  try {
+    const data = await apiFetch('/api/alerts/active');
+    if (!data?.alertId) return;
+    currentAlertId = data.alertId;
+
+    /* Countdown */
+    if (data.evacuateWithin) {
+      const h = Math.floor(data.evacuateWithin / 60), m = data.evacuateWithin % 60;
+      document.getElementById('alertCountdown').textContent = h > 0 ? `${h} hour ${m} min` : `${m} min`;
+    }
+    if (data.issuedAt) {
+      document.getElementById('issuedAt').textContent = 'Issued ' + new Date(data.issuedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* Reasons */
+    if (data.reasons?.length) {
+      const whyCard = document.querySelector('.why-card');
+      const header = whyCard.querySelector('div');
+      whyCard.innerHTML = '';
+      whyCard.appendChild(header);
+      data.reasons.forEach(r => {
+        const row = document.createElement('div'); row.className = 'why-row';
+        row.innerHTML = `<div class="why-tick">✓</div><div><div class="why-title">${r.title}</div><div class="why-sub">${r.detail || ''}</div></div>`;
+        whyCard.appendChild(row);
+      });
+    }
+
+    /* Checklist */
+    if (data.checklist?.length) {
+      const card = document.querySelector('.checklist-card');
+      const header = card.querySelector('div');
+      card.innerHTML = '';
+      card.appendChild(header);
+      const saved = JSON.parse(localStorage.getItem('monsoon_checklist') || '[]');
+      data.checklist.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'check-row' + (saved.includes(item) ? ' checked' : '');
+        row.onclick = () => { row.classList.toggle('checked'); saveChecklist(); };
+        row.innerHTML = `<div class="check-box"></div><span class="check-label">${item}</span>`;
+        card.appendChild(row);
+      });
+    } else {
+      const saved = JSON.parse(localStorage.getItem('monsoon_checklist') || '[]');
+      document.querySelectorAll('.check-row').forEach(row => {
+        if (saved.includes(row.querySelector('.check-label')?.textContent)) row.classList.add('checked');
+      });
+    }
+  } catch { /* keep static content */ }
 }
+
+function toggleCheck(row) { row.classList.toggle('checked'); saveChecklist(); }
 
 function saveChecklist() {
-  // BACKEND: PATCH /api/user/checklist with checked items
-  const checked = [...document.querySelectorAll('.check-row.checked .check-label')]
-    .map(el => el.textContent);
+  const checked = [...document.querySelectorAll('.check-row.checked .check-label')].map(el => el.textContent);
   localStorage.setItem('monsoon_checklist', JSON.stringify(checked));
+  if (currentAlertId) {
+    apiFetch('/api/user/checklist', { method: 'PATCH', body: JSON.stringify({ alertId: currentAlertId, checked }) }).catch(() => {});
+  }
 }
 
-// Load saved checklist state
-const saved = JSON.parse(localStorage.getItem('monsoon_checklist') || '[]');
-document.querySelectorAll('.check-row').forEach(row => {
-  const label = row.querySelector('.check-label')?.textContent;
-  if (saved.includes(label)) row.classList.add('checked');
-});
-
-// SMS send
 async function sendViaSMS() {
-  if (window.location.protocol === 'file:') { alert('[DEV] Would POST /api/sms/send-evac'); return; }
-  const token = localStorage.getItem('monsoon_token');
-  await fetch('/api/sms/send-evac', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
-  alert('Evacuation route sent to your registered mobile number.');
+  try {
+    await apiFetch('/api/sms/send-evac', { method: 'POST' });
+    alert('Evacuation route sent to your registered mobile number.');
+  } catch (err) {
+    alert(err.error || 'Could not send SMS. Please try again.');
+  }
 }
+
+loadAlertDetail();
 </script>
 
 </body>

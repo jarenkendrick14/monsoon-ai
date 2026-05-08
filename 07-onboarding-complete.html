@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — You're All Set!</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -121,14 +122,8 @@
 <script>
 /* ── BACKEND INTEGRATION POINT ── */
 async function loadRiskSummary() {
-  if (window.location.protocol === 'file:') return; // demo mode
-
   try {
-    const token = localStorage.getItem('monsoon_token');
-    const res = await fetch('/api/user/risk-summary', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
+    const data = await apiFetch('/api/user/risk-summary');
 
     // Populate profile card
     document.getElementById('profileName').textContent =

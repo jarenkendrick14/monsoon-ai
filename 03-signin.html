@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Sign In</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -141,22 +142,14 @@ async function handleSignin(e) {
   document.getElementById('errorMsg').style.display = 'none';
 
   try {
-    // TODO: Replace with actual API URL
-    const res = await fetch('/api/auth/login', {
+    const data = await apiFetch('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
-
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-
-    // Store token
     localStorage.setItem('monsoon_token', data.token);
     localStorage.setItem('monsoon_user', JSON.stringify(data.user));
 
-    // Route based on risk level
     if (data.user.riskLevel === 'critical') {
       location.href = '09-dashboard-critical.html';
     } else {
@@ -164,20 +157,12 @@ async function handleSignin(e) {
     }
 
   } catch (err) {
-    document.getElementById('errorMsg').textContent = err.message;
+    document.getElementById('errorMsg').textContent = err.error || err.message || 'Login failed';
     document.getElementById('errorMsg').style.display = 'block';
   } finally {
     document.getElementById('loadingOverlay').style.display = 'none';
   }
 }
-
-// DEMO fallback: navigate without API (remove in production)
-document.getElementById('signinForm').addEventListener('submit', function(e) {
-  if (!navigator.onLine || window.location.protocol === 'file:') {
-    e.preventDefault();
-    location.href = '08-dashboard-calm.html'; // Demo: go to calm dashboard
-  }
-});
 
 function togglePassword() {
   const pw = document.getElementById('password');

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Profile</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
@@ -191,16 +192,8 @@ function setGauge(score0to100, color) {
 
 /* ── LOAD PROFILE FROM API ── */
 async function loadProfile() {
-  if (window.location.protocol === 'file:') {
-    setGauge(84, 'var(--critical)');
-    return;
-  }
   try {
-    const token = localStorage.getItem('monsoon_token');
-    const res = await fetch('/api/user/profile', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
+    const data = await apiFetch('/api/user/profile');
 
     // Populate fields
     document.getElementById('avatarEl').textContent =
@@ -223,7 +216,6 @@ async function loadProfile() {
     setGauge(Math.round(data.risk.score * 10), gColor);
   } catch (err) {
     setGauge(84);
-    console.warn('[DEV] Could not load profile:', err.message);
   }
 }
 
@@ -231,10 +223,10 @@ function editProfile() {
   location.href = '05-onboarding-basic.html';
 }
 
-function logout() {
+async function logout() {
   if (!confirm('Sign out of MonsoonAI?')) return;
+  try { await apiFetch('/api/auth/session', { method: 'DELETE' }); } catch { /* ignore */ }
   localStorage.clear();
-  // BACKEND: DELETE /api/auth/session
   location.href = '03-signin.html';
 }
 

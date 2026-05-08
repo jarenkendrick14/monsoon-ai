@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Rescue Priority Manifest</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: var(--warm-bg); margin: 0; font-family: var(--font-ui); overflow: hidden; }
 
@@ -253,109 +254,10 @@
           <div>Status</div>
         </div>
 
-        <!-- ── TABLE ROWS ── -->
-        <!-- BACKEND: Render from /api/gov/manifest response. Below is static demo data. -->
-
-        <div class="table-row selected" onclick="selectRow(this)" data-id="hh001">
-          <div class="row-rank">01</div>
-          <div><div class="row-name">Lola Concha Mendoza · 78</div><div class="row-addr">123 Sampaguita St · Cutcut</div></div>
-          <div class="row-score" style="color:var(--critical);">9.2</div>
-          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Light frame</span><span class="factor-tag">Ground</span>
-            <span class="factor-tag">Elderly</span><span class="factor-tag">PWD</span><span class="factor-tag">25-yr zone</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 0114</div>
-          <div><span class="status-badge" style="background:var(--critical-soft);color:var(--critical);">TEAM EN ROUTE</span></div>
+        <!-- Rows rendered dynamically by JS -->
+        <div id="manifestRows">
+          <div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">Loading manifest...</div>
         </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh002">
-          <div class="row-rank">02</div>
-          <div><div class="row-name">Reyes household (4 occupants)</div><div class="row-addr">44 Mabini St · Cutcut</div></div>
-          <div class="row-score" style="color:var(--critical);">9.0</div>
-          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Wood</span><span class="factor-tag">Ground</span>
-            <span class="factor-tag">Infant</span><span class="factor-tag">25-yr zone</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 8821</div>
-          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh003">
-          <div class="row-rank">03</div>
-          <div><div class="row-name">Lim, Andres · 64</div><div class="row-addr">9 Riverside · Pampang</div></div>
-          <div class="row-score" style="color:var(--critical);">8.7</div>
-          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Light frame</span><span class="factor-tag">Ground</span>
-            <span class="factor-tag">Bed-bound</span><span class="factor-tag">River &lt;50m</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 7711</div>
-          <div><span class="status-badge" style="background:var(--critical-soft);color:var(--critical);">TEAM EN ROUTE</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh004">
-          <div class="row-rank">04</div>
-          <div><div class="row-name">Dela Cruz family (5)</div><div class="row-addr">201 Maharlika · Anunas</div></div>
-          <div class="row-score" style="color:var(--critical);">8.4</div>
-          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Wood</span><span class="factor-tag">Ground</span>
-            <span class="factor-tag">Infant</span><span class="factor-tag">PWD</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 4502</div>
-          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh005">
-          <div class="row-rank">05</div>
-          <div><div class="row-name">Responder hub · Pampang</div><div class="row-addr">Rescue staging · 12 cots</div></div>
-          <div class="row-score" style="color:var(--critical);">8.1</div>
-          <div><span class="tier-badge" style="background:var(--critical-soft);color:var(--critical);">CRITICAL</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Hub</span><span class="factor-tag">Open</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 0001</div>
-          <div><span class="status-badge" style="background:var(--ok-soft);color:var(--ok);">STAGED</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh006">
-          <div class="row-rank">06</div>
-          <div><div class="row-name">Santos household (3)</div><div class="row-addr">55 Abad Ave · Cutcut</div></div>
-          <div class="row-score" style="color:#B86C00;">7.9</div>
-          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Concrete</span><span class="factor-tag">Ground</span><span class="factor-tag">25-yr zone</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 2299</div>
-          <div><span class="status-badge" style="background:var(--warn-soft);color:#B86C00;">PENDING</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh007">
-          <div class="row-rank">07</div>
-          <div><div class="row-name">Aquino, Lina · 72</div><div class="row-addr">3 Banawe · Anunas</div></div>
-          <div class="row-score" style="color:#B86C00;">7.7</div>
-          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Wood</span><span class="factor-tag">2nd flr</span><span class="factor-tag">Elderly</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 1180</div>
-          <div><span class="status-badge" style="background:var(--blue-soft);color:var(--blue-deep);">NOTIFIED</span></div>
-        </div>
-
-        <div class="table-row" onclick="selectRow(this)" data-id="hh008">
-          <div class="row-rank">08</div>
-          <div><div class="row-name">Yu household (2)</div><div class="row-addr">78 Pinatubo · Cutcut</div></div>
-          <div class="row-score" style="color:#B86C00;">7.5</div>
-          <div><span class="tier-badge" style="background:var(--warn-soft);color:#B86C00;">HIGH</span></div>
-          <div class="factors col-factors">
-            <span class="factor-tag">Concrete</span><span class="factor-tag">Ground</span><span class="factor-tag">Pregnant</span>
-          </div>
-          <div class="phone-val col-phone">+••• ••• 6630</div>
-          <div><span class="status-badge" style="background:var(--blue-soft);color:var(--blue-deep);">NOTIFIED</span></div>
-        </div>
-
       </div>
 
       <!-- Footnote -->
@@ -368,73 +270,114 @@
 </div>
 
 <script>
-/* ── Row selection ── */
+const tierStyles = {
+  crit:   { badge: 'background:var(--critical-soft);color:var(--critical)', score: 'color:var(--critical)', label: 'CRITICAL' },
+  high:   { badge: 'background:var(--warn-soft);color:#B86C00', score: 'color:#B86C00', label: 'HIGH' },
+  med:    { badge: 'background:var(--ok-soft);color:var(--ok)', score: 'color:var(--ok)', label: 'MEDIUM' },
+};
+const statusStyles = {
+  pending:   'background:var(--warn-soft);color:#B86C00',
+  en_route:  'background:var(--critical-soft);color:var(--critical)',
+  notified:  'background:var(--blue-soft);color:var(--blue-deep)',
+  staged:    'background:var(--ok-soft);color:var(--ok)',
+  evacuated: 'background:var(--ok-soft);color:var(--ok)',
+};
+
+let currentFilter = { tier: 'all', district: '' };
+
+function renderRows(households) {
+  const container = document.getElementById('manifestRows');
+  if (!households?.length) {
+    container.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px;">No households found.</div>';
+    return;
+  }
+  container.innerHTML = households.map(h => {
+    const ts = tierStyles[h.tier] || tierStyles.med;
+    const ss = statusStyles[h.status] || statusStyles.pending;
+    const factors = (h.riskFactors || []).map(f => `<span class="factor-tag">${f}</span>`).join('');
+    return `
+      <div class="table-row" onclick="selectRow(this)" data-id="${h.id}">
+        <div class="row-rank">${String(h.rank).padStart(2,'0')}</div>
+        <div><div class="row-name">${h.name}</div><div class="row-addr">${h.address}</div></div>
+        <div class="row-score" style="${ts.score}">${h.score?.toFixed(1) ?? '–'}</div>
+        <div><span class="tier-badge" style="${ts.badge}">${ts.label}</span></div>
+        <div class="factors col-factors">${factors}</div>
+        <div class="phone-val col-phone">${h.phone || ''}</div>
+        <div><span class="status-badge" style="${ss}">${(h.status || 'PENDING').toUpperCase().replace('_',' ')}</span></div>
+      </div>`;
+  }).join('');
+}
+
+async function loadManifest() {
+  try {
+    const params = new URLSearchParams();
+    if (currentFilter.tier !== 'all') params.set('tier', currentFilter.tier);
+    if (currentFilter.district) params.set('district', currentFilter.district);
+    const data = await apiFetch('/api/gov/manifest?' + params.toString());
+    renderRows(data.households);
+    if (data.totalCount != null) {
+      document.getElementById('manifestFootnote').textContent =
+        `Showing ${data.households?.length ?? 0} of ${data.totalCount} · Score = vulnerability × flood × demographics.`;
+    }
+  } catch { /* keep loading state */ }
+}
+
 function selectRow(row) {
   document.querySelectorAll('.table-row.selected').forEach(r => r.classList.remove('selected'));
   row.classList.add('selected');
-  const id = row.dataset.id;
-  // BACKEND: Load household detail panel / modal
-  // GET /api/gov/households/:id
-  console.log('[DEV] Selected household:', id);
 }
 
-/* ── Filter chips ── */
 function filterTier(tier, btn) {
-  // BACKEND: GET /api/gov/manifest?tier=tier
-  console.log('[DEV] Filter by tier:', tier);
-  // Demo: just toggle selected visually
-  document.querySelectorAll('#filterChips .chip').forEach(b => {
-    if (['all','critical','high','medium'].some(t => b.textContent.toLowerCase().includes(t))) {
-      b.classList.remove('selected');
-    }
-  });
+  document.querySelectorAll('#filterChips .chip').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
+  currentFilter.tier = tier;
+  loadManifest();
 }
 
 function filterDistrict(district) {
-  // BACKEND: GET /api/gov/manifest?district=district
-  console.log('[DEV] Filter by district:', district);
+  currentFilter.district = currentFilter.district === district ? '' : district;
+  loadManifest();
 }
 
-/* ── Actions ── */
 function exportCSV() {
-  // BACKEND: GET /api/gov/manifest/export?format=csv
-  if (window.location.protocol === 'file:') {
-    alert('[DEV] Would download manifest as CSV.\nBACKEND: GET /api/gov/manifest/export?format=csv');
-    return;
-  }
-  window.open('/api/gov/manifest/export?format=csv');
+  const token = localStorage.getItem('monsoon_gov_token') || '';
+  window.open(`${API_BASE}/api/gov/manifest/export?format=csv&token=${token}`);
 }
 
-function prePositionTeams() {
+async function prePositionTeams() {
   const selected = [...document.querySelectorAll('.table-row.selected')].map(r => r.dataset.id);
   if (!selected.length) { alert('Select at least one household first.'); return; }
-  // BACKEND: POST /api/gov/teams/dispatch { households: selected, teamId: 'auto' }
-  alert(`[DEV] Would dispatch rescue team to households:\n${selected.join(', ')}\n\nBACKEND: POST /api/gov/teams/dispatch`);
+  try {
+    await apiFetch('/api/gov/teams/dispatch', { method: 'POST', body: JSON.stringify({ households: selected, teamId: 'auto' }) });
+    alert('Teams dispatched successfully.');
+    loadManifest();
+  } catch (err) { alert(err.error || 'Dispatch failed'); }
 }
 
-/* ── Storm clock countdown ── */
-let stormHours = 21, stormMins = 14;
+/* Storm clock */
+let stormHours = 0, stormMins = 0;
 function tickClock() {
   if (stormMins === 0) { if (stormHours > 0) { stormHours--; stormMins = 59; } }
   else { stormMins--; }
   document.getElementById('stormClock').textContent =
     `T-${String(stormHours).padStart(2,'0')}:${String(stormMins).padStart(2,'0')}`;
 }
+
+/* Officer initials */
+const officer = getGovOfficer() || { name: 'Officer' };
+const parts = (officer.name || 'G O').split(/[\s.]+/).filter(Boolean);
+document.getElementById('officerInitials').textContent = (parts[0]?.[0] + (parts[1]?.[0] || '')).toUpperCase();
+
+/* WebSocket real-time updates */
+connectGovWS(msg => {
+  if (msg.type === 'MANIFEST_UPDATE') loadManifest();
+});
+
+/* Auto-refresh every 15 min */
+setInterval(loadManifest, 15 * 60 * 1000);
 setInterval(tickClock, 60000);
 
-/* ── Officer initials ── */
-const officer = JSON.parse(localStorage.getItem('monsoon_gov_officer') || '{"name":"R. Clemente"}');
-const parts = (officer.name || 'R C').split(' ');
-document.getElementById('officerInitials').textContent =
-  (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
-
-/* ── Auto-refresh (manifest re-scores every 15 min) ── */
-// BACKEND: Poll GET /api/gov/manifest every 15 minutes or use WebSocket
-setInterval(() => {
-  console.log('[DEV] Would re-fetch manifest data');
-  // updateManifestTable(freshData);
-}, 15 * 60 * 1000);
+loadManifest();
 </script>
 
 </body>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — CRITICAL FLOOD ALERT</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -240,7 +241,7 @@
 </div>
 
 <script>
-/* ── Rain ribbon ── */
+/* Rain ribbon */
 const ribbon = document.getElementById('rainRibbon');
 for (let i = 0; i < 18; i++) {
   const drop = document.createElement('div');
@@ -251,8 +252,7 @@ for (let i = 0; i < 18; i++) {
   ribbon.appendChild(drop);
 }
 
-/* ── EVACUATE COUNTDOWN TIMER ── */
-// BACKEND: Set evacuateMinutes from API response → alert.evacuateWithin
+/* Countdown timer */
 let evacuateMinutes = 90;
 function updateCountdown() {
   if (evacuateMinutes <= 0) {
@@ -262,12 +262,33 @@ function updateCountdown() {
   }
   const h = Math.floor(evacuateMinutes / 60);
   const m = evacuateMinutes % 60;
-  document.getElementById('countdownDisplay').textContent =
-    h > 0 ? `${h}h ${m}min` : `${m} min`;
+  document.getElementById('countdownDisplay').textContent = h > 0 ? `${h}h ${m}min` : `${m} min`;
   evacuateMinutes--;
 }
-updateCountdown();
-setInterval(updateCountdown, 60000);
+
+async function loadAlert() {
+  try {
+    const data = await apiFetch('/api/alerts/active');
+    if (!data || !data.level) return;
+    if (data.level !== 'critical') { location.href = '08-dashboard-calm.html'; return; }
+    if (data.evacuateWithin) evacuateMinutes = data.evacuateWithin;
+    if (data.rainfall) document.getElementById('rainfallVal').textContent = data.rainfall + 'mm/24h';
+    if (data.floodZone) document.getElementById('floodZoneVal').textContent = data.floodZone;
+    if (data.riverDischarge) document.getElementById('dischargeVal').textContent = data.riverDischarge;
+  } catch { /* use defaults */ }
+  updateCountdown();
+  setInterval(updateCountdown, 60000);
+}
+
+/* WebSocket: redirect to calm if alert resolves */
+const user = getUser();
+if (user?.id) {
+  connectAlertWS(user.id, msg => {
+    if (msg.level === 'ok' || msg.level === 'low') location.href = '08-dashboard-calm.html';
+  });
+}
+
+loadAlert();
 </script>
 
 </body>

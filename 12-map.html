@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Map</title>
   <link rel="stylesheet" href="_brand.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
@@ -14,15 +17,8 @@
     }
 
     /* Full-screen map */
-    .map-container {
-      flex: 1; position: relative; background: #e8f0fe; overflow: hidden;
-    }
-    .map-container::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(rgba(30,91,217,.05) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(30,91,217,.05) 1px, transparent 1px);
-      background-size: 32px 32px;
-    }
+    .map-container { flex: 1; position: relative; overflow: hidden; }
+    #mainMap { height: 100%; width: 100%; }
 
     /* Condition pills overlay */
     .map-pills {
@@ -119,65 +115,40 @@
 
   <!-- Map -->
   <div class="map-container" id="mapContainer">
+    <div id="mainMap"></div>
 
-    <!-- Flood zone polygons (visual placeholder) -->
-    <div class="flood-zone-100"></div>
-    <div class="flood-zone-25"></div>
-
-    <!-- User location -->
-    <div class="user-dot"></div>
-
-    <!-- Evac centre pin -->
-    <div class="evac-pin" onclick="showEvacInfo()">
-      <div class="evac-pin-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg>
-      </div>
-      <div class="evac-pin-label">Evac Center · 60/240</div>
-    </div>
-
-    <!-- Condition pills (top-left) -->
-    <!-- BACKEND: Values from GET /api/conditions/current -->
-    <div class="map-pills">
+    <!-- Condition pills (top-left, z-index above Leaflet) -->
+    <div class="map-pills" style="z-index:1000;">
       <div class="map-pill">
         <div class="map-pill-dot" style="background:var(--warn);">🌡</div>
-        <div><div class="map-pill-val">38°C</div><div class="map-pill-sub">Heat</div></div>
+        <div><div class="map-pill-val" id="mapHeatPill">–°C</div><div class="map-pill-sub">Heat</div></div>
       </div>
       <div class="map-pill">
         <div class="map-pill-dot" style="background:var(--ok);">💨</div>
-        <div><div class="map-pill-val">11 AQI</div><div class="map-pill-sub">Air · US scale</div></div>
+        <div><div class="map-pill-val" id="mapAqiPill">– AQI</div><div class="map-pill-sub">Air · US scale</div></div>
       </div>
       <div class="map-pill">
         <div class="map-pill-dot" style="background:var(--critical);">💧</div>
-        <div><div class="map-pill-val">502 NHWL</div><div class="map-pill-sub">River</div></div>
+        <div><div class="map-pill-val" id="mapRiverPill">–</div><div class="map-pill-sub">River</div></div>
       </div>
     </div>
 
-    <!-- Legend (top-right) -->
-    <div class="map-legend">
+    <!-- Legend -->
+    <div class="map-legend" style="z-index:1000;">
       <div class="legend-title">Flood zones</div>
       <div class="legend-row"><div class="legend-dot" style="background:rgba(232,58,44,.6);"></div><span style="color:var(--ink-2);">25-yr return</span></div>
       <div class="legend-row"><div class="legend-dot" style="background:rgba(230,117,25,.5);border:1px dashed var(--warn);"></div><span style="color:var(--ink-2);">100-yr return</span></div>
-      <div class="legend-row"><div class="legend-dot" style="background:var(--ok-soft);"></div><span style="color:var(--ink-2);">Negligible</span></div>
     </div>
 
-    <!-- Layer toggles (bottom) -->
-    <div class="layer-toggles">
+    <!-- Layer toggles -->
+    <div class="layer-toggles" style="z-index:1000;">
       <button class="layer-btn active" onclick="toggleLayer(this,'evac')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/></svg>
         Evac centres
       </button>
       <button class="layer-btn" onclick="toggleLayer(this,'flood')">💧 Flood zones</button>
-      <button class="layer-btn" onclick="toggleLayer(this,'rain')">🌧 Rain radar</button>
-      <button class="layer-btn" onclick="toggleLayer(this,'wind')">💨 Wind</button>
       <button class="layer-btn" onclick="location.href='13-air-quality.html'">🌫 Air &amp; haze →</button>
     </div>
-
-    <!-- Dev note -->
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-family:monospace;padding:6px 14px;border-radius:99px;text-align:center;z-index:20;pointer-events:none;">
-      Map placeholder — integrate Leaflet.js or Mapbox GL JS<br/>
-      <span style="font-size:9px;opacity:.8;">Center: Angeles City [15.1348, 120.5869] · Zoom: 13</span>
-    </div>
-
   </div>
 
   <!-- Bottom nav -->
@@ -192,22 +163,54 @@
 </div>
 
 <script>
+const u = getUser();
+const centerLat = u?.lat || 15.1348, centerLng = u?.lng || 120.5869;
+
+const mainMap = L.map('mainMap').setView([centerLat, centerLng], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mainMap);
+
+/* User location dot */
+const userIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(242,107,31,.5);"></div>', iconSize: [14, 14] });
+L.marker([centerLat, centerLng], { icon: userIcon }).addTo(mainMap).bindPopup('Your location');
+
+let evacLayer = L.layerGroup().addTo(mainMap);
+let floodLayer = null;
+
+const evac_on = true;
 function toggleLayer(btn, layer) {
   btn.classList.toggle('active');
-  // BACKEND: Show/hide corresponding Leaflet layer group
-  console.log('[DEV] Toggle layer:', layer, btn.classList.contains('active'));
+  if (layer === 'evac') {
+    if (btn.classList.contains('active')) evacLayer.addTo(mainMap);
+    else mainMap.removeLayer(evacLayer);
+  } else if (layer === 'flood' && floodLayer) {
+    if (btn.classList.contains('active')) floodLayer.addTo(mainMap);
+    else mainMap.removeLayer(floodLayer);
+  }
 }
 
-function showEvacInfo() {
-  // BACKEND: Show bottom sheet with evac centre details
-  // GET /api/evac/centers/:id
-  alert('[DEV] Show evac centre details:\nAngeles City Evac Center\n60/240 capacity · gym + medical post\n2.4 km · 32 min walk');
+async function loadMapData() {
+  try {
+    const [conditions, centers] = await Promise.all([
+      apiFetch('/api/conditions/current').catch(() => null),
+      apiFetch('/api/evac/centers').catch(() => null),
+    ]);
+    if (conditions) {
+      if (conditions.heatIndex?.value) document.getElementById('mapHeatPill').textContent = conditions.heatIndex.value + '°C';
+      if (conditions.airQuality?.aqi) document.getElementById('mapAqiPill').textContent = conditions.airQuality.aqi + ' AQI';
+      if (conditions.riverLevel?.value) document.getElementById('mapRiverPill').textContent = conditions.riverLevel.value;
+    }
+    if (centers?.features) {
+      centers.features.forEach(f => {
+        const [lng, lat] = f.geometry.coordinates;
+        const occ = f.properties.occupied, cap = f.properties.capacity;
+        const icon = L.divIcon({ className: '', html: '<div style="width:28px;height:28px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;">✓</div>', iconSize: [28, 28] });
+        L.marker([lat, lng], { icon }).addTo(evacLayer).bindPopup(`<strong>${f.properties.name}</strong><br/>${occ ?? '–'}/${cap ?? '–'} occupied`);
+      });
+    }
+  } catch { /* keep minimal map */ }
 }
 
-// BACKEND: Initialize Leaflet.js here
-// Example:
-// const map = L.map('mapContainer').setView([15.1348, 120.5869], 13);
-// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+loadMapData();
 </script>
 
 </body>

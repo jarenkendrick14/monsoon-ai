@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Sign Up</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -141,9 +142,13 @@ async function checkUsernameAvailability(val) {
   const status = document.getElementById('usernameStatus');
   if (val.length < 3) { status.textContent = ''; return; }
   usernameTimer = setTimeout(async () => {
-    // TODO: GET /api/auth/check-username?q=val
-    status.textContent = '✓ Available'; // placeholder
-    status.style.color = 'var(--ok)';
+    try {
+      const res = await apiFetch('/api/auth/check-username?q=' + encodeURIComponent(val));
+      status.textContent = res.available ? '✓ Available' : '✗ Taken';
+      status.style.color = res.available ? 'var(--ok)' : 'var(--critical)';
+    } catch {
+      status.textContent = '';
+    }
   }, 500);
 }
 
@@ -165,25 +170,17 @@ async function handleSignup(e) {
     password: form.password.value,
   };
 
-  // Demo navigation (file:// protocol)
-  if (window.location.protocol === 'file:') {
-    location.href = '05-onboarding-basic.html'; return;
-  }
-
   try {
-    const res = await fetch('/api/auth/register', {
+    const data = await apiFetch('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.errors?.[0]?.message || data.error || 'Registration failed');
     localStorage.setItem('monsoon_token', data.token);
     localStorage.setItem('monsoon_user', JSON.stringify(data.user));
     location.href = '05-onboarding-basic.html';
   } catch (err) {
     const el = document.getElementById('errorMsg');
-    el.textContent = err.message;
+    el.textContent = err.errors?.[0]?.message || err.error || err.message || 'Registration failed';
     el.style.display = 'block';
   }
 }

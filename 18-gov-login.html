@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Government Console Sign In</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: var(--warm-bg); margin: 0; font-family: var(--font-ui); }
 
@@ -216,25 +217,14 @@ async function handleGovLogin(e) {
     password: form.password.value,
   };
 
-  // Demo mode
-  if (window.location.protocol === 'file:') {
-    location.href = '19-gov-manifest.html'; return;
-  }
-
   try {
-    const res = await fetch('/api/gov/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
+    const data = await apiFetch('/api/gov/auth/login', { method: 'POST', body: JSON.stringify(payload) });
     localStorage.setItem('monsoon_gov_token', data.token);
     localStorage.setItem('monsoon_gov_officer', JSON.stringify(data.officer));
     location.href = '19-gov-manifest.html';
   } catch (err) {
     const el = document.getElementById('govErrorMsg');
-    el.textContent = err.message;
+    el.textContent = err.error || err.message || 'Login failed';
     el.style.display = 'block';
   }
 }
@@ -245,17 +235,14 @@ function govForgotPassword() {
   alert(`[DEV] Would send reset link to: ${email || 'officer@agency.gov.ph'}`);
 }
 
-/* ── Load active storm banner ── */
 async function loadStormBanner() {
-  if (window.location.protocol === 'file:') return;
   try {
-    const res = await fetch('/api/alerts/active-storm');
-    const data = await res.json();
+    const data = await apiFetch('/api/alerts/active-storm');
     const banner = document.getElementById('stormBanner');
     if (!data.active) { banner.style.display = 'none'; return; }
     document.getElementById('stormBannerText').textContent =
-      `${data.name} — Signal #${data.signal} raised over ${data.area} at ${new Date(data.raisedAt).toLocaleTimeString()}. Manifest auto-generated.`;
-  } catch (e) {}
+      `${data.name} — Signal #${data.signal} raised over ${data.area || 'the area'} at ${new Date(data.raisedAt).toLocaleTimeString()}. Manifest auto-generated.`;
+  } catch { document.getElementById('stormBanner').style.display = 'none'; }
 }
 loadStormBanner();
 </script>

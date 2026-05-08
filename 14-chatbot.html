@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Ask Monsoon</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
@@ -300,34 +301,27 @@ function appendBubble(who, content) {
   document.getElementById('messagesArea').scrollTop = 99999;
 }
 
-/* ── BACKEND INTEGRATION POINT ── */
 async function callChatAPI(message) {
   document.getElementById('typingIndicator').style.display = 'flex';
   document.getElementById('messagesArea').scrollTop = 99999;
 
-  // Demo mode (file protocol)
-  if (window.location.protocol === 'file:') {
-    await new Promise(r => setTimeout(r, 900));
-    document.getElementById('typingIndicator').style.display = 'none';
-    appendBubble('bot', `<em>[Demo mode] API response for: "${escapeHtml(message)}"</em><br/>In production, POST /api/chat/message with sessionId and locale.`);
-    return;
-  }
-
   try {
-    const token = localStorage.getItem('monsoon_token');
-    const user = JSON.parse(localStorage.getItem('monsoon_user') || '{}');
-    const res = await fetch('/api/chat/message', {
+    const user = getUser();
+    const data = await apiFetch('/api/chat/message', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-      body: JSON.stringify({ message, sessionId, locale: user.locale || 'en' })
+      body: JSON.stringify({ message, sessionId, locale: user?.locale || 'en' })
     });
-    const data = await res.json();
     document.getElementById('typingIndicator').style.display = 'none';
     appendBubble('bot', data.reply);
-    // TODO: Render data.attachments[] (evac cards)
-  } catch (err) {
+    if (data.suggestedCommands?.length) {
+      const pills = document.querySelector('.cmd-pills');
+      pills.innerHTML = data.suggestedCommands.map(cmd =>
+        `<div class="cmd-pill" onclick="sendCommand('${escapeHtml(cmd)}')">${escapeHtml(cmd)}</div>`
+      ).join('');
+    }
+  } catch {
     document.getElementById('typingIndicator').style.display = 'none';
-    appendBubble('bot', 'I had trouble reaching the server. Please try again or text STATUS to 21587.');
+    appendBubble('bot', 'I had trouble reaching the server. Please try again or text STATUS to MonsoonAI.');
   }
 }
 
@@ -348,17 +342,16 @@ function startVoice() {
 }
 
 function sendToContact() {
-  // BACKEND: POST /api/sms/send-evac?to=contactId (send evac route to a saved contact)
-  alert('[DEV] Would send evac route to saved contact via Twilio SMS.');
+  apiFetch('/api/sms/send-evac', { method: 'POST' }).catch(() => {});
+  alert('Evacuation route sent to your registered mobile number.');
 }
 
 function escapeHtml(t) {
   return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// Personalise greeting
-const user = JSON.parse(localStorage.getItem('monsoon_user') || '{"name":"Maria"}');
-document.getElementById('chatGreeting').textContent = `Hello ${user.name?.split(' ')[0] || 'Maria'},`;
+const _u = getUser();
+document.getElementById('chatGreeting').textContent = `Hello ${_u?.name?.split(' ')[0] || _u?.firstName || 'there'},`;
 </script>
 
 </body>

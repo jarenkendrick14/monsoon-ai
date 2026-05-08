@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Dashboard (Calm)</title>
   <link rel="stylesheet" href="_brand.css" />
+  <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -282,57 +283,60 @@
 </div>
 
 <script>
-/* ── 7-DAY FORECAST RENDERER ── */
-// BACKEND: Replace this static data with response from GET /api/dashboard → forecast7day
-const forecastData = [
-  { day: 'M', level: 'low',  temp: 28 },
-  { day: 'T', level: 'low',  temp: 30 },
-  { day: 'W', level: 'low',  temp: 31 },
-  { day: 'T', level: 'med',  temp: 33 },
-  { day: 'F', level: 'med',  temp: 32 },
-  { day: 'S', level: 'high', temp: 26 },
-  { day: 'S', level: 'crit', temp: 24 },
-];
-
 const levelColors = { low: 'var(--ok)', med: 'var(--warn)', high: '#E67519', crit: 'var(--critical)' };
 const levelHeights = { low: '15%', med: '35%', high: '60%', crit: '85%' };
 
-const grid = document.getElementById('forecastGrid');
-forecastData.forEach(d => {
-  const col = document.createElement('div');
-  col.className = 'forecast-day';
-  col.innerHTML = `
-    <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day}</div>
-    <div class="forecast-bar" style="background:${levelColors[d.level]}22;">
-      <div class="forecast-bar-fill" style="height:${levelHeights[d.level]};background:${levelColors[d.level]};"></div>
-    </div>
-    <div style="font-size:10px;color:var(--ink);font-weight:700;">${d.temp}°</div>
-  `;
-  grid.appendChild(col);
-});
-
-/* ── REAL-TIME ALERT CHECK ── */
-// BACKEND: WebSocket or polling to check for alert level changes
-// If alertLevel becomes 'critical' → location.href = '09-dashboard-critical.html';
-async function checkAlerts() {
-  if (window.location.protocol === 'file:') return;
-  try {
-    const token = localStorage.getItem('monsoon_token');
-    const res = await fetch('/api/alerts/active', {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
-    const data = await res.json();
-    if (data.level === 'critical') location.href = '09-dashboard-critical.html';
-  } catch(e) {}
+function renderForecast(forecast7day) {
+  const grid = document.getElementById('forecastGrid');
+  grid.innerHTML = '';
+  const days = ['S','M','T','W','T','F','S'];
+  forecast7day.forEach((d, i) => {
+    const level = d.riskLevel || 'low';
+    const col = document.createElement('div');
+    col.className = 'forecast-day';
+    col.innerHTML = `
+      <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day || days[(new Date().getDay() + i) % 7]}</div>
+      <div class="forecast-bar" style="background:${levelColors[level] || levelColors.low}22;">
+        <div class="forecast-bar-fill" style="height:${levelHeights[level] || levelHeights.low};background:${levelColors[level] || levelColors.low};"></div>
+      </div>
+      <div style="font-size:10px;color:var(--ink);font-weight:700;">${d.temp || '--'}°</div>
+    `;
+    grid.appendChild(col);
+  });
 }
-// Poll every 60 seconds (use WebSocket in production)
-setInterval(checkAlerts, 60000);
 
-/* ── GREETING ── */
-const hour = new Date().getHours();
-const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-const user = JSON.parse(localStorage.getItem('monsoon_user') || '{"name":"Maria"}');
-document.getElementById('greetingText').textContent = `${greeting}, ${user.name?.split(' ')[0] || 'Maria'}.`;
+async function loadDashboard() {
+  try {
+    const data = await apiFetch('/api/dashboard');
+    const u = getUser();
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const name = data.user?.firstName || u?.name?.split(' ')[0] || 'there';
+    document.getElementById('greetingText').textContent = `${greeting}, ${name}.`;
+    if (data.forecast7day?.length) renderForecast(data.forecast7day);
+    if (data.conditions) {
+      if (data.conditions.riverLevel) document.getElementById('riverVal').textContent = data.conditions.riverLevel.value;
+      if (data.conditions.airQuality) document.getElementById('aqiVal').textContent = data.conditions.airQuality.aqi;
+      if (data.conditions.heatIndex) document.getElementById('heatVal').textContent = data.conditions.heatIndex.value + '°';
+    }
+    if (data.alertLevel === 'critical') location.href = '09-dashboard-critical.html';
+  } catch {
+    const u = getUser();
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    document.getElementById('greetingText').textContent = `${greeting}, ${u?.name?.split(' ')[0] || 'there'}.`;
+  }
+}
+
+/* WebSocket real-time alerts */
+const user = getUser();
+if (user?.id) {
+  connectAlertWS(user.id, msg => {
+    if (msg.level === 'critical') location.href = '09-dashboard-critical.html';
+  });
+}
+
+loadDashboard();
 </script>
 
 </body>
