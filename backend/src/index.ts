@@ -27,7 +27,17 @@ import govRouter from './routes/govRoutes.js';
 
 const app = express();
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      'script-src': ["'self'", "'unsafe-eval'", 'unpkg.com', '*.unpkg.com'],
+      'img-src': ["'self'", 'data:', '*.tile.openstreetmap.org'],
+      'style-src': ["'self'", "'unsafe-inline'", 'unpkg.com', '*.unpkg.com'],
+    },
+  },
+}));
 app.use(cors({
   origin: (origin, cb) => {
     const allowed = config.corsOrigin.split(',').map(s => s.trim());
