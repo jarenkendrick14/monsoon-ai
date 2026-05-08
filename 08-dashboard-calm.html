@@ -337,43 +337,64 @@ function startCountdown(minutes) {
   countdownTimer = setInterval(tick, 60000);
 }
 
+function riverStatus(v) {
+  if (v >= 3.0) return ['CRITICAL', 'var(--critical-soft)', 'var(--critical)'];
+  if (v >= 2.0) return ['WARNING', 'var(--warn-soft)', 'var(--warn)'];
+  return ['NORMAL', 'var(--ok-soft)', 'var(--ok)'];
+}
+function aqiStatus(v) {
+  if (v >= 151) return ['UNHEALTHY', 'var(--critical-soft)', 'var(--critical)'];
+  if (v >= 101) return ['MODERATE', 'var(--warn-soft)', 'var(--warn)'];
+  return ['GOOD', 'var(--ok-soft)', 'var(--ok)'];
+}
+function heatStatus(v) {
+  if (v >= 41) return ['DANGER', 'var(--critical-soft)', 'var(--critical)'];
+  if (v >= 35) return ['CAUTION', 'var(--warn-soft)', 'var(--warn)'];
+  return ['NORMAL', 'var(--ok-soft)', 'var(--ok)'];
+}
+
 function setConditions(conditions, alertData) {
   if (!conditions) return;
-  const r = conditions.riverLevel;
-  if (r) {
-    document.getElementById('riverVal').textContent = r.value ?? '—';
-    document.getElementById('riverUnit').textContent = r.unit ?? 'NHWL';
+
+  const rv = conditions.riverLevel;
+  if (rv != null) {
+    document.getElementById('riverVal').textContent = Number(rv).toFixed(1);
+    const [s, bg, fg] = riverStatus(rv);
     const rtag = document.getElementById('riverTag');
-    const s = (r.status || '').toLowerCase();
-    rtag.textContent = r.status || '—';
-    rtag.style.background = s === 'critical' ? 'var(--critical-soft)' : s === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)';
-    rtag.style.color = s === 'critical' ? 'var(--critical)' : s === 'warning' ? 'var(--warn)' : 'var(--ok)';
-    if (s === 'critical') document.getElementById('riverVal').style.color = 'var(--critical)';
+    rtag.textContent = s;
+    rtag.style.background = bg;
+    rtag.style.color = fg;
+    document.getElementById('riverVal').style.color = s === 'CRITICAL' ? 'var(--critical)' : 'var(--ink)';
   }
+
   const aq = conditions.airQuality;
-  if (aq) {
-    document.getElementById('aqiVal').textContent = aq.aqi ?? '—';
+  if (aq != null) {
+    document.getElementById('aqiVal').textContent = Math.round(aq);
+    const [s, bg, fg] = aqiStatus(aq);
     const atag = document.getElementById('aqiTag');
-    atag.textContent = aq.status || '—';
+    atag.textContent = s;
+    atag.style.background = bg;
+    atag.style.color = fg;
   }
+
   const hi = conditions.heatIndex;
-  if (hi) {
-    document.getElementById('heatVal').textContent = hi.value != null ? hi.value : '—';
+  if (hi != null) {
+    document.getElementById('heatVal').textContent = Math.round(hi);
+    const [s, bg, fg] = heatStatus(hi);
     const htag = document.getElementById('heatTag');
-    const hs = (hi.status || '').toLowerCase();
-    htag.textContent = hi.status || '—';
-    htag.style.background = hs === 'danger' ? 'var(--critical-soft)' : hs === 'caution' ? 'var(--warn-soft)' : 'var(--ok-soft)';
-    htag.style.color = hs === 'danger' ? 'var(--critical)' : hs === 'caution' ? 'var(--warn)' : 'var(--ok)';
+    htag.textContent = s;
+    htag.style.background = bg;
+    htag.style.color = fg;
   }
 
   if (alertData) {
-    if (alertData.rainfall) {
+    if (alertData.rainfall != null) {
       document.getElementById('rainVal').textContent = alertData.rainfall;
       document.getElementById('rainTag').textContent = alertData.rainfall > 30 ? 'HEAVY' : 'MODERATE';
     }
-    if (alertData.rainfall) document.getElementById('rainfallVal').textContent = alertData.rainfall + 'mm/24h';
+    if (alertData.rainfall != null) document.getElementById('rainfallVal').textContent = alertData.rainfall + 'mm/24h';
     if (alertData.floodZone) document.getElementById('floodZoneVal').textContent = alertData.floodZone;
-    if (alertData.riverDischarge) document.getElementById('dischargeVal').textContent = alertData.riverDischarge;
+    if (alertData.riverDischarge != null) document.getElementById('dischargeVal').textContent = alertData.riverDischarge;
     if (alertData.evacuateWithin) startCountdown(alertData.evacuateWithin);
   }
 }
