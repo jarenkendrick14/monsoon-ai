@@ -78,16 +78,10 @@
 
     <!-- Profile header row -->
     <div style="display:flex;align-items:center;gap:14px;padding:6px 4px 16px;">
-      <!-- BACKEND: If user has avatar URL → <img>. Else show initials. -->
-      <div class="avatar" id="avatarEl">MS</div>
+      <div class="avatar" id="avatarEl"></div>
       <div>
-        <!-- BACKEND: Populate from /api/user/profile -->
-        <div style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink);line-height:1.1;" id="profileFullName">
-          Maria Santos
-        </div>
-        <div style="font-size:12.5px;color:var(--ink-2);" id="profileSince">
-          Cutcut District, Angeles · since Aug 2026
-        </div>
+        <div style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--ink);line-height:1.1;" id="profileFullName"></div>
+        <div style="font-size:12.5px;color:var(--ink-2);" id="profileSince"></div>
       </div>
       <!-- Edit button -->
       <button class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="editProfile()">Edit</button>
@@ -180,42 +174,100 @@
 </div>
 
 <script>
-/* ── RISK GAUGE RENDERER ── */
+const HOME_LABELS = {
+  nipa_hut: 'Nipa hut', bungalow: 'Bungalow', standalone: 'House',
+  townhouse: 'Townhouse', apartment: 'Apartment', condo: 'Condo',
+  duplex: 'Duplex', studio: 'Studio',
+};
+const LOCALE_LABELS = { en: 'English', tl: 'Filipino', vi: 'Vietnamese' };
+const TIER_LABELS = { critical: 'CRITICAL', high: 'HIGH PRIORITY', medium: 'MEDIUM RISK', low: 'LOW RISK' };
+
 function setGauge(score0to100, color) {
-  const r = 36, C = 2 * Math.PI * r; // C ≈ 226.2
+  const r = 36, C = 2 * Math.PI * r;
   const offset = C - (score0to100 / 100) * C;
   const arc = document.getElementById('gaugeArc');
-  const text = document.getElementById('gaugeText');
-  if (arc) { arc.setAttribute('stroke-dashoffset', offset.toFixed(1)); arc.setAttribute('stroke', color || 'var(--critical)'); }
-  if (text) text.textContent = score0to100;
+  const txt = document.getElementById('gaugeText');
+  if (arc) { arc.setAttribute('stroke-dashoffset', offset.toFixed(1)); arc.setAttribute('stroke', color); }
+  if (txt) txt.textContent = score0to100;
 }
 
-/* ── LOAD PROFILE FROM API ── */
+function floorLabel(f) {
+  if (f === 0) return 'ground floor';
+  if (f === 1) return '1st floor';
+  if (f === 2) return '2nd floor';
+  return f + 'th floor';
+}
+
+function sinceLabel(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return 'since ' + d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+}
+
+function needsLabel(d) {
+  const flags = [];
+  if (d.hasElderly) flags.push('elderly');
+  if (d.hasPWD) flags.push('PWD');
+  if (d.hasInfant) flags.push('infant');
+  if (d.hasPregnant) flags.push('pregnant');
+  return flags.length ? flags.join(', ') : 'None';
+}
+
+function applyProfile(d) {
+  const parts = (d.name || '').trim().split(' ');
+  const initials = parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : ((d.name || '?')[0] || '?').toUpperCase();
+
+  const capName = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+
+  document.getElementById('avatarEl').textContent = initials;
+  document.getElementById('profileFullName').textContent = capName;
+  document.getElementById('profileSince').textContent =
+    (d.address || '') + (d.created ? ' · ' + sinceLabel(d.created) : '');
+
+  document.getElementById('profileAddress').textContent = d.address || 'Not set — tap Edit';
+  document.getElementById('profileCoords').textContent =
+    (d.lat && d.lng) ? `${Number(d.lat).toFixed(4)}° N, ${Number(d.lng).toFixed(4)}° E` : 'Not set';
+
+  const homeLabel = HOME_LABELS[d.homeType] || d.homeType || '';
+  const flLabel = (d.floor != null && d.homeType) ? floorLabel(d.floor) : '';
+  document.getElementById('profileHomeType').textContent =
+    homeLabel ? (flLabel ? `${homeLabel} · ${flLabel}` : homeLabel) : 'Not set';
+
+  document.getElementById('profileOccupants').textContent =
+    d.householdSize ? `${d.householdSize} occupant${d.householdSize !== 1 ? 's' : ''}` : 'Not set';
+  document.getElementById('profileNeeds').textContent = needsLabel(d);
+
+  const score10 = d.risk?.riskScore ?? 0;
+  const score100 = d.risk?.inasafeScore ?? Math.round(score10 * 10);
+  const tier = d.risk?.riskTier || 'low';
+  document.getElementById('riskScore').textContent = `${Number(score10).toFixed(1)} / 10`;
+
+  const tierText = TIER_LABELS[tier] || tier.toUpperCase();
+  document.getElementById('riskTierRow').textContent =
+    d.risk?.isOnRescueList ? `${tierText} · pre-storm rescue list` : tierText;
+
+  const gColor = tier === 'critical' ? 'var(--critical)' : tier === 'high' ? 'var(--warn)' : 'var(--ok)';
+  setGauge(score100, gColor);
+
+  document.getElementById('alertLocale').textContent = LOCALE_LABELS[d.locale] || d.locale || 'English';
+  document.getElementById('alertPhone').textContent = d.mobile || 'Not set';
+}
+
 async function loadProfile() {
+  // Pre-fill immediately from localStorage to avoid flash
+  const cached = getUser();
+  if (cached) applyProfile(cached);
+
+  // Then fetch fresh data from API
   try {
-    const data = await apiFetch('/api/user/profile');
-
-    // Populate fields
-    document.getElementById('avatarEl').textContent =
-      (data.firstName[0] + data.lastName[0]).toUpperCase();
-    document.getElementById('profileFullName').textContent =
-      `${data.firstName} ${data.lastName}`;
-    document.getElementById('profileAddress').textContent = data.address;
-    document.getElementById('profileCoords').textContent =
-      `${data.coordinates.lat}° N, ${data.coordinates.lng}° E`;
-    document.getElementById('profileHomeType').textContent =
-      `${data.household.homeType} · ${data.household.floorLevel} floor`;
-    document.getElementById('profileOccupants').textContent = data.household.occupantCount;
-    document.getElementById('riskScore').textContent = `${data.risk.score} / 10`;
-    document.getElementById('riskTierRow').textContent =
-      data.risk.isOnRescueList ? `${data.risk.tier.toUpperCase()} · pre-storm rescue list` : data.risk.tier.toUpperCase();
-
-    // Gauge: score 0-10 → 0-100
-    const gColor = data.risk.tier === 'critical' ? 'var(--critical)'
-      : data.risk.tier === 'high' ? 'var(--warn)' : 'var(--ok)';
-    setGauge(Math.round(data.risk.score * 10), gColor);
-  } catch (err) {
-    setGauge(84);
+    const d = await apiFetch('/api/user/profile');
+    // Persist fresh data back to localStorage
+    localStorage.setItem('monsoon_user', JSON.stringify({ ...cached, ...d }));
+    applyProfile(d);
+  } catch {
+    if (!cached) setGauge(0, 'var(--muted)');
   }
 }
 
