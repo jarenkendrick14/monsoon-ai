@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI — Evacuate</title>
+  <title>MonsoonAI â€” Evacuate</title>
   <link rel="stylesheet" href="_brand.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -67,9 +67,9 @@
      BACKEND NOTES:
      On page load: GET /api/evac/route?lat=USER_LAT&lng=USER_LNG  (auth required)
      Response: {
-       etaMinutes: number,               ← OSRM foot-mode, adjusted for PWD/elderly
+       etaMinutes: number,               â† OSRM foot-mode, adjusted for PWD/elderly
        distanceKm: number,
-       routingNote: string,              ← e.g. "adjusted to 3.0 km/h for elderly"
+       routingNote: string,              â† e.g. "adjusted to 3.0 km/h for elderly"
        steps: [{ instruction, detail }],
        destination: { name, address, capacity, occupied, hasMedial: boolean }
      }
@@ -80,18 +80,18 @@
        - User location: navigator.geolocation or stored coordinates
        - Update ETA in real-time as user moves (geolocation watchPosition)
 
-     "Start navigation" → Open native maps app via deep link:
+     "Start navigation" â†’ Open native maps app via deep link:
        Android: geo:LAT,LNG?q=DEST_LAT,DEST_LNG
        iOS: maps://maps.apple.com/?daddr=DEST_LAT,DEST_LNG
 
-     "Share" → navigator.share() with route URL or SMS via Twilio
+     "Share" â†’ navigator.share() with route URL or SMS via Twilio
      ============================================================ -->
 
 <div class="app-shell">
 
   <!-- Sub-nav -->
   <div class="sub-nav">
-    <button class="back-btn" onclick="history.back()">‹</button>
+    <button class="back-btn" onclick="history.back()">â€¹</button>
     <span class="sub-nav-title">Evacuate</span>
     <div class="flood-pill pill-critical">
       <span class="dot"></span>
@@ -106,7 +106,7 @@
     <div class="map-info-card" style="position:absolute;top:12px;left:14px;right:14px;z-index:1000;">
       <div class="map-info-label">Walking route</div>
       <div class="map-info-eta">
-        <span class="big" id="etaMinutes">–</span>
+        <span class="big" id="etaMinutes">â€“</span>
         <span style="font-size:12px;color:var(--ink-2);font-weight:600;">min</span>
         <span style="font-size:12px;color:var(--muted);margin-left:6px;" id="distanceLabel"></span>
       </div>
@@ -122,7 +122,7 @@
 
     <!-- Destination -->
     <div class="route-step dest-step">
-      <div class="step-num">★</div>
+      <div class="step-num">â˜…</div>
       <div>
         <div class="step-title" id="destName">Loading...</div>
         <div class="step-sub" id="destDetail"></div>
@@ -149,7 +149,7 @@
 
   <!-- Bottom nav -->
   <nav class="bottom-nav">
-    <div class="nav-item" onclick="location.href='09-dashboard-critical.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
     <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
     <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
     <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
@@ -164,9 +164,9 @@ let evacMap, userMarker, destMarker;
 
 function initEvacMap(userLat, userLng, dLat, dLng) {
   evacMap = L.map('evacMap', { zoomControl: false }).setView([(userLat + dLat) / 2, (userLng + dLng) / 2], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(evacMap);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'Â© OpenStreetMap' }).addTo(evacMap);
   const orangeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>', iconSize: [14, 14] });
-  const destIcon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;">✓</div>', iconSize: [24, 24] });
+  const destIcon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;">âœ“</div>', iconSize: [24, 24] });
   userMarker = L.marker([userLat, userLng], { icon: orangeIcon }).addTo(evacMap);
   destMarker = L.marker([dLat, dLng], { icon: destIcon }).addTo(evacMap);
   L.polyline([[userLat, userLng], [dLat, dLng]], { color: 'var(--orange)', weight: 4, dashArray: '8 8' }).addTo(evacMap);
@@ -178,14 +178,14 @@ async function loadEvacRoute() {
   const lng = user?.lng || 120.5796;
   try {
     const data = await apiFetch(`/api/evac/route?lat=${lat}&lng=${lng}`);
-    document.getElementById('etaMinutes').textContent = data.etaMinutes ?? '–';
-    document.getElementById('distanceLabel').textContent = data.distanceKm ? `· ${data.distanceKm} km · OSRM foot mode` : '';
+    document.getElementById('etaMinutes').textContent = data.etaMinutes ?? 'â€“';
+    document.getElementById('distanceLabel').textContent = data.distanceKm ? `Â· ${data.distanceKm} km Â· OSRM foot mode` : '';
     document.getElementById('routeNote').textContent = data.routingNote || '';
     if (data.destination) {
       destCoords = { lat: data.destination.lat ?? destCoords.lat, lng: data.destination.lng ?? destCoords.lng };
       document.getElementById('destName').textContent = data.destination.name || 'Evacuation Center';
-      const occ = data.destination.occupied != null ? `~${data.destination.occupied} occupied · ` : '';
-      document.getElementById('destDetail').textContent = `Capacity ${data.destination.capacity ?? '–'} · ${occ}${data.destination.hasMedial ? 'medical post' : ''}`;
+      const occ = data.destination.occupied != null ? `~${data.destination.occupied} occupied Â· ` : '';
+      document.getElementById('destDetail').textContent = `Capacity ${data.destination.capacity ?? 'â€“'} Â· ${occ}${data.destination.hasMedial ? 'medical post' : ''}`;
     }
     if (data.steps?.length) {
       const colors = ['var(--ok)', 'var(--orange)', '#E67519'];
@@ -207,7 +207,7 @@ function startNavigation() {
 }
 
 function shareRoute() {
-  const text = document.getElementById('stepsContainer').innerText + '\n→ ' + document.getElementById('destName').textContent;
+  const text = document.getElementById('stepsContainer').innerText + '\nâ†’ ' + document.getElementById('destName').textContent;
   if (navigator.share) {
     navigator.share({ title: 'MonsoonAI Evacuation Route', text });
   } else {

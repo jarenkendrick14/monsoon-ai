@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI — Ask Monsoon</title>
+  <title>MonsoonAI â€” Ask Monsoon</title>
   <link rel="stylesheet" href="_brand.css" />
   <script src="js/_api.js"></script>
   <style>
@@ -75,16 +75,16 @@
      BACKEND NOTES:
      Chat API: POST /api/chat/message  (auth required)
      Request body: {
-       message: string,          ← user's typed or voice input
-       sessionId: string,        ← keep for conversation context
-       locale: 'en'|'tl'|'vi'   ← user's preferred language
+       message: string,          â† user's typed or voice input
+       sessionId: string,        â† keep for conversation context
+       locale: 'en'|'tl'|'vi'   â† user's preferred language
      }
      Response: {
        reply: string,
        attachments?: [
          { type: 'evac_route', etaMin: number, distKm: number, centerName: string }
        ],
-       suggestedCommands?: string[]   ← pills to show after reply
+       suggestedCommands?: string[]   â† pills to show after reply
      }
 
      IMPORTANT ARCHITECTURE NOTE:
@@ -94,11 +94,11 @@
        - Use structured output: LLM fills template, deterministic engine drives verdict
 
      Chat history: GET /api/chat/history?sessionId=  (last 20 messages)
-     Voice input: Use Web Speech API (SpeechRecognition) → send transcript to POST /api/chat/message
+     Voice input: Use Web Speech API (SpeechRecognition) â†’ send transcript to POST /api/chat/message
      Image input: Base64 encode, include in message body as { imageBase64, mimeType }
 
      Multi-language: server-side locale detection on user record
-       Filipino (Tagalog): tl · Ilocano: ilo (future) · Vietnamese: vi
+       Filipino (Tagalog): tl Â· Ilocano: ilo (future) Â· Vietnamese: vi
 
      Session: Generate sessionId client-side (nanoid) per page load.
      ============================================================ -->
@@ -166,7 +166,7 @@
             <div class="evac-attach-body">
               <!-- BACKEND: Populate from /api/evac/route response -->
               <div style="font-size:12px;font-weight:800;color:var(--ink);">Angeles City Evac Center</div>
-              <div style="font-size:11px;color:var(--ink-2);margin-top:2px;">2.4 km · 32 min walk · open · 60/240 occupancy</div>
+              <div style="font-size:11px;color:var(--ink-2);margin-top:2px;">2.4 km Â· 32 min walk Â· open Â· 60/240 occupancy</div>
               <div style="display:flex;gap:6px;margin-top:8px;">
                 <button class="btn btn-primary btn-sm" onclick="location.href='11-evac-route.html'">Open route</button>
                 <!-- BACKEND: POST /api/sms/send-evac?to=contact -->
@@ -188,7 +188,7 @@
           <img src="assets/short_logo.png" alt="" width="18" height="18" style="object-fit:contain;" />
         </div>
         <div class="bubble">
-          Sa hi-res LiDAR, ang ikalawang palapag ng nipa-house ninyo ay <strong>+2.4 m</strong> sa lupa, pero ang inaasahang flood crest sa Sapang Balen ay <strong>+3.1 m</strong>. Hindi ito sapat — kaya pinipili ko ang evacuate.
+          Sa hi-res LiDAR, ang ikalawang palapag ng nipa-house ninyo ay <strong>+2.4 m</strong> sa lupa, pero ang inaasahang flood crest sa Sapang Balen ay <strong>+3.1 m</strong>. Hindi ito sapat â€” kaya pinipili ko ang evacuate.
         </div>
       </div>
 
@@ -214,9 +214,9 @@
   <!-- Command pills (pre-canned quick prompts) -->
   <!-- BACKEND: Command pills trigger POST /api/chat/message with the pill text as message -->
   <div class="cmd-pills">
-    <div class="cmd-pill" onclick="sendCommand('Weather update')">☁️ Weather update</div>
-    <div class="cmd-pill" onclick="sendCommand('Temperature')">🌡 Temperature</div>
-    <div class="cmd-pill" onclick="sendCommand('Will it rain?')">🌧 Will it rain?</div>
+    <div class="cmd-pill" onclick="sendCommand('Weather update')">â˜ï¸ Weather update</div>
+    <div class="cmd-pill" onclick="sendCommand('Temperature')">ðŸŒ¡ Temperature</div>
+    <div class="cmd-pill" onclick="sendCommand('Will it rain?')">ðŸŒ§ Will it rain?</div>
     <div class="cmd-pill" onclick="sendCommand('STATUS')">STATUS</div>
     <div class="cmd-pill" onclick="sendCommand('EVAC')">EVAC</div>
     <div class="cmd-pill" onclick="sendCommand('HAZE')">HAZE</div>
@@ -227,27 +227,27 @@
   <div class="composer">
     <div class="composer-bar" onclick="focusInput()">
       <span class="composer-plus">+</span>
-      <!-- BACKEND: On tap → show keyboard input. On submit → POST /api/chat/message -->
+      <!-- BACKEND: On tap â†’ show keyboard input. On submit â†’ POST /api/chat/message -->
       <input id="chatInput" type="text" placeholder="Ask Monsoon"
              style="flex:1;background:transparent;border:none;outline:none;color:#fff;font-weight:700;font-size:14px;font-family:var(--font-ui);"
              onkeydown="if(event.key==='Enter') sendMessage()" />
-      <!-- BACKEND: Image attach → base64 encode, include in request body -->
+      <!-- BACKEND: Image attach â†’ base64 encode, include in request body -->
       <button class="composer-icon-btn" type="button" title="Attach image">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
-      <!-- BACKEND: Voice input → Web Speech API → SpeechRecognition → transcript → POST /api/chat/message -->
+      <!-- BACKEND: Voice input â†’ Web Speech API â†’ SpeechRecognition â†’ transcript â†’ POST /api/chat/message -->
       <button class="composer-icon-btn" type="button" id="voiceBtn" title="Voice input" onclick="startVoice()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
       </button>
     </div>
     <div style="text-align:center;font-size:10.5px;color:var(--muted);margin-top:6px;">
-      Powered by deterministic risk engine · LLM handles language only
+      Powered by deterministic risk engine Â· LLM handles language only
     </div>
   </div>
 
   <!-- Bottom nav -->
   <nav class="bottom-nav">
-    <div class="nav-item" onclick="location.href='09-dashboard-critical.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
     <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
     <div class="nav-center">
       <div class="nav-center-btn" style="background:var(--orange);border-color:var(--orange);" onclick="location.href='14-chatbot.html'">
@@ -264,7 +264,7 @@
 <script>
 const sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
 
-/* ── SEND MESSAGE ── */
+/* â”€â”€ SEND MESSAGE â”€â”€ */
 async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
@@ -325,7 +325,7 @@ async function callChatAPI(message) {
   }
 }
 
-/* ── VOICE INPUT (Web Speech API) ── */
+/* â”€â”€ VOICE INPUT (Web Speech API) â”€â”€ */
 function startVoice() {
   if (!('SpeechRecognition' in window) && !('webkitSpeechRecognition' in window)) {
     alert('Voice input not supported in this browser. Try Chrome on Android.');

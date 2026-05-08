@@ -29,6 +29,10 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
   }));
 
   res.json({
+    user: {
+      firstName: user.name?.split(' ')[0] ?? user.name ?? '',
+      address: user.address ?? '',
+    },
     alertLevel,
     forecast7day,
     conditions: {

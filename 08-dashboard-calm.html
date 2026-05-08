@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI — Dashboard (Calm)</title>
+  <title>MonsoonAI — Dashboard</title>
   <link rel="stylesheet" href="_brand.css" />
   <script src="js/_api.js"></script>
   <style>
@@ -17,7 +17,6 @@
       .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
     }
 
-    /* Search bar */
     .search-bar {
       margin: 0 14px; height: 42px; border-radius: 12px;
       border: 1px solid var(--hairline); background: #fff;
@@ -26,99 +25,64 @@
     }
     .search-bar input { flex: 1; border: none; outline: none; font-size: 13px; color: var(--muted); background: transparent; }
 
-    /* Quick tiles */
     .quick-tiles { display: flex; overflow-x: auto; gap: 14px; padding: 14px 14px 4px; scrollbar-width: none; }
     .quick-tiles::-webkit-scrollbar { display: none; }
     .tile { flex: 0 0 auto; width: 70px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-    .tile-icon {
-      width: 56px; height: 56px; border-radius: 16px;
-      background: #fff; border: 1px solid var(--hairline);
-      display: flex; align-items: center; justify-content: center; position: relative;
-    }
+    .tile-icon { width: 56px; height: 56px; border-radius: 16px; background: #fff; border: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; position: relative; }
     .tile-icon.active { background: var(--orange-tint); border-color: var(--orange-soft); }
     .tile-label { font-size: 10.5px; color: var(--ink); text-align: center; line-height: 1.2; font-weight: 600; }
-    .tile-badge {
-      position: absolute; top: -4px; right: -4px;
-      min-width: 16px; height: 16px; border-radius: 999px;
-      background: var(--critical); color: #fff;
-      font-size: 10px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center; padding: 0 4px;
-    }
+    .tile-badge { position: absolute; top: -4px; right: -4px; min-width: 16px; height: 16px; border-radius: 999px; background: var(--critical); color: #fff; font-size: 10px; font-weight: 800; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
 
-    /* Status banner (calm) */
-    .status-calm {
-      margin: 12px 14px 0; padding: 14px; border-radius: 16px;
-      background: var(--ok-soft); border: 1px solid var(--ok);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .status-calm-icon {
-      width: 38px; height: 38px; border-radius: 999px; background: var(--ok); color: #fff;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    }
+    /* Calm state */
+    .status-calm { margin: 12px 14px 0; padding: 14px; border-radius: 16px; background: var(--ok-soft); border: 1px solid var(--ok); display: flex; align-items: center; gap: 12px; }
+    .status-calm-icon { width: 38px; height: 38px; border-radius: 999px; background: var(--ok); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
     /* 7-day forecast */
     .forecast { margin: 14px 14px 0; }
     .forecast-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-    .forecast-grid {
-      padding: 10px; border-radius: 16px; background: #fff; border: 1px solid var(--hairline);
-      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
-    }
+    .forecast-grid { padding: 10px; border-radius: 16px; background: #fff; border: 1px solid var(--hairline); display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     .forecast-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .forecast-bar { width: 100%; height: 50px; border-radius: 8px; position: relative; overflow: hidden; }
     .forecast-bar-fill { position: absolute; bottom: 0; left: 0; right: 0; border-radius: 8px; }
 
+    /* Critical hero */
+    .hero-critical { margin: 12px 14px 0; border-radius: 20px; padding: 16px; background: linear-gradient(135deg, var(--critical) 0%, #BB1B12 100%); color: #fff; position: relative; overflow: hidden; animation: mm-pulse-red 3s ease-in-out infinite; }
+    .hero-inner { display: flex; align-items: flex-start; gap: 12px; position: relative; z-index: 1; }
+    .hero-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .hero-label { font-size: 11px; font-weight: 800; letter-spacing: .8px; opacity: .9; text-transform: uppercase; }
+    .hero-headline { font-family: var(--font-display); font-weight: 800; font-size: 22px; line-height: 1.1; margin-top: 2px; }
+    .hero-detail { font-size: 12px; opacity: .92; margin-top: 6px; line-height: 1.4; }
+    .hero-btns { display: flex; gap: 8px; margin-top: 12px; }
+    .hero-btn-white { height: 34px; padding: 0 14px; border-radius: 999px; background: #fff; color: var(--critical); border: none; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .hero-btn-outline { height: 34px; padding: 0 14px; border-radius: 999px; background: transparent; color: #fff; border: 1.5px solid rgba(255,255,255,.6); font-weight: 700; font-size: 13px; cursor: pointer; }
+    .rain-ribbon { position: absolute; inset: 0; overflow: hidden; border-radius: 20px; pointer-events: none; }
+    .rain-drop { position: absolute; top: -6px; width: 2px; height: 10px; border-radius: 2px; background: rgba(255,255,255,.55); animation: mm-rain .9s linear infinite; }
+
     /* Condition cards */
     .cond-cards { display: flex; gap: 10px; overflow-x: auto; padding: 4px 0; scrollbar-width: none; }
     .cond-cards::-webkit-scrollbar { display: none; }
-    .cond-card {
-      flex: 0 0 auto; width: 120px; padding: 12px; border-radius: 14px;
-      background: #fff; border: 1px solid var(--hairline);
-    }
+    .cond-card { flex: 0 0 auto; width: 120px; padding: 12px; border-radius: 14px; background: #fff; border: 1px solid var(--hairline); }
     .cond-card.primary { background: var(--orange-tint); border-color: var(--orange-soft); }
     .cond-value { font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--ink); line-height: 1; margin: 6px 0 2px; }
     .cond-unit { font-size: 11px; color: var(--muted); }
     .cond-label { font-size: 11px; color: var(--ink-2); margin-bottom: 6px; }
     .cond-tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; letter-spacing: .4px; }
+
+    /* State visibility */
+    [data-show="calm"] .critical-only { display: none !important; }
+    [data-show="critical"] .calm-only { display: none !important; }
   </style>
 </head>
 <body>
 
-<!-- ============================================================
-     BACKEND NOTES:
-     On page load: GET /api/dashboard  (auth required)
-     Response: {
-       user: { firstName },
-       alertLevel: 'ok'|'warn'|'critical',
-       lastChecked: ISO string,
-       forecast7day: [{ day: string, riskLevel: string, temp: number }],
-       conditions: {
-         riverLevel: { value: string, unit: string, status: string },
-         airQuality: { aqi: number, status: string },
-         heatIndex:  { value: number, status: string }
-       },
-       nextCheckIn: string
-     }
+<div class="app-shell" id="shell" data-show="calm">
 
-     REAL-TIME: Subscribe to WebSocket /ws/alerts for push updates.
-     If alertLevel becomes 'critical' mid-session → redirect to 09-dashboard-critical.html
-     
-     Quick tile actions:
-       - Ask Monsoon → 14-chatbot.html
-       - Shelters → 12-map.html?layer=evac
-       - Emergency call → tel:911
-       - Report incident → modal / form
-       - Checklist → 10-alert-detail.html#checklist
-     ============================================================ -->
-
-<div class="app-shell">
-
-  <!-- ── App Header ── -->
+  <!-- Header -->
   <div class="app-header">
     <div class="app-logo">
       <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
       <span class="app-logo-name">MONSOON<span> AI</span></span>
     </div>
-    <!-- BACKEND: level = 'ok' | 'warn' | 'critical' from /api/dashboard -->
     <div class="flood-pill pill-ok" id="statusPill">
       <span class="dot"></span>
       <span id="statusPillText">ALL CLEAR</span>
@@ -133,149 +97,167 @@
       <input type="search" placeholder="Search for services" />
     </div>
 
-    <!-- Quick action tiles -->
-    <!-- BACKEND: badge on "Shelters" = number of open evac centres nearby from /api/evac/centers?near=lat,lng -->
-    <div class="quick-tiles">
+    <!-- Tiles: calm -->
+    <div class="quick-tiles calm-only">
       <div class="tile" onclick="location.href='14-chatbot.html'">
-        <div class="tile-icon active">
-          <img src="assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" />
-        </div>
+        <div class="tile-icon active"><img src="assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" /></div>
         <span class="tile-label">Ask Monsoon</span>
       </div>
       <div class="tile" onclick="location.href='12-map.html'">
-        <div class="tile-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg>
-        </div>
+        <div class="tile-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg></div>
         <span class="tile-label">Shelters</span>
       </div>
       <div class="tile" onclick="window.location='tel:911'">
-        <div class="tile-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5 12.8 12.8 0 0 0 2.8.7A2 2 0 0 1 22 16.9Z"/></svg>
-        </div>
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5 12.8 12.8 0 0 0 2.8.7A2 2 0 0 1 22 16.9Z"/></svg></div>
         <span class="tile-label">Emergency call</span>
       </div>
       <div class="tile">
-        <div class="tile-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".8" fill="var(--orange)"/></svg>
-        </div>
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".8" fill="var(--orange)"/></svg></div>
         <span class="tile-label">Report incident</span>
       </div>
       <div class="tile" onclick="location.href='10-alert-detail.html'">
-        <div class="tile-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M9 11l2.5 2.5L17 8"/><path d="M5 4h14v16H5z"/></svg>
-        </div>
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M9 11l2.5 2.5L17 8"/><path d="M5 4h14v16H5z"/></svg></div>
         <span class="tile-label">Checklist</span>
       </div>
     </div>
 
-    <!-- Location line -->
+    <!-- Tiles: critical -->
+    <div class="quick-tiles critical-only">
+      <div class="tile" onclick="location.href='14-chatbot.html'">
+        <div class="tile-icon active"><img src="assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" /></div>
+        <span class="tile-label">Ask Monsoon</span>
+      </div>
+      <div class="tile" onclick="location.href='11-evac-route.html'">
+        <div class="tile-icon"><div class="tile-badge">!</div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M3 21V10l9-7 9 7v11"/><path d="M9 21v-7h6v7"/></svg></div>
+        <span class="tile-label">Evacuate</span>
+      </div>
+      <div class="tile" onclick="window.location='tel:911'">
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7 12.8 12.8 0 0 0 .7 2.8 2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5 12.8 12.8 0 0 0 2.8.7A2 2 0 0 1 22 16.9Z"/></svg></div>
+        <span class="tile-label">Emergency call</span>
+      </div>
+      <div class="tile">
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".8" fill="var(--orange)"/></svg></div>
+        <span class="tile-label">Report incident</span>
+      </div>
+      <div class="tile" onclick="location.href='10-alert-detail.html'">
+        <div class="tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><path d="M9 11l2.5 2.5L17 8"/><path d="M5 4h14v16H5z"/></svg></div>
+        <span class="tile-label">Checklist</span>
+      </div>
+    </div>
+
+    <!-- Location -->
     <div style="padding:6px 18px 0;display:flex;align-items:center;gap:6px;color:var(--ink-2);font-size:12.5px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.4"><path d="M12 22s7-7.6 7-13a7 7 0 1 0-14 0c0 5.4 7 13 7 13Z"/><circle cx="12" cy="9" r="2.5" fill="var(--orange)"/></svg>
-      <!-- BACKEND: Replace with user.address from API -->
-      <span id="locationLine">Cutcut District, Angeles · 0.4 km from local creek</span>
+      <span id="locationLine">—</span>
     </div>
 
-    <!-- Greeting -->
-    <div style="padding:14px 18px 0;">
-      <!-- BACKEND: Replace "Maria" with user.firstName -->
-      <div style="font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--ink);line-height:1.1;" id="greetingText">
-        Good evening, Maria.
-      </div>
-      <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;" id="greetingSub">
-        No active warnings for Cutcut District. Last checked 30 sec ago.
-      </div>
+    <!-- Greeting (calm only) -->
+    <div style="padding:14px 18px 0;" class="calm-only">
+      <div style="font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--ink);line-height:1.1;" id="greetingText">—</div>
+      <div style="font-size:12.5px;color:var(--ink-2);margin-top:2px;" id="greetingSub">Checking conditions…</div>
     </div>
 
-    <!-- Status banner (calm) -->
-    <div class="status-calm">
+    <!-- Calm banner -->
+    <div class="status-calm calm-only">
       <div class="status-calm-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="m4 12 5 5 11-12"/></svg>
       </div>
       <div style="flex:1;">
-        <!-- BACKEND: Populate from /api/dashboard response -->
-        <div style="font-size:13.5px;font-weight:700;color:var(--ink);" id="calmoTitle">You're in the clear today.</div>
-        <div style="font-size:11.5px;color:var(--ink-2);" id="calmSub">Next check-in: 11:00 PM · Forecast clear through Wednesday.</div>
+        <div style="font-size:13.5px;font-weight:700;color:var(--ink);">You're in the clear today.</div>
+        <div style="font-size:11.5px;color:var(--ink-2);" id="calmSub">Next check-in loading…</div>
       </div>
     </div>
 
-    <!-- 7-day forecast -->
-    <div class="forecast">
+    <!-- 7-day forecast (calm only) -->
+    <div class="forecast calm-only">
       <div class="forecast-header">
         <span style="font-size:12px;color:var(--ink-2);font-weight:700;">Next 7 days · risk preview</span>
         <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer;">See details</span>
       </div>
-      <!-- BACKEND: Generate from forecast7day[] array. riskLevel → bar height and color. -->
-      <div class="forecast-grid" id="forecastGrid">
-        <!-- Populated by JS below / or server-side rendered -->
-      </div>
-      <div style="font-size:10.5px;color:var(--muted);margin-top:6px;padding:0 4px;">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:99px;background:var(--critical);margin-right:4px;"></span>
-        Sun · Tropical storm expected landfall · prepare evacuation plan.
+      <div class="forecast-grid" id="forecastGrid"></div>
+    </div>
+
+    <!-- Critical hero card -->
+    <div class="hero-critical critical-only">
+      <div class="rain-ribbon" id="rainRibbon"></div>
+      <div class="hero-inner">
+        <div class="hero-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"><path d="M12 3 1 21h22Z"/><path d="M12 10v5"/><circle cx="12" cy="18" r=".9" fill="#fff"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="hero-label">Critical · Evacuate within <span id="countdownDisplay">—</span></div>
+          <div class="hero-headline" id="alertMessage">Heavy flooding expected at your address.</div>
+          <div class="hero-detail">
+            Rainfall <strong id="rainfallVal">—</strong> ·
+            <span id="floodZoneVal">—</span> · ground floor.<br/>
+            River discharge <strong id="dischargeVal">—</strong>.
+          </div>
+          <div class="hero-btns">
+            <button class="hero-btn-white" onclick="location.href='11-evac-route.html'">See evacuation route</button>
+            <button class="hero-btn-outline" onclick="location.href='10-alert-detail.html'">Why?</button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Condition cards -->
+    <!-- Conditions (always shown, labels differ) -->
     <div style="padding:14px 14px 8px;">
-      <div style="font-size:12px;color:var(--ink-2);font-weight:700;padding:0 4px 8px;">Conditions right now</div>
+      <div style="font-size:12px;color:var(--ink-2);font-weight:700;padding:0 4px 8px;" id="condLabel">Conditions right now</div>
       <div class="cond-cards">
-        <!-- BACKEND: Values from /api/conditions/current -->
         <div class="cond-card">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2s6 7.6 6 12a6 6 0 1 1-12 0c0-4.4 6-12 6-12Z"/></svg>
-          <div class="cond-value" id="riverVal">142</div>
-          <div class="cond-unit">NHWL</div>
+          <div class="cond-value" id="riverVal">—</div>
+          <div class="cond-unit" id="riverUnit">NHWL</div>
           <div class="cond-label">River level</div>
-          <span class="cond-tag" style="background:var(--ok-soft);color:var(--ok);">NORMAL</span>
+          <span class="cond-tag" id="riverTag" style="background:var(--ok-soft);color:var(--ok);">—</span>
         </div>
-        <div class="cond-card primary">
+        <div class="cond-card primary calm-only">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 17a4 4 0 0 0 0-8 6 6 0 0 0-11-2A5 5 0 0 0 7 17h10Z"/></svg>
-          <div class="cond-value" id="aqiVal">11</div>
+          <div class="cond-value" id="aqiVal">—</div>
           <div class="cond-unit">AQI (US)</div>
           <div class="cond-label">Air quality</div>
-          <span class="cond-tag" style="background:var(--ok-soft);color:var(--ok);">EXCELLENT</span>
+          <span class="cond-tag" id="aqiTag" style="background:var(--ok-soft);color:var(--ok);">—</span>
+        </div>
+        <div class="cond-card critical-only">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 17a4 4 0 0 0 0-8 6 6 0 0 0-11-2A5 5 0 0 0 7 17h10Z"/></svg>
+          <div class="cond-value" id="rainVal">—</div>
+          <div class="cond-unit">mm/24h</div>
+          <div class="cond-label">Rainfall</div>
+          <span class="cond-tag" id="rainTag" style="background:var(--critical-soft);color:var(--critical);">—</span>
         </div>
         <div class="cond-card">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--warn)"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="var(--warn)" stroke-width="2" stroke-linecap="round"/></svg>
-          <div class="cond-value" id="heatVal">32°</div>
-          <div class="cond-unit">C</div>
+          <div class="cond-value" id="heatVal">—</div>
+          <div class="cond-unit">°C</div>
           <div class="cond-label">Heat index</div>
-          <span class="cond-tag" style="background:var(--ok-soft);color:var(--ok);">SAFE</span>
+          <span class="cond-tag" id="heatTag" style="background:var(--ok-soft);color:var(--ok);">—</span>
         </div>
       </div>
     </div>
 
-    <div style="height:86px;"></div><!-- Bottom nav spacer -->
+    <div style="height:86px;"></div>
   </div>
 
-  <!-- ── Bottom Navigation ── -->
+  <!-- Bottom Nav -->
   <nav class="bottom-nav">
     <div class="nav-item active" onclick="location.href='08-dashboard-calm.html'">
-      <div class="nav-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg>
-      </div>
+      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div>
       <span class="nav-label">Home</span>
     </div>
     <div class="nav-item" onclick="location.href='12-map.html'">
-      <div class="nav-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg>
-      </div>
+      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div>
       <span class="nav-label">Map</span>
     </div>
     <div class="nav-center">
-      <div class="nav-center-btn" onclick="location.href='14-chatbot.html'">
-        <img src="assets/short_logo.png" alt="Chat" width="42" height="42" style="object-fit:contain;" />
-      </div>
+      <div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="Chat" width="42" height="42" style="object-fit:contain;" /></div>
       <span class="nav-center-label">Chat now</span>
     </div>
     <div class="nav-item" onclick="location.href='16-profile.html'">
-      <div class="nav-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg>
-      </div>
+      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div>
       <span class="nav-label">Profile</span>
     </div>
     <div class="nav-item" onclick="location.href='17-more.html'">
-      <div class="nav-icon">
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>
-      </div>
+      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div>
       <span class="nav-label">More</span>
     </div>
   </nav>
@@ -283,56 +265,152 @@
 </div>
 
 <script>
-const levelColors = { low: 'var(--ok)', med: 'var(--warn)', high: '#E67519', crit: 'var(--critical)' };
-const levelHeights = { low: '15%', med: '35%', high: '60%', crit: '85%' };
+const levelColors = { low: 'var(--ok)', medium: 'var(--warn)', high: '#E67519', critical: 'var(--critical)' };
+const levelHeights = { low: '15%', medium: '35%', high: '60%', critical: '85%' };
 
-function renderForecast(forecast7day) {
+function setState(level) {
+  const shell = document.getElementById('shell');
+  const pill = document.getElementById('statusPill');
+  const pillText = document.getElementById('statusPillText');
+
+  if (level === 'critical') {
+    shell.dataset.show = 'critical';
+    pill.className = 'flood-pill pill-critical mm-blink';
+    pillText.textContent = 'FLOOD WARNING';
+    document.getElementById('condLabel').textContent = 'Live conditions';
+    buildRain();
+  } else {
+    shell.dataset.show = 'calm';
+    pill.className = 'flood-pill pill-ok';
+    pillText.textContent = 'ALL CLEAR';
+    document.getElementById('condLabel').textContent = 'Conditions right now';
+  }
+}
+
+function buildRain() {
+  const ribbon = document.getElementById('rainRibbon');
+  if (!ribbon || ribbon.childElementCount > 0) return;
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement('div');
+    d.className = 'rain-drop';
+    d.style.left = ((i * 5.4 + 4) % 100) + '%';
+    d.style.animationDuration = (0.9 + (i % 5) * 0.15) + 's';
+    d.style.animationDelay = (i * 0.07) + 's';
+    ribbon.appendChild(d);
+  }
+}
+
+function renderForecast(days) {
   const grid = document.getElementById('forecastGrid');
   grid.innerHTML = '';
-  const days = ['S','M','T','W','T','F','S'];
-  forecast7day.forEach((d, i) => {
+  const dayLabels = ['S','M','T','W','T','F','S'];
+  days.forEach((d, i) => {
     const level = d.riskLevel || 'low';
     const col = document.createElement('div');
     col.className = 'forecast-day';
     col.innerHTML = `
-      <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day || days[(new Date().getDay() + i) % 7]}</div>
+      <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day || dayLabels[(new Date().getDay() + i) % 7]}</div>
       <div class="forecast-bar" style="background:${levelColors[level] || levelColors.low}22;">
         <div class="forecast-bar-fill" style="height:${levelHeights[level] || levelHeights.low};background:${levelColors[level] || levelColors.low};"></div>
       </div>
-      <div style="font-size:10px;color:var(--ink);font-weight:700;">${d.temp || '--'}°</div>
+      <div style="font-size:10px;color:var(--ink);font-weight:700;">${d.temp != null ? d.temp + '°' : '—'}</div>
     `;
     grid.appendChild(col);
   });
 }
 
-async function loadDashboard() {
-  try {
-    const data = await apiFetch('/api/dashboard');
-    const u = getUser();
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    const name = data.user?.firstName || u?.name?.split(' ')[0] || 'there';
-    document.getElementById('greetingText').textContent = `${greeting}, ${name}.`;
-    if (data.forecast7day?.length) renderForecast(data.forecast7day);
-    if (data.conditions) {
-      if (data.conditions.riverLevel) document.getElementById('riverVal').textContent = data.conditions.riverLevel.value;
-      if (data.conditions.airQuality) document.getElementById('aqiVal').textContent = data.conditions.airQuality.aqi;
-      if (data.conditions.heatIndex) document.getElementById('heatVal').textContent = data.conditions.heatIndex.value + '°';
+let evacuateMinutes = 90;
+let countdownTimer = null;
+function startCountdown(minutes) {
+  evacuateMinutes = minutes;
+  if (countdownTimer) clearInterval(countdownTimer);
+  function tick() {
+    if (evacuateMinutes <= 0) {
+      document.getElementById('countdownDisplay').textContent = 'NOW — evacuate immediately!';
+      return;
     }
-    if (data.alertLevel === 'critical') location.href = '09-dashboard-critical.html';
-  } catch {
-    const u = getUser();
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-    document.getElementById('greetingText').textContent = `${greeting}, ${u?.name?.split(' ')[0] || 'there'}.`;
+    const h = Math.floor(evacuateMinutes / 60), m = evacuateMinutes % 60;
+    document.getElementById('countdownDisplay').textContent = h > 0 ? `${h}h ${m}min` : `${m} min`;
+    evacuateMinutes--;
+  }
+  tick();
+  countdownTimer = setInterval(tick, 60000);
+}
+
+function setConditions(conditions, alertData) {
+  if (!conditions) return;
+  const r = conditions.riverLevel;
+  if (r) {
+    document.getElementById('riverVal').textContent = r.value ?? '—';
+    document.getElementById('riverUnit').textContent = r.unit ?? 'NHWL';
+    const rtag = document.getElementById('riverTag');
+    const s = (r.status || '').toLowerCase();
+    rtag.textContent = r.status || '—';
+    rtag.style.background = s === 'critical' ? 'var(--critical-soft)' : s === 'warning' ? 'var(--warn-soft)' : 'var(--ok-soft)';
+    rtag.style.color = s === 'critical' ? 'var(--critical)' : s === 'warning' ? 'var(--warn)' : 'var(--ok)';
+    if (s === 'critical') document.getElementById('riverVal').style.color = 'var(--critical)';
+  }
+  const aq = conditions.airQuality;
+  if (aq) {
+    document.getElementById('aqiVal').textContent = aq.aqi ?? '—';
+    const atag = document.getElementById('aqiTag');
+    atag.textContent = aq.status || '—';
+  }
+  const hi = conditions.heatIndex;
+  if (hi) {
+    document.getElementById('heatVal').textContent = hi.value != null ? hi.value : '—';
+    const htag = document.getElementById('heatTag');
+    const hs = (hi.status || '').toLowerCase();
+    htag.textContent = hi.status || '—';
+    htag.style.background = hs === 'danger' ? 'var(--critical-soft)' : hs === 'caution' ? 'var(--warn-soft)' : 'var(--ok-soft)';
+    htag.style.color = hs === 'danger' ? 'var(--critical)' : hs === 'caution' ? 'var(--warn)' : 'var(--ok)';
+  }
+
+  if (alertData) {
+    if (alertData.rainfall) {
+      document.getElementById('rainVal').textContent = alertData.rainfall;
+      document.getElementById('rainTag').textContent = alertData.rainfall > 30 ? 'HEAVY' : 'MODERATE';
+    }
+    if (alertData.rainfall) document.getElementById('rainfallVal').textContent = alertData.rainfall + 'mm/24h';
+    if (alertData.floodZone) document.getElementById('floodZoneVal').textContent = alertData.floodZone;
+    if (alertData.riverDischarge) document.getElementById('dischargeVal').textContent = alertData.riverDischarge;
+    if (alertData.evacuateWithin) startCountdown(alertData.evacuateWithin);
   }
 }
 
-/* WebSocket real-time alerts */
+async function loadDashboard() {
+  const u = getUser();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+  try {
+    const data = await apiFetch('/api/dashboard');
+    const firstName = data.user?.firstName || u?.name?.split(' ')[0] || 'there';
+    document.getElementById('greetingText').textContent = `${greeting}, ${firstName}.`;
+    document.getElementById('locationLine').textContent = data.user?.address || u?.address || '';
+
+    const level = data.alertLevel ?? 'none';
+    setState(level);
+
+    if (data.forecast7day?.length) renderForecast(data.forecast7day);
+
+    let alertData = null;
+    if (level === 'critical') {
+      try { alertData = await apiFetch('/api/alerts/active'); } catch {}
+    }
+    setConditions(data.conditions, alertData);
+
+  } catch {
+    const firstName = u?.name?.split(' ')[0] || 'there';
+    document.getElementById('greetingText').textContent = `${greeting}, ${firstName}.`;
+    document.getElementById('locationLine').textContent = u?.address || '';
+  }
+}
+
 const user = getUser();
 if (user?.id) {
   connectAlertWS(user.id, msg => {
-    if (msg.level === 'critical') location.href = '09-dashboard-critical.html';
+    if (msg.level) setState(msg.level);
   });
 }
 
