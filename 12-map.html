@@ -19,14 +19,14 @@
       .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
     }
 
+    /* Map fills remaining flex space */
     .map-container { flex: 1; position: relative; overflow: hidden; min-height: 0; }
     #mainMap { position: absolute; inset: 0; }
 
-    /* Condition pills overlay */
+    /* Condition pills — top-left overlay */
     .map-pills {
-      position: absolute; top: 14px; left: 14px;
-      display: flex; flex-direction: column; gap: 8px; z-index: 1000;
-      pointer-events: none;
+      position: absolute; top: 14px; left: 14px; z-index: 1000;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
     }
     .map-pill {
       display: flex; align-items: center; gap: 8px; background: #fff;
@@ -34,29 +34,23 @@
       border: 1px solid var(--hairline); box-shadow: 0 4px 10px rgba(0,0,0,.06);
       pointer-events: auto;
     }
-    .map-pill-dot {
-      width: 28px; height: 28px; border-radius: 999px; color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 13px; flex-shrink: 0;
-    }
+    .map-pill-dot { width: 28px; height: 28px; border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
     .map-pill-val { font-family: var(--font-display); font-weight: 800; font-size: 14px; color: var(--ink); line-height: 1; }
     .map-pill-sub { font-size: 10px; color: var(--muted); }
 
-    /* Legend */
+    /* Legend — top-right overlay */
     .map-legend {
       position: absolute; top: 14px; right: 14px; z-index: 1000;
-      background: #fff; border-radius: 14px; border: 1px solid var(--hairline);
-      padding: 10px; font-size: 10.5px;
+      background: #fff; border-radius: 14px; border: 1px solid var(--hairline); padding: 10px; font-size: 10.5px;
     }
     .legend-title { font-weight: 800; color: var(--ink); margin-bottom: 4px; }
     .legend-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
-    /* Layer toggle strip — sits BETWEEN map and nav, never overlaps */
+    /* Layer toggles — bottom overlay, above the 74px fixed nav */
     .layer-strip {
-      display: flex; gap: 8px; overflow-x: auto; padding: 10px 14px;
-      border-top: 1px solid var(--hairline); background: #fff;
-      scrollbar-width: none; flex-shrink: 0;
+      position: absolute; bottom: 84px; left: 14px; right: 14px; z-index: 1000;
+      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
     }
     .layer-strip::-webkit-scrollbar { display: none; }
     .layer-btn {
@@ -64,7 +58,7 @@
       background: #fff; border: 1.5px solid var(--hairline);
       font-size: 12px; font-weight: 700; color: var(--ink);
       cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
     }
     .layer-btn.active { background: var(--orange); color: #fff; border-color: var(--orange); }
   </style>
@@ -73,7 +67,6 @@
 
 <div class="app-shell">
 
-  <!-- Header -->
   <div class="app-header">
     <div class="app-logo">
       <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
@@ -85,11 +78,10 @@
     </div>
   </div>
 
-  <!-- Map -->
   <div class="map-container" id="mapContainer">
+
     <div id="mainMap"></div>
 
-    <!-- Condition pills -->
     <div class="map-pills">
       <div class="map-pill">
         <div class="map-pill-dot" style="background:var(--warn);">H</div>
@@ -114,7 +106,6 @@
       </div>
     </div>
 
-    <!-- Flood zone legend -->
     <div class="map-legend">
       <div class="legend-title">Flood zones</div>
       <div class="legend-row">
@@ -126,23 +117,22 @@
         <span style="color:var(--ink-2);">100-yr return</span>
       </div>
     </div>
-  </div>
 
-  <!-- Layer toggles — outside map, above nav -->
-  <div class="layer-strip">
-    <button class="layer-btn active" id="btnEvac" onclick="toggleLayer(this,'evac')">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/></svg>
-      Evac centres
-    </button>
-    <button class="layer-btn" id="btnFlood" onclick="toggleLayer(this,'flood')">
-      Flood zones
-    </button>
-    <button class="layer-btn" onclick="location.href='13-air-quality.html'">
-      Air &amp; haze
-    </button>
-  </div>
+    <div class="layer-strip">
+      <button class="layer-btn active" id="btnEvac" onclick="toggleLayer(this,'evac')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/></svg>
+        Evac centres
+      </button>
+      <button class="layer-btn" id="btnFlood" onclick="toggleLayer(this,'flood')">
+        Flood zones
+      </button>
+      <button class="layer-btn" onclick="location.href='13-air-quality.html'">
+        Air &amp; haze
+      </button>
+    </div>
 
-  <!-- Bottom nav -->
+  </div><!-- /map-container -->
+
   <nav class="bottom-nav">
     <div class="nav-item" onclick="location.href='08-dashboard-calm.html'">
       <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div>
@@ -175,17 +165,16 @@ const u = getUser();
 const centerLat = u?.lat ?? 15.1348;
 const centerLng = u?.lng ?? 120.5869;
 
-const map = L.map('mainMap').setView([centerLat, centerLng], 14);
+const map = L.map('mainMap', { zoomControl: true }).setView([centerLat, centerLng], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
+  attribution: '&copy; OpenStreetMap contributors',
   maxZoom: 19,
 }).addTo(map);
 
 const userIcon = L.divIcon({
   className: '',
   html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(242,107,31,.5);"></div>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
+  iconSize: [14, 14], iconAnchor: [7, 7],
 });
 L.marker([centerLat, centerLng], { icon: userIcon }).addTo(map).bindPopup('Your location');
 
@@ -195,59 +184,47 @@ let floodLayer = null;
 function toggleLayer(btn, layer) {
   btn.classList.toggle('active');
   if (layer === 'evac') {
-    if (btn.classList.contains('active')) evacLayer.addTo(map);
-    else map.removeLayer(evacLayer);
-  } else if (layer === 'flood') {
-    if (floodLayer) {
-      if (btn.classList.contains('active')) floodLayer.addTo(map);
-      else map.removeLayer(floodLayer);
-    }
+    btn.classList.contains('active') ? evacLayer.addTo(map) : map.removeLayer(evacLayer);
+  } else if (layer === 'flood' && floodLayer) {
+    btn.classList.contains('active') ? floodLayer.addTo(map) : map.removeLayer(floodLayer);
   }
 }
 
 async function loadMapData() {
-  try {
-    const [conditions, centers] = await Promise.allSettled([
-      apiFetch('/api/conditions/current'),
-      apiFetch('/api/evac/centers'),
-    ]);
+  const [condResult, centerResult] = await Promise.allSettled([
+    apiFetch('/api/conditions/current'),
+    apiFetch('/api/evac/centers'),
+  ]);
 
-    if (conditions.status === 'fulfilled' && conditions.value) {
-      const c = conditions.value;
-      if (c.heatIndex?.value != null) document.getElementById('mapHeatPill').textContent = c.heatIndex.value + '°C';
-      if (c.airQuality?.aqi != null) document.getElementById('mapAqiPill').textContent = c.airQuality.aqi + ' AQI';
-      if (c.riverLevel?.value != null) document.getElementById('mapRiverPill').textContent = c.riverLevel.value + ' NHWL';
-      const pill = document.getElementById('statusPill');
-      const txt = document.getElementById('statusPillText');
-      if (c.riverLevel?.status === 'critical') {
-        pill.className = 'flood-pill pill-critical mm-blink';
-        txt.textContent = 'FLOOD WARNING';
-      }
+  if (condResult.status === 'fulfilled') {
+    const c = condResult.value;
+    if (c.heatIndex?.value != null) document.getElementById('mapHeatPill').textContent = c.heatIndex.value + '°C';
+    if (c.airQuality?.aqi != null) document.getElementById('mapAqiPill').textContent = c.airQuality.aqi + ' AQI';
+    if (c.riverLevel?.value != null) document.getElementById('mapRiverPill').textContent = c.riverLevel.value + ' NHWL';
+    if (c.riverLevel?.status === 'critical') {
+      document.getElementById('statusPill').className = 'flood-pill pill-critical mm-blink';
+      document.getElementById('statusPillText').textContent = 'FLOOD WARNING';
     }
+  }
 
-    if (centers.status === 'fulfilled' && centers.value?.features) {
-      centers.value.features.forEach(f => {
-        const [lng, lat] = f.geometry.coordinates;
-        const props = f.properties;
-        const pct = props.capacity ? Math.round((props.occupied / props.capacity) * 100) : null;
-        const color = pct == null ? 'var(--ok)' : pct > 80 ? 'var(--warn)' : 'var(--ok)';
-        const icon = L.divIcon({
-          className: '',
-          html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;">E</div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-        });
-        L.marker([lat, lng], { icon })
-          .addTo(evacLayer)
-          .bindPopup(`<strong>${props.name}</strong><br/>${props.address || ''}<br/>${pct != null ? pct + '% occupied' : 'Capacity unknown'}`);
+  if (centerResult.status === 'fulfilled' && centerResult.value?.features) {
+    centerResult.value.features.forEach(f => {
+      const [lng, lat] = f.geometry.coordinates;
+      const p = f.properties;
+      const pct = p.capacity ? Math.round((p.occupied / p.capacity) * 100) : null;
+      const col = pct != null && pct > 80 ? 'var(--warn)' : 'var(--ok)';
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:28px;height:28px;border-radius:50%;background:${col};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;">E</div>`,
+        iconSize: [28, 28], iconAnchor: [14, 14],
       });
-    }
-  } catch {}
+      L.marker([lat, lng], { icon }).addTo(evacLayer)
+        .bindPopup(`<strong>${p.name}</strong><br/>${p.address || ''}<br/>${pct != null ? pct + '% occupied' : ''}`);
+    });
+  }
 }
 
-/* Force Leaflet to recalculate size after layout settles */
 setTimeout(() => map.invalidateSize(), 100);
-
 loadMapData();
 </script>
 
