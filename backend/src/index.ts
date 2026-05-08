@@ -30,10 +30,11 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow requests with no origin (file://, mobile apps, curl)
-    if (!origin) return cb(null, true);
     const allowed = config.corsOrigin.split(',').map(s => s.trim());
-    if (allowed.includes('*') || allowed.includes(origin)) return cb(null, true);
+    // No origin = server-to-server or curl — allow
+    // Explicit wildcard in config = dev mode, allow all
+    if (!origin || allowed.includes('*')) return cb(null, true);
+    if (allowed.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: ${origin} not allowed`));
   },
   credentials: true,
