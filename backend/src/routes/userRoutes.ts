@@ -29,6 +29,7 @@ router.get('/api/user/profile', authMiddleware, async (req, res) => {
     hasPregnant: user.hasPregnant,
     alertOptIn: user.alertOptIn,
     smsOptIn: user.smsOptIn,
+    created: user.created,
     risk: {
       riskScore: user.riskScore,
       riskTier: user.riskTier,
