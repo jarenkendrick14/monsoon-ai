@@ -23,8 +23,10 @@ export async function fetchFirmsHotspots(): Promise<FirmsHotspot[]> {
     const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${config.firms.mapKey}/VIIRS_SNPP_NRT/${BBOX.minLng},${BBOX.minLat},${BBOX.maxLng},${BBOX.maxLat}/1`;
     const resp = await axios.get<string>(url, { timeout: 15000 });
     return parseFirmsCsv(resp.data);
-  } catch (err) {
-    logger.warn('FIRMS fetch failed', err);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.warn(`FIRMS fetch failed (${status ?? 'no response'}): ${msg}`);
     return [];
   }
 }

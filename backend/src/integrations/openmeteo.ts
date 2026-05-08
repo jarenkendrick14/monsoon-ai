@@ -41,8 +41,10 @@ export async function fetchWeather(lat: number, lng: number): Promise<OpenMeteoD
     }));
 
     return { rainfall, heatIndex, temp, humidity, forecast7day };
-  } catch (err) {
-    logger.warn('Open-Meteo fetch failed, returning defaults', err);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.warn(`Open-Meteo fetch failed (${status ?? 'no response'}): ${msg}`);
     return {
       rainfall: 0,
       heatIndex: 32,

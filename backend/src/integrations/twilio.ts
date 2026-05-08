@@ -21,8 +21,9 @@ export async function sendSms(to: string, body: string): Promise<boolean> {
       to,
     });
     return true;
-  } catch (err) {
-    logger.error('Twilio sendSms failed', err);
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.error(`Twilio sendSms failed: ${msg}`);
     return false;
   }
 }

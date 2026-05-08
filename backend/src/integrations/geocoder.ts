@@ -31,8 +31,10 @@ export async function geocodeAddress(address: string): Promise<GeocodedLocation 
       lng: parseFloat(results[0]['lon']),
       displayName: results[0]['display_name'],
     };
-  } catch (err) {
-    logger.warn('Nominatim geocode failed', err);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.warn(`Nominatim geocode failed (${status ?? 'no response'}): ${msg}`);
     return null;
   }
 }

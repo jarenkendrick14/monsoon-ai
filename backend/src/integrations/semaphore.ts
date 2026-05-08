@@ -22,8 +22,10 @@ export async function sendSms(to: string, message: string): Promise<boolean> {
       { timeout: 10000 }
     );
     return true;
-  } catch (err) {
-    logger.error('Semaphore sendSms failed', err);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.error(`Semaphore sendSms failed (${status ?? 'no response'}): ${msg}`);
     return false;
   }
 }
@@ -51,8 +53,10 @@ export async function sendBulkSms(numbers: string[], message: string): Promise<v
         },
         { timeout: 15000 }
       );
-    } catch (err) {
-      logger.error('Semaphore bulk SMS chunk failed', err);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+      logger.error(`Semaphore bulk SMS chunk failed (${status ?? 'no response'}): ${msg}`);
     }
   }
 }
