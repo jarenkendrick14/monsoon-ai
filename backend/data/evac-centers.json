@@ -1,0 +1,29 @@
+[
+  {
+    "id": "ec-001",
+    "name": "Quezon City Science High School",
+    "address": "Commonwealth Ave, Quezon City, Metro Manila",
+    "lat": 14.6760,
+    "lng": 121.0437,
+    "capacity": 500,
+    "type": "school"
+  },
+  {
+    "id": "ec-002",
+    "name": "Marikina Sports Complex",
+    "address": "J.P. Rizal St, Marikina, Metro Manila",
+    "lat": 14.6481,
+    "lng": 121.1054,
+    "capacity": 1000,
+    "type": "sports"
+  },
+  {
+    "id": "ec-003",
+    "name": "Manila Baywalk Evacuation Center",
+    "address": "Roxas Blvd, Ermita, Manila",
+    "lat": 14.5764,
+    "lng": 120.9818,
+    "capacity": 800,
+    "type": "civic"
+  }
+]
