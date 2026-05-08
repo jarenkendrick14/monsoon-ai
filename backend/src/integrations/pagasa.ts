@@ -1,6 +1,4 @@
 import axios from 'axios';
-import { parseStringPromise } from 'xml2js';
-import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 
 export interface PagasaData {
@@ -9,24 +7,47 @@ export interface PagasaData {
   issuedAt: string;
 }
 
+import { config } from '../config.js';
+
+const PARSER_URL = config.pagasa.parserUrl;
+const NO_STORM: PagasaData = { signal: 0, bulletinTitle: 'No active bulletin', issuedAt: new Date().toISOString() };
+
 export async function fetchPagasa(): Promise<PagasaData> {
   try {
-    const resp = await axios.get(config.pagasa.rssUrl, { timeout: 10000 });
-    const parsed = await parseStringPromise(resp.data as string);
+    const resp = await axios.get(PARSER_URL, { timeout: 10000 });
+    const data = resp.data as Record<string, unknown>;
 
-    const items = parsed?.rss?.channel?.[0]?.item ?? [];
-    const firstItem = items[0] ?? {};
-    const title: string = firstItem.title?.[0] ?? '';
-    const pubDate: string = firstItem.pubDate?.[0] ?? new Date().toISOString();
+    // pagasa-parser returns the bulletin under data.bulletin or at root
+    const bulletin = (data.bulletin ?? data) as Record<string, unknown>;
 
-    const signal = extractSignal(title);
+    const title: string =
+      (bulletin.title as string) ??
+      (bulletin.bulletinTitle as string) ??
+      (bulletin.name as string) ??
+      '';
 
-    return { signal, bulletinTitle: title, issuedAt: pubDate };
+    const issuedAt: string =
+      (bulletin.issued as string) ??
+      (bulletin.issuedAt as string) ??
+      (bulletin.date as string) ??
+      new Date().toISOString();
+
+    // Signal may live at bulletin.signal, bulletin.signalNumber, or in the title text
+    const rawSignal =
+      (bulletin.signal as number) ??
+      (bulletin.signalNumber as number) ??
+      extractSignal(title);
+
+    return { signal: Number(rawSignal) || 0, bulletinTitle: title || 'Active bulletin', issuedAt };
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 404) {
+      // No active typhoon — this is normal
+      return NO_STORM;
+    }
     const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
-    logger.warn(`PAGASA RSS fetch failed (${status ?? 'no response'}): ${msg}`);
-    return { signal: 0, bulletinTitle: 'No active bulletin', issuedAt: new Date().toISOString() };
+    logger.warn(`PAGASA parser fetch failed (${status ?? 'no response'}): ${msg}`);
+    return NO_STORM;
   }
 }
 

@@ -30,7 +30,7 @@ export const config = {
   },
 
   pagasa: {
-    rssUrl: optional_env('PAGASA_RSS_URL', 'https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin.xml'),
+    parserUrl: optional_env('PAGASA_PARSER_URL', 'https://pagasa.chlod.net/api/v1/bulletin'),
   },
 
   nominatim: {
