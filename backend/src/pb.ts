@@ -92,14 +92,21 @@ export async function ensureCollections(): Promise<void> {
 
   for (const col of collections) {
     try {
-      await client.collections.getOne(col.name);
-      logger.debug(`Collection '${col.name}' already exists`);
+      const existing = await client.collections.getOne(col.name);
+      // Update schema to add any new fields
+      try {
+        await client.collections.update(existing.id, col as Parameters<typeof client.collections.update>[1]);
+        logger.debug(`Updated collection '${col.name}'`);
+      } catch {
+        logger.debug(`Collection '${col.name}' schema unchanged`);
+      }
     } catch {
       try {
         await client.collections.create(col as Parameters<typeof client.collections.create>[0]);
         logger.info(`Created collection '${col.name}'`);
-      } catch (createErr) {
-        logger.warn(`Could not create collection '${col.name}'`, createErr);
+      } catch (createErr: unknown) {
+        const msg = (createErr as Error)?.message?.split('\n')[0] ?? String(createErr);
+        logger.warn(`Could not create collection '${col.name}': ${msg}`);
       }
     }
   }

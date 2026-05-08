@@ -22,9 +22,8 @@ export async function runRiskEval(): Promise<void> {
     const glofas = getGloFASData();
     const tropomi = getTropomiData();
 
-    const users = await pb.collection('users').getFullList<UserRecord>({
-      filter: 'alertOptIn=true',
-    });
+    const allUsers = await pb.collection('users').getFullList<UserRecord>();
+    const users = allUsers.filter(u => u.alertOptIn !== false);
 
     for (const user of users) {
       try {
@@ -81,13 +80,15 @@ export async function runRiskEval(): Promise<void> {
             }
           });
         }
-      } catch (userErr) {
-        logger.debug(`riskEval failed for user ${user.id}`, userErr);
+      } catch (userErr: unknown) {
+        const msg = (userErr as Error)?.message?.split('\n')[0] ?? String(userErr);
+        logger.debug(`riskEval failed for user ${user.id}: ${msg}`);
       }
     }
 
     logger.info(`riskEval complete for ${users.length} users`);
-  } catch (err) {
-    logger.error('riskEval job failed', err);
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
+    logger.error(`riskEval job failed: ${msg}`);
   }
 }
