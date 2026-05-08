@@ -28,7 +28,16 @@ import govRouter from './routes/govRoutes.js';
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({ origin: config.corsOrigin, credentials: true }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow requests with no origin (file://, mobile apps, curl)
+    if (!origin) return cb(null, true);
+    const allowed = config.corsOrigin.split(',').map(s => s.trim());
+    if (allowed.includes('*') || allowed.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS: ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(apiGeneral);
