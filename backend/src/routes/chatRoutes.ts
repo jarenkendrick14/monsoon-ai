@@ -4,7 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { chatbotReply } from '../integrations/openai.js';
 import { getPb as getPocketBase } from '../pb.js';
-import type { AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
+import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
 
 const router = Router();
 
@@ -25,14 +25,20 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
 
-  const activeAlert = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
-    filter: `userId="${user.id}" && resolved=false`,
-    sort: '-created',
-  });
+  let alertLevel: AlertLevel = 'none';
+  let alertType: AlertRecord['type'] | null = null;
+  try {
+    const activeAlert = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+      filter: `userId="${user.id}" && resolved=false`,
+      sort: '-created',
+    });
+    alertLevel = activeAlert.items[0]?.level ?? 'none';
+    alertType = activeAlert.items[0]?.type ?? null;
+  } catch { /* alerts collection may not exist yet */ }
 
   const context: RiskContext = {
-    alertLevel: activeAlert.items[0]?.level ?? 'none',
-    trigger: activeAlert.items[0]?.type ?? null,
+    alertLevel,
+    trigger: alertType,
     location: user.address || 'Philippines',
   };
 
@@ -44,11 +50,15 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     if (session.items.length > 0) {
       history = (session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [];
     }
-  } catch {
-    // new session
-  }
+  } catch { /* new session */ }
 
-  const reply = await chatbotReply(message, locale as Locale, context, history);
+  let reply;
+  try {
+    reply = await chatbotReply(message, locale as Locale, context, history);
+  } catch (err) {
+    res.status(503).json({ reply: 'The AI engine is temporarily unavailable. Try texting STATUS to MonsoonAI.', suggestedCommands: ['STATUS', 'EVAC', 'HELP'] });
+    return;
+  }
 
   const newHistory: ChatMessage[] = [
     ...history.slice(-10),
