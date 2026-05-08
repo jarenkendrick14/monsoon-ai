@@ -127,19 +127,22 @@ async function loadRiskSummary() {
 
     // Populate profile card
     document.getElementById('profileName').textContent =
-      data.user.fullName + ' · ' + data.user.address;
+      (data.user.fullName || data.user.name || 'You') + (data.user.address ? ' · ' + data.user.address : '');
+
+    if (data.user.mobile) {
+      document.getElementById('smsNotice').textContent =
+        `Alerts will be sent to ${data.user.mobile}. Text HELP to MonsoonAI anytime.`;
+    }
 
     // Populate flag chips
-    const chipMap = {
-      nipa_hut:    { label: 'Nipa hut',    cls: 'chip-critical' },
-      ground_floor:{ label: 'Ground floor', cls: 'chip-warn' },
-      elderly:     { label: 'Elderly +1',  cls: 'chip-blue' },
-    };
     const chipRow = document.getElementById('flagChips');
-    chipRow.innerHTML = data.vulnerabilityFlags.map(flag => {
-      const m = chipMap[flag] || { label: flag, cls: '' };
-      return `<span class="chip ${m.cls} selected" style="height:26px;font-size:11px;">${m.label}</span>`;
-    }).join('');
+    chipRow.innerHTML = (data.vulnerabilityFlags || []).map(flag => {
+      const cls = /nipa|structural/i.test(flag) ? 'chip-critical'
+                : /floor|flood/i.test(flag) ? 'chip-warn'
+                : /elderly|pwd|disability|infant|pregnant/i.test(flag) ? 'chip-blue'
+                : '';
+      return `<span class="chip ${cls} selected" style="height:26px;font-size:11px;">${flag}</span>`;
+    }).join('') || '<span class="chip selected" style="height:26px;font-size:11px;">Standard household</span>';
 
     // Risk tier label
     document.getElementById('riskTierLabel').textContent = data.riskTier.toUpperCase();

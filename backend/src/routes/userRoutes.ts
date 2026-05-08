@@ -85,16 +85,15 @@ router.get('/api/user/risk-summary', authMiddleware, async (req, res) => {
   const user = req.user!;
   const { score, tier, riskFactors } = computeInaSAFEScore(user);
 
-  const vulnerabilityFlags: string[] = [];
-  if (user.hasPWD) vulnerabilityFlags.push('PWD household member');
-  if (user.hasElderly) vulnerabilityFlags.push('Elderly household member');
-  if (user.hasInfant) vulnerabilityFlags.push('Infant present');
-  if (user.hasPregnant) vulnerabilityFlags.push('Pregnant member');
-
   res.json({
+    user: {
+      fullName: user.name,
+      address: user.address,
+      mobile: user.mobile,
+    },
     riskScore: score,
     riskTier: tier,
-    vulnerabilityFlags: [...vulnerabilityFlags, ...riskFactors],
+    vulnerabilityFlags: riskFactors,
   });
 });
 
