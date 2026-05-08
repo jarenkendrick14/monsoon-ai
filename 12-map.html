@@ -47,6 +47,9 @@
     .legend-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
+    /* Ensure nav sits above Leaflet tiles/controls */
+    .bottom-nav { z-index: 2000 !important; }
+
     /* Layer toggles — bottom overlay, above the 74px fixed nav */
     .layer-strip {
       position: absolute; bottom: 84px; left: 14px; right: 14px; z-index: 1000;
