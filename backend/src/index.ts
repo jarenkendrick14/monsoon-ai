@@ -39,17 +39,20 @@ app.use(helmet({
     },
   },
 }));
-app.use(cors({
-  origin: (origin, cb) => {
-    const allowed = config.corsOrigin.split(',').map(s => s.trim());
-    // No origin = server-to-server or curl — allow
-    // Explicit wildcard in config = dev mode, allow all
-    if (!origin || allowed.includes('*')) return cb(null, true);
-    if (allowed.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: ${origin} not allowed`));
-  },
-  credentials: true,
-}));
+const _corsOrigins = config.corsOrigin.split(',').map(s => s.trim());
+const _corsWildcard = _corsOrigins.includes('*');
+app.use(cors(
+  _corsWildcard
+    ? { origin: '*' }
+    : {
+        origin: (origin, cb) => {
+          if (!origin) return cb(null, true);
+          if (_corsOrigins.includes(origin)) return cb(null, true);
+          cb(new Error(`CORS: ${origin} not allowed`));
+        },
+        credentials: true,
+      }
+));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(apiGeneral);
