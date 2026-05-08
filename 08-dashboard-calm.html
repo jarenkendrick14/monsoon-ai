@@ -385,7 +385,8 @@ async function loadDashboard() {
 
   try {
     const data = await apiFetch('/api/dashboard');
-    const firstName = data.user?.firstName || u?.name?.split(' ')[0] || 'there';
+    const rawName = data.user?.firstName || u?.name?.split(' ')[0] || 'there';
+    const firstName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
     document.getElementById('greetingText').textContent = `${greeting}, ${firstName}.`;
     document.getElementById('locationLine').textContent = data.user?.address || u?.address || '';
 
@@ -401,9 +402,11 @@ async function loadDashboard() {
     setConditions(data.conditions, alertData);
 
   } catch {
-    const firstName = u?.name?.split(' ')[0] || 'there';
+    const raw = u?.name?.split(' ')[0] || 'there';
+    const firstName = raw.charAt(0).toUpperCase() + raw.slice(1);
     document.getElementById('greetingText').textContent = `${greeting}, ${firstName}.`;
     document.getElementById('locationLine').textContent = u?.address || '';
+    document.getElementById('greetingSub').textContent = 'Could not reach server. Check connection.';
   }
 }
 
