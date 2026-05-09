@@ -133,6 +133,13 @@ function escapeHtml(t) {
   return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+function renderMarkdown(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+}
+
 function appendBubble(who, content, isHtml = false) {
   const list = document.getElementById('messagesList');
   const wrap = document.createElement('div');
@@ -173,7 +180,7 @@ async function callChatAPI(message) {
       body: JSON.stringify({ message, sessionId, locale: _u?.locale || 'en' }),
     });
     typing.style.display = 'none';
-    appendBubble('bot', data.reply, true);
+    appendBubble('bot', renderMarkdown(data.reply), true);
 
     if (data.attachments?.length) {
       data.attachments.forEach(a => {

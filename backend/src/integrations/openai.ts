@@ -61,6 +61,7 @@ Rules:
 - Do NOT perform any risk calculations — the engine already did this
 - Always respond in ${LOCALE_NAMES[locale]}
 - Keep responses concise (under 100 words)
+- Use plain text only. No markdown, no asterisks, no bullet symbols. Use numbered lists if listing steps.
 - If life is at immediate risk, always direct to evacuate or call 911`,
     });
 
