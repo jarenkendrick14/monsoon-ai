@@ -56,6 +56,7 @@ router.get('/api/gov/manifest', govAuthMiddleware, async (req, res) => {
       try {
         const existing = await pb.collection('gov_households').getList(1, 1, {
           filter: `userId="${user.id}"`,
+          requestKey: `govhh_${user.id}`,
         });
         govRecord = (existing.items[0] as Record<string, unknown>) ?? {};
       } catch { /* no record yet */ }
