@@ -1,19 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI â€” Evacuate</title>
+  <title>MonsoonAI - Evacuate</title>
   <link rel="stylesheet" href="_brand.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
-    .app-shell {
-      max-width: 430px; min-height: 100vh; margin: 0 auto;
-      background: #fff; display: flex; flex-direction: column;
-    }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
     @media (min-width: 768px) {
       body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
       .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
@@ -23,15 +20,11 @@
     .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; cursor: pointer; background: none; border: none; }
     .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
 
-    /* Map area */
-    .map-area {
-      height: 280px; position: relative; overflow: hidden; flex-shrink: 0;
-    }
+    .map-area { height: 280px; position: relative; overflow: hidden; flex-shrink: 0; }
     #evacMap { height: 280px; width: 100%; }
 
-    /* Map info overlay */
     .map-info-card {
-      position: absolute; left: 14px; right: 14px; top: 12px;
+      position: absolute; left: 14px; right: 14px; top: 12px; z-index: 1000;
       padding: 12px; border-radius: 14px; background: rgba(255,255,255,.96);
       border: 1px solid var(--hairline);
     }
@@ -40,12 +33,6 @@
     .map-info-eta .big { font-family: var(--font-display); font-weight: 800; font-size: 24px; color: var(--ink); }
     .map-info-note { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.4; }
 
-    /* Map pins */
-    .map-pin-start { position: absolute; bottom: 30%; left: 15%; width: 16px; height: 16px; border-radius: 999px; background: var(--orange); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
-    .map-pin-dest  { position: absolute; top: 18%; right: 20%; }
-    .map-pin-dest-icon { width: 28px; height: 28px; border-radius: 999px; background: var(--ok); border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); display: flex; align-items: center; justify-content: center; }
-
-    /* Route steps */
     .route-step {
       display: flex; align-items: flex-start; gap: 10px;
       padding: 12px; border-radius: 14px; background: #fff;
@@ -55,7 +42,6 @@
     .step-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
     .step-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    /* Destination step */
     .dest-step { background: var(--orange-tint); border-color: var(--orange-soft); margin: 0 14px; }
     .dest-step .step-num { background: var(--orange); }
     .dest-step .step-title { color: var(--orange-deep); }
@@ -63,50 +49,20 @@
 </head>
 <body>
 
-<!-- ============================================================
-     BACKEND NOTES:
-     On page load: GET /api/evac/route?lat=USER_LAT&lng=USER_LNG  (auth required)
-     Response: {
-       etaMinutes: number,               â† OSRM foot-mode, adjusted for PWD/elderly
-       distanceKm: number,
-       routingNote: string,              â† e.g. "adjusted to 3.0 km/h for elderly"
-       steps: [{ instruction, detail }],
-       destination: { name, address, capacity, occupied, hasMedial: boolean }
-     }
-
-     Map integration:
-       - Use Leaflet.js or Mapbox GL JS
-       - Fetch GeoJSON polyline from OSRM or stored route
-       - User location: navigator.geolocation or stored coordinates
-       - Update ETA in real-time as user moves (geolocation watchPosition)
-
-     "Start navigation" â†’ Open native maps app via deep link:
-       Android: geo:LAT,LNG?q=DEST_LAT,DEST_LNG
-       iOS: maps://maps.apple.com/?daddr=DEST_LAT,DEST_LNG
-
-     "Share" â†’ navigator.share() with route URL or SMS via Twilio
-     ============================================================ -->
-
 <div class="app-shell">
 
-  <!-- Sub-nav -->
   <div class="sub-nav">
-    <button class="back-btn" onclick="history.back()">â€¹</button>
+    <button class="back-btn" onclick="history.back()">&lsaquo;</button>
     <span class="sub-nav-title">Evacuate</span>
-    <div class="flood-pill pill-critical">
-      <span class="dot"></span>
-      FLOOD WARNING
-    </div>
+    <div class="flood-pill pill-critical"><span class="dot"></span>FLOOD WARNING</div>
   </div>
 
-  <!-- Map area -->
   <div class="map-area">
     <div id="evacMap"></div>
-    <!-- Map overlay: info card -->
-    <div class="map-info-card" style="position:absolute;top:12px;left:14px;right:14px;z-index:1000;">
+    <div class="map-info-card">
       <div class="map-info-label">Walking route</div>
       <div class="map-info-eta">
-        <span class="big" id="etaMinutes">â€“</span>
+        <span class="big" id="etaMinutes">--</span>
         <span style="font-size:12px;color:var(--ink-2);font-weight:600;">min</span>
         <span style="font-size:12px;color:var(--muted);margin-left:6px;" id="distanceLabel"></span>
       </div>
@@ -114,40 +70,30 @@
     </div>
   </div>
 
-  <!-- Route steps -->
   <div class="scroll-area" style="padding:12px 0 96px;display:flex;flex-direction:column;gap:8px;">
 
-    <!-- Steps rendered by JS -->
     <div id="stepsContainer"></div>
 
-    <!-- Destination -->
     <div class="route-step dest-step">
-      <div class="step-num">â˜…</div>
+      <div class="step-num">&#9733;</div>
       <div>
         <div class="step-title" id="destName">Loading...</div>
         <div class="step-sub" id="destDetail"></div>
       </div>
     </div>
 
-    <!-- Action buttons -->
     <div style="display:flex;gap:8px;padding:6px 14px 0;">
-      <!-- BACKEND: Deep link to native maps app -->
       <button class="btn btn-primary btn-full" onclick="startNavigation()">Start navigation</button>
-      <!-- BACKEND: navigator.share() or SMS via Twilio -->
       <button class="btn btn-secondary" onclick="shareRoute()">Share</button>
     </div>
 
-    <!-- Offline notice -->
     <div style="margin:4px 14px;padding:10px 14px;border-radius:12px;background:var(--orange-tint);border:1px solid var(--orange-soft);">
       <div style="font-size:11px;font-weight:800;color:var(--orange-deep);text-transform:uppercase;letter-spacing:.4px;">Works offline</div>
-      <p style="font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.4;">
-        Route is cached on your device. No internet required to follow the steps above.
-      </p>
+      <p style="font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.4;">Route is cached on your device. No internet required to follow the steps above.</p>
     </div>
 
   </div>
 
-  <!-- Bottom nav -->
   <nav class="bottom-nav">
     <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
     <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
@@ -160,58 +106,79 @@
 
 <script>
 let destCoords = { lat: 15.1620, lng: 120.5880 };
-let evacMap, userMarker, destMarker;
+let evacMap;
 
-function initEvacMap(userLat, userLng, dLat, dLng) {
+async function initEvacMap(userLat, userLng, dLat, dLng) {
   evacMap = L.map('evacMap', { zoomControl: false }).setView([(userLat + dLat) / 2, (userLng + dLng) / 2], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: 'Â© OpenStreetMap' }).addTo(evacMap);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(evacMap);
+
   const orangeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>', iconSize: [14, 14] });
-  const destIcon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:12px;">âœ“</div>', iconSize: [24, 24] });
-  userMarker = L.marker([userLat, userLng], { icon: orangeIcon }).addTo(evacMap);
-  destMarker = L.marker([dLat, dLng], { icon: destIcon }).addTo(evacMap);
-  L.polyline([[userLat, userLng], [dLat, dLng]], { color: 'var(--orange)', weight: 4, dashArray: '8 8' }).addTo(evacMap);
+  const destIcon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;">&#10003;</div>', iconSize: [24, 24] });
+  L.marker([userLat, userLng], { icon: orangeIcon }).addTo(evacMap);
+  L.marker([dLat, dLng], { icon: destIcon }).addTo(evacMap);
+
+  try {
+    const r = await fetch(`https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${dLng},${dLat}?geometries=geojson&overview=full`);
+    const rd = await r.json();
+    const coords = rd.routes && rd.routes[0] && rd.routes[0].geometry && rd.routes[0].geometry.coordinates;
+    if (coords && coords.length) {
+      const latLngs = coords.map(function(c) { return [c[1], c[0]]; });
+      const line = L.polyline(latLngs, { color: '#E86A1A', weight: 4 }).addTo(evacMap);
+      evacMap.fitBounds(line.getBounds(), { padding: [30, 30] });
+      return;
+    }
+  } catch(e) { /* fall through to straight line */ }
+
+  const line = L.polyline([[userLat, userLng], [dLat, dLng]], { color: '#E86A1A', weight: 4, dashArray: '8 8' }).addTo(evacMap);
+  evacMap.fitBounds(line.getBounds(), { padding: [30, 30] });
 }
 
 async function loadEvacRoute() {
   const user = getUser();
-  const lat = user?.lat || 15.1463;
-  const lng = user?.lng || 120.5796;
+  const lat = (user && user.lat) ? user.lat : 15.1463;
+  const lng = (user && user.lng) ? user.lng : 120.5796;
+
   try {
-    const data = await apiFetch(`/api/evac/route?lat=${lat}&lng=${lng}`);
-    document.getElementById('etaMinutes').textContent = data.etaMinutes ?? 'â€“';
-    document.getElementById('distanceLabel').textContent = data.distanceKm ? `Â· ${data.distanceKm} km Â· OSRM foot mode` : '';
+    const data = await apiFetch('/api/evac/route?lat=' + lat + '&lng=' + lng);
+    document.getElementById('etaMinutes').textContent = data.etaMinutes != null ? data.etaMinutes : '--';
+    document.getElementById('distanceLabel').textContent = data.distanceKm ? '· ' + data.distanceKm + ' km · foot mode' : '';
     document.getElementById('routeNote').textContent = data.routingNote || '';
+
     if (data.destination) {
-      destCoords = { lat: data.destination.lat ?? destCoords.lat, lng: data.destination.lng ?? destCoords.lng };
+      destCoords = { lat: data.destination.lat || destCoords.lat, lng: data.destination.lng || destCoords.lng };
       document.getElementById('destName').textContent = data.destination.name || 'Evacuation Center';
-      const occ = data.destination.occupied != null ? `~${data.destination.occupied} occupied Â· ` : '';
-      document.getElementById('destDetail').textContent = `Capacity ${data.destination.capacity ?? 'â€“'} Â· ${occ}${data.destination.hasMedial ? 'medical post' : ''}`;
+      document.getElementById('destDetail').textContent = data.destination.address || '';
     }
-    if (data.steps?.length) {
+
+    if (data.steps && data.steps.length) {
       const colors = ['var(--ok)', 'var(--orange)', '#E67519'];
-      document.getElementById('stepsContainer').innerHTML = data.steps.map((s, i) => `
-        <div class="route-step">
-          <div class="step-num" style="background:${colors[i % colors.length]};">${i + 1}</div>
-          <div><div class="step-title">${s.instruction}</div><div class="step-sub">${s.detail || ''}</div></div>
-        </div>`).join('');
+      document.getElementById('stepsContainer').innerHTML = data.steps.map(function(s, i) {
+        const text = typeof s === 'string' ? s : (s.instruction || '');
+        const sub = typeof s === 'string' ? '' : (s.detail || '');
+        return '<div class="route-step">' +
+          '<div class="step-num" style="background:' + colors[i % colors.length] + ';">' + (i + 1) + '</div>' +
+          '<div><div class="step-title">' + text + '</div>' + (sub ? '<div class="step-sub">' + sub + '</div>' : '') + '</div>' +
+          '</div>';
+      }).join('');
     }
-  } catch { /* keep defaults */ }
-  initEvacMap(lat, lng, destCoords.lat, destCoords.lng);
+  } catch(e) { /* keep defaults */ }
+
+  await initEvacMap(lat, lng, destCoords.lat, destCoords.lng);
 }
 
 function startNavigation() {
-  const { lat, lng } = destCoords;
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  window.location = isIOS ? `maps://maps.apple.com/?daddr=${lat},${lng}` : `geo:${lat},${lng}?q=${lat},${lng}`;
-  setTimeout(() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`), 500);
+  var lat = destCoords.lat, lng = destCoords.lng;
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  window.location = isIOS ? 'maps://maps.apple.com/?daddr=' + lat + ',' + lng : 'geo:' + lat + ',' + lng + '?q=' + lat + ',' + lng;
+  setTimeout(function() { window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng); }, 500);
 }
 
 function shareRoute() {
-  const text = document.getElementById('stepsContainer').innerText + '\nâ†’ ' + document.getElementById('destName').textContent;
+  var text = document.getElementById('stepsContainer').innerText + '\n-> ' + document.getElementById('destName').textContent;
   if (navigator.share) {
-    navigator.share({ title: 'MonsoonAI Evacuation Route', text });
+    navigator.share({ title: 'MonsoonAI Evacuation Route', text: text });
   } else {
-    apiFetch('/api/sms/send-evac', { method: 'POST' }).catch(() => {});
+    apiFetch('/api/sms/send-evac', { method: 'POST' }).catch(function() {});
     alert('Evacuation route sent to your registered mobile number.');
   }
 }

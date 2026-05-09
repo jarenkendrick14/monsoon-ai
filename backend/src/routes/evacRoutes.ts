@@ -45,7 +45,7 @@ router.get('/api/evac/route', authMiddleware, async (req, res) => {
     etaMinutes,
     distanceKm: parseFloat(dist.toFixed(2)),
     routingNote,
-    center: nearest,
+    destination: nearest,
     steps,
   });
 });
