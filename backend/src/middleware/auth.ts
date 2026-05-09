@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { getPb } from '../pb.js';
+import PocketBase from 'pocketbase';
+import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 
 interface JwtPayload {
@@ -40,7 +41,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   }
 
   try {
-    const pb = getPb();
+    const pb = new PocketBase(config.pb.url);
+    pb.authStore.save(token, null);
     const user = await pb.collection('users').getOne(payload.id);
     req.user = user as unknown as typeof req.user & NonNullable<typeof req.user>;
     next();
