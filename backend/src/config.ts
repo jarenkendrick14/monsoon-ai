@@ -44,7 +44,7 @@ export const config = {
 
   openai: {
     apiKey: optional_env('OPENAI_API_KEY', ''),
-    model: optional_env('OPENAI_MODEL', 'gemini-3-flash-preview'),
+    model: optional_env('OPENAI_MODEL', 'gemini-3.1-flash-lite'),
   },
 
   twilio: {
