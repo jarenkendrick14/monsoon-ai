@@ -139,4 +139,5 @@ export interface RiskContext {
   alertLevel: AlertLevel;
   trigger: RiskTrigger | null;
   location: string;
+  evacCenter?: { name: string; address: string; distKm: string } | null;
 }

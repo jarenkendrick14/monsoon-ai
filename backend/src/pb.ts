@@ -88,6 +88,16 @@ export async function ensureCollections(): Promise<void> {
         { name: 'history', type: 'json', required: false },
       ],
     },
+    {
+      name: 'hazard_reports',
+      type: 'base',
+      schema: [
+        { name: 'userId', type: 'text', required: true },
+        { name: 'hazards', type: 'json', required: false },
+        { name: 'lat', type: 'number', required: false },
+        { name: 'lng', type: 'number', required: false },
+      ],
+    },
   ];
 
   for (const col of collections) {

@@ -22,6 +22,7 @@ import alertRouter from './routes/alertRoutes.js';
 import evacRouter from './routes/evacRoutes.js';
 import mapRouter from './routes/mapRoutes.js';
 import chatRouter from './routes/chatRoutes.js';
+import reportRouter from './routes/reportRoutes.js';
 import smsRouter from './routes/smsRoutes.js';
 import govRouter from './routes/govRoutes.js';
 
@@ -67,6 +68,7 @@ app.use(alertRouter);
 app.use(evacRouter);
 app.use(mapRouter);
 app.use(chatRouter);
+app.use(reportRouter);
 app.use(smsRouter);
 app.use(govRouter);
 

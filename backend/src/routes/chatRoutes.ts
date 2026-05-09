@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { chatbotReply } from '../integrations/openai.js';
-import { getPb as getPocketBase } from '../pb.js';
+import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
+
 import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
 
 const router = Router();
@@ -36,10 +37,18 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     alertType = activeAlert.items[0]?.type ?? null;
   } catch { /* alerts collection may not exist yet */ }
 
+  const nearest = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+  const evacCenter = nearest && user.lat && user.lng ? {
+    name: nearest.name,
+    address: nearest.address,
+    distKm: distanceKm(user.lat, user.lng, nearest.lat, nearest.lng).toFixed(1),
+  } : null;
+
   const context: RiskContext = {
     alertLevel,
     trigger: alertType,
     location: user.address || 'Philippines',
+    evacCenter,
   };
 
   let history: ChatMessage[] = [];
