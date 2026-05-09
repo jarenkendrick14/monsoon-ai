@@ -4,6 +4,8 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { chatbotReply } from '../integrations/openai.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
+import { getCurrentConditions, getCondition } from '../utils/conditionsCache.js';
+import type { OpenMeteoData } from '../integrations/openmeteo.js';
 
 import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
 
@@ -44,11 +46,29 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     distKm: distanceKm(user.lat, user.lng, nearest.lat, nearest.lng).toFixed(1),
   } : null;
 
+  const [liveConditions, weather] = await Promise.all([
+    getCurrentConditions(),
+    getCondition<OpenMeteoData>('weather'),
+  ]);
+
+  const forecast7day = (weather?.forecast7day ?? []).map(d => ({
+    day: d.day,
+    riskLevel: d.precipSum > 50 ? 'critical' : d.precipSum > 30 ? 'high' : d.precipSum > 10 ? 'medium' : 'low',
+    temp: Math.round(d.tempMax),
+  }));
+
   const context: RiskContext = {
     alertLevel,
     trigger: alertType,
     location: user.address || 'Philippines',
     evacCenter,
+    conditions: {
+      heatIndex: liveConditions.heatIndex,
+      airQuality: liveConditions.airQuality,
+      riverLevel: liveConditions.riverLevel,
+      rainfall: liveConditions.rainfall,
+      forecast7day,
+    },
   };
 
   let history: ChatMessage[] = [];

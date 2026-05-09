@@ -99,6 +99,14 @@ export async function chatbotReply(
       ? `- Nearest evacuation center: ${context.evacCenter.name}, ${context.evacCenter.address} (${context.evacCenter.distKm} km away)`
       : '- Nearest evacuation center: unknown — direct user to contact barangay hall';
 
+    const condLines = context.conditions ? `
+LIVE CONDITIONS (read-only, do not modify):
+- Heat index: ${context.conditions.heatIndex}°C
+- Air quality (AQI): ${context.conditions.airQuality}
+- River level: ${context.conditions.riverLevel} m NHWL
+- Current rainfall: ${context.conditions.rainfall} mm/hr
+- 7-day forecast: ${context.conditions.forecast7day.map(d => `${d.day} ${d.temp}°C (${d.riskLevel})`).join(', ')}` : '';
+
     const model = getClient().getGenerativeModel({
       model: config.openai.model,
       systemInstruction: `You are MonsoonAI, a disaster response assistant for the Philippines and Vietnam.
@@ -109,6 +117,7 @@ CURRENT ENGINE VERDICT:
 - Trigger: ${context.trigger ?? 'none'}
 - Location: ${context.location}
 ${evacLine}
+${condLines}
 
 STRICT RULES:
 - DO NOT invent evacuation centers, distances, risk scores, or sensor readings

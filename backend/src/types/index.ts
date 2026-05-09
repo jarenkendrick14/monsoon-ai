@@ -140,4 +140,11 @@ export interface RiskContext {
   trigger: RiskTrigger | null;
   location: string;
   evacCenter?: { name: string; address: string; distKm: string } | null;
+  conditions?: {
+    heatIndex: number;
+    airQuality: number;
+    riverLevel: number;
+    rainfall: number;
+    forecast7day: { day: string; riskLevel: string; temp: number }[];
+  } | null;
 }
