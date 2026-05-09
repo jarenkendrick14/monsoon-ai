@@ -304,12 +304,31 @@ function renderForecast(days) {
   const grid = document.getElementById('forecastGrid');
   grid.innerHTML = '';
   const dayLabels = ['S','M','T','W','T','F','S'];
+  const today = new Date().getDay();
+
+  if (!days.length) {
+    // Placeholder bars while data loads
+    for (let i = 0; i < 7; i++) {
+      const col = document.createElement('div');
+      col.className = 'forecast-day';
+      col.innerHTML = `
+        <div style="font-size:10px;color:var(--muted);font-weight:700;">${dayLabels[(today + i) % 7]}</div>
+        <div class="forecast-bar" style="background:var(--hairline);">
+          <div class="forecast-bar-fill" style="height:15%;background:var(--hairline);"></div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700;">—</div>
+      `;
+      grid.appendChild(col);
+    }
+    return;
+  }
+
   days.forEach((d, i) => {
     const level = d.riskLevel || 'low';
     const col = document.createElement('div');
     col.className = 'forecast-day';
     col.innerHTML = `
-      <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day || dayLabels[(new Date().getDay() + i) % 7]}</div>
+      <div style="font-size:10px;color:var(--muted);font-weight:700;">${d.day || dayLabels[(today + i) % 7]}</div>
       <div class="forecast-bar" style="background:${levelColors[level] || levelColors.low}22;">
         <div class="forecast-bar-fill" style="height:${levelHeights[level] || levelHeights.low};background:${levelColors[level] || levelColors.low};"></div>
       </div>
@@ -414,7 +433,7 @@ async function loadDashboard() {
     const level = data.alertLevel ?? 'none';
     setState(level);
 
-    if (data.forecast7day?.length) renderForecast(data.forecast7day);
+    renderForecast(data.forecast7day?.length ? data.forecast7day : []);
 
     let alertData = null;
     if (level === 'critical') {

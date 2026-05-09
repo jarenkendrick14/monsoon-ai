@@ -22,7 +22,7 @@ export async function fetchWeather(lat: number, lng: number): Promise<OpenMeteoD
         timezone: 'Asia/Manila',
         forecast_days: 7,
       },
-      timeout: 10000,
+      timeout: 20000,
     });
 
     const current = resp.data.current as Record<string, number>;
