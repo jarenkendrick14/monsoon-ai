@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI â€" Sign In</title>
+  <title>MonsoonAI – Sign In</title>
   <link rel="stylesheet" href="../_brand.css" />
   <script src="../js/_api.js"></script>
   <style>
@@ -53,8 +53,8 @@
 
      On success:
        - Store JWT in localStorage as 'monsoon_token'
-       - If user.riskLevel === 'critical' â†' redirect to 09-dashboard-critical.html
-       - Else â†' redirect to 08-dashboard-calm.html
+       - If user.riskLevel === 'critical' → redirect to 09-dashboard-critical.html
+       - Else → redirect to 08-dashboard-calm.html
 
      On error: Show .error-msg div with the message from API response.
 
@@ -98,7 +98,7 @@
       <label class="field-label" for="password">Password</label>
       <div class="field-input-wrap">
         <!-- BACKEND: Send as `password` in POST body (do NOT log or store in history) -->
-        <input type="password" id="password" name="password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" />
+        <input type="password" id="password" name="password" autocomplete="current-password" />
         <!-- Toggle password visibility -->
         <button type="button" onclick="togglePassword()" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:0;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <!-- BACKEND: "Forgot password" â†' POST /api/auth/forgot-password { email } -->
+    <!-- BACKEND: "Forgot password" → POST /api/auth/forgot-password { email } -->
     <div class="forgot-link" onclick="location.href='#forgot-password'">Forgot password?</div>
 
     <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:6px;">
@@ -128,7 +128,7 @@
 </div>
 
 <script>
-/* â"€â"€ BACKEND INTEGRATION POINT â"€â"€ */
+/* ── BACKEND INTEGRATION POINT ── */
 async function handleSignin(e) {
   e.preventDefault();
   const form = e.target;
