@@ -7,7 +7,6 @@ import type { ConditionsSnapshot, UserRecord } from '../types/index.js';
 import type { OpenMeteoData } from '../integrations/openmeteo.js';
 import type { PagasaData } from '../integrations/pagasa.js';
 import type { FirmsHotspot } from '../integrations/firms.js';
-import { getGloFASData } from '../integrations/glofas.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { countHotspotsNear } from '../integrations/firms.js';
 
@@ -19,7 +18,7 @@ export async function runRiskEval(): Promise<void> {
     const weather = await getCondition<OpenMeteoData>('weather');
     const pagasa = await getCondition<PagasaData>('pagasa');
     const firms = await getCondition<FirmsHotspot[]>('firms') ?? [];
-    const glofas = getGloFASData();
+    const cachedConditions = await getCondition<{ airQuality: number; riverDischarge: number; glofasCritical: boolean }>('conditions');
     const tropomi = getTropomiData();
 
     const allUsers = await pb.collection('users').getFullList<UserRecord>();
@@ -32,12 +31,12 @@ export async function runRiskEval(): Promise<void> {
         const conditions: ConditionsSnapshot = {
           rainfall: weather?.rainfall ?? 0,
           heatIndex: weather?.heatIndex ?? 32,
-          airQuality: 50,
-          riverLevel: 1.2,
+          airQuality: cachedConditions?.airQuality ?? 50,
+          riverLevel: cachedConditions?.riverDischarge ?? 1.2,
           aerosolOpticalDepth: tropomi.aerosolOpticalDepth,
           firePts,
           pagasaSignal: pagasa?.signal ?? 0,
-          glofasCritical: glofas.critical,
+          glofasCritical: cachedConditions?.glofasCritical ?? false,
           fetchedAt: new Date().toISOString(),
         };
 
@@ -57,7 +56,7 @@ export async function runRiskEval(): Promise<void> {
               type: result.trigger,
               rainfall: conditions.rainfall,
               floodZone: '',
-              riverDischarge: glofas.riverDischarge,
+              riverDischarge: cachedConditions?.riverDischarge ?? 0,
               evacuateWithin: result.evacuateWithin,
               reasons: result.reasons,
               checklist: result.checklist,

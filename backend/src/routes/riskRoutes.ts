@@ -3,7 +3,6 @@ import { authMiddleware } from '../middleware/auth.js';
 import { evaluateRisk } from '../engine/riskEngine.js';
 import { getCurrentConditions } from '../utils/conditionsCache.js';
 import { getPb } from '../pb.js';
-import { getGloFASData } from '../integrations/glofas.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { getCondition } from '../utils/conditionsCache.js';
 import { countHotspotsNear } from '../integrations/firms.js';
@@ -18,9 +17,9 @@ router.post('/api/risk/score', authMiddleware, async (req, res) => {
 
   const pagasa = await getCondition<PagasaData>('pagasa');
   const firms = await getCondition<FirmsHotspot[]>('firms') ?? [];
-  const glofas = getGloFASData();
   const tropomi = getTropomiData();
   const weather = await getCurrentConditions();
+  const cached = await getCondition<{ glofasCritical: boolean }>('conditions');
   const firePts = countHotspotsNear(firms, user.lat, user.lng);
 
   const conditions: ConditionsSnapshot = {
@@ -28,7 +27,7 @@ router.post('/api/risk/score', authMiddleware, async (req, res) => {
     aerosolOpticalDepth: tropomi.aerosolOpticalDepth,
     firePts,
     pagasaSignal: pagasa?.signal ?? 0,
-    glofasCritical: glofas.critical,
+    glofasCritical: cached?.glofasCritical ?? false,
     fetchedAt: new Date().toISOString(),
   };
 
