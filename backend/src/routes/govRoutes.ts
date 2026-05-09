@@ -165,10 +165,10 @@ router.patch('/api/gov/households/:id/status', govAuthMiddleware, async (req, re
 router.get('/api/gov/stats', govAuthMiddleware, async (_req, res) => {
   const pb = getPb();
   const [totalUsers, criticalAlerts, highAlerts, dispatched] = await Promise.all([
-    pb.collection('users').getList(1, 1),
-    pb.collection('alerts').getList(1, 1, { filter: 'level="critical" && resolved=false' }),
-    pb.collection('alerts').getList(1, 1, { filter: 'level="high" && resolved=false' }),
-    pb.collection('gov_households').getList(1, 1, { filter: 'status="dispatched"' }),
+    pb.collection('users').getList(1, 1, { requestKey: 'stats_users' }),
+    pb.collection('alerts').getList(1, 1, { filter: 'level="critical" && resolved=false', requestKey: 'stats_critical' }),
+    pb.collection('alerts').getList(1, 1, { filter: 'level="high" && resolved=false', requestKey: 'stats_high' }),
+    pb.collection('gov_households').getList(1, 1, { filter: 'status="dispatched"', requestKey: 'stats_dispatched' }),
   ]);
   res.json({
     totalRegistered: totalUsers.totalItems,

@@ -239,10 +239,9 @@ function applyProfile(d) {
     d.householdSize ? `${d.householdSize} occupant${d.householdSize !== 1 ? 's' : ''}` : 'Not set';
   document.getElementById('profileNeeds').textContent = needsLabel(d);
 
-  const score10 = d.risk?.riskScore ?? 0;
-  const score100 = d.risk?.inasafeScore ?? Math.round(score10 * 10);
+  const score100 = d.risk?.riskScore ?? d.risk?.inasafeScore ?? 0;
   const tier = d.risk?.riskTier || 'low';
-  document.getElementById('riskScore').textContent = `${Number(score10).toFixed(1)} / 10`;
+  document.getElementById('riskScore').textContent = `${Math.round(score100)} / 100`;
 
   const tierText = TIER_LABELS[tier] || tier.toUpperCase();
   document.getElementById('riskTierRow').textContent =
