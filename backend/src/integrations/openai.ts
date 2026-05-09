@@ -46,6 +46,41 @@ export async function tagHazards(imageBase64: string, mimeType: string): Promise
   }
 }
 
+export async function smsReply(
+  message: string,
+  locale: Locale,
+  context: RiskContext
+): Promise<string> {
+  if (!config.openai.apiKey) return 'Service unavailable. Call 911 for emergencies.';
+
+  try {
+    if (needsRag(message)) {
+      const passage = retrievePassage(message);
+      if (passage) {
+        const model = getClient().getGenerativeModel({ model: config.openai.model });
+        const prompt = `Answer using ONLY this official text. Under 130 chars. Plain text, no markdown. Reply in ${LOCALE_NAMES[locale]}.\n\n[TEXT]\n${passage.text}\n[END]\n\nQuestion: ${message}`;
+        const result = await model.generateContent(prompt);
+        const reply = result.response.text().trim().replace(/\n/g, ' ');
+        return reply.length > 155 ? reply.slice(0, 152) + '...' : reply;
+      }
+      return 'Cannot verify. Contact NDRRMC or call 911 for emergencies.';
+    }
+
+    const evacLine = context.evacCenter
+      ? `Nearest evac: ${context.evacCenter.name} (${context.evacCenter.distKm}km).`
+      : '';
+
+    const model = getClient().getGenerativeModel({ model: config.openai.model });
+    const prompt = `You are MonsoonAI SMS bot. Reply in ${LOCALE_NAMES[locale]}. Under 130 chars. Plain text only, no markdown, no asterisks.\n\nAlert: ${context.alertLevel}. ${evacLine}\n\nUser message: ${message}`;
+    const result = await model.generateContent(prompt);
+    const reply = result.response.text().trim().replace(/\n/g, ' ');
+    return reply.length > 155 ? reply.slice(0, 152) + '...' : reply;
+  } catch (err) {
+    logger.warn('SMS LLM reply failed', err instanceof Error ? err.message : err);
+    return 'Service unavailable. Call 911 for emergencies.';
+  }
+}
+
 export async function translateToLocale(data: Record<string, unknown>, locale: Locale): Promise<Record<string, unknown>> {
   if (locale === 'en' || !config.openai.apiKey) return data;
 

@@ -5,18 +5,23 @@ import { getCurrentConditions } from '../utils/conditionsCache.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
-import type { UserRecord, AlertRecord } from '../types/index.js';
+import { smsReply } from '../integrations/openai.js';
+import type { UserRecord, AlertRecord, AlertLevel, RiskContext, Locale } from '../types/index.js';
 
 const router = Router();
 
-// Semaphore inbound webhook — POSTs JSON: { from, message, to, network, received_at }
+// Hard cap at 155 chars — standard SMS is 160, 5-char buffer for carrier headers
+function sms(parts: string[]): string {
+  const msg = parts.filter(Boolean).join(' ');
+  return msg.length > 155 ? msg.slice(0, 152) + '...' : msg;
+}
+
 router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
   const body = req.body as Record<string, string>;
   const from: string = body['from'] ?? body['From'] ?? '';
   const rawMessage: string = body['message'] ?? body['Body'] ?? '';
   const keyword = rawMessage.trim().toUpperCase().split(/\s+/)[0];
 
-  // Acknowledge immediately — Semaphore doesn't read the response body
   res.status(200).json({ success: true });
 
   let reply: string;
@@ -34,74 +39,115 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
     switch (keyword) {
       case 'STATUS': {
-        if (!user) { reply = 'Register at monsoon-ai.app to get your risk status.'; break; }
-        const alerts = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
-          filter: `userId="${user.id}" && resolved=false`,
-        });
+        if (!user) {
+          reply = sms(['[MonsoonAI] Not registered. Sign up at monsoon-ai.app to get your risk status. Reply HELP for commands.']);
+          break;
+        }
+        let alerts;
+        try {
+          alerts = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+            filter: `userId="${user.id}" && resolved=false`,
+          });
+        } catch { alerts = { items: [] }; }
+
         const alert = alerts.items[0];
-        reply = alert
-          ? `Alert: ${alert.level.toUpperCase()} - ${alert.type?.replace(/_/g, ' ')}. Evacuate within ${alert.evacuateWithin} min.`
-          : 'No active alerts for your area. Stay prepared. Reply HELP for commands.';
+        if (alert) {
+          const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+          const evacInfo = center && user.lat && user.lng
+            ? `Go to: ${center.name} (${distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1)}km).`
+            : 'Contact barangay hall for evac center.';
+          reply = sms([`[MonsoonAI] ${alert.level.toUpperCase()} ALERT. Evac in ${alert.evacuateWithin}min.`, evacInfo, 'Call 911. Reply EVAC for route.']);
+        } else {
+          reply = sms(['[MonsoonAI] No active alerts. Stay prepared. Reply HELP for commands.']);
+        }
         break;
       }
 
       case 'EVAC': {
-        if (!user) { reply = 'Register at monsoon-ai.app to find your evac center.'; break; }
-        const center = findNearestCenter(user.lat, user.lng);
-        if (center) {
+        if (!user) {
+          reply = sms(['[MonsoonAI] Not registered. Sign up at monsoon-ai.app to find your evac center.']);
+          break;
+        }
+        const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+        if (center && user.lat && user.lng) {
           const dist = distanceKm(user.lat, user.lng, center.lat, center.lng);
-          reply = `Nearest evac: ${center.name}, ${center.address}. ~${dist.toFixed(1)}km away.`;
+          const eta = Math.ceil((dist / 4.0) * 60);
+          reply = sms([`[MonsoonAI] Nearest evac: ${center.name}, ${center.address}.`, `~${dist.toFixed(1)}km, ${eta}min walk. Call 911 for rescue.`]);
         } else {
-          reply = 'Go to your nearest barangay hall or high ground. Call 911 for emergency rescue.';
+          reply = sms(['[MonsoonAI] Go to nearest barangay hall or high ground. Call 911 for rescue.']);
         }
         break;
       }
 
       case 'FLOOD': {
         const cond = await getCurrentConditions();
-        reply = `Rainfall: ${cond.rainfall}mm. River level: ${cond.riverLevel}m. ${cond.glofasCritical ? 'CRITICAL river discharge detected!' : 'River levels normal.'}`;
+        const status = cond.glofasCritical ? 'CRITICAL river discharge!' : cond.riverLevel >= 2.0 ? 'River level HIGH.' : 'River level normal.';
+        reply = sms([`[MonsoonAI] Rain: ${cond.rainfall}mm. River: ${cond.riverLevel}m.`, status, 'Reply EVAC if flooding.']);
         break;
       }
 
       case 'HAZE': {
         const tropomi = getTropomiData();
-        reply = `Air quality AOD: ${tropomi.aerosolOpticalDepth}. ${tropomi.smokeCritical ? 'CRITICAL smoke - stay indoors, use N95.' : 'Air quality acceptable.'}`;
+        const cond = await getCurrentConditions();
+        const aqiStatus = cond.airQuality >= 150 ? 'UNHEALTHY - stay indoors, use N95.' : cond.airQuality >= 100 ? 'Sensitive groups avoid outdoors.' : 'Air quality acceptable.';
+        reply = sms([`[MonsoonAI] AQI: ${cond.airQuality}. AOD: ${tropomi.aerosolOpticalDepth}.`, aqiStatus]);
         break;
       }
 
       case 'TEMP': {
         const cond = await getCurrentConditions();
-        const cat = cond.heatIndex >= 42 ? 'DANGER' : cond.heatIndex >= 33 ? 'Caution' : 'Safe';
-        reply = `Heat index: ${cond.heatIndex}C (${cat}). Stay hydrated, avoid midday sun.`;
+        const cat = cond.heatIndex >= 42 ? 'DANGER - limit outdoors, hydrate.' : cond.heatIndex >= 33 ? 'CAUTION - rest often, drink water.' : 'Safe. Stay hydrated.';
+        reply = sms([`[MonsoonAI] Heat index: ${cond.heatIndex}C.`, cat]);
         break;
       }
 
       case 'HELP': {
-        reply = 'MonsoonAI commands: STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, START. Call 911 for emergencies.';
+        reply = sms(['[MonsoonAI] Commands: STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, START. Emergencies: call 911.']);
         break;
       }
 
       case 'STOP': {
         if (user) await getPb().collection('users').update(user.id, { smsOptIn: false });
-        reply = 'You have unsubscribed from MonsoonAI alerts. Reply START to re-subscribe.';
+        reply = sms(['[MonsoonAI] Unsubscribed from alerts. Reply START to re-subscribe. Emergencies: call 911.']);
         break;
       }
 
       case 'START': {
         if (user) await getPb().collection('users').update(user.id, { smsOptIn: true });
-        reply = 'You are now subscribed to MonsoonAI alerts. Reply HELP for commands. Reply STOP to unsubscribe.';
+        reply = sms(['[MonsoonAI] Subscribed to alerts. Reply HELP for commands. Reply STOP to unsubscribe.']);
         break;
       }
 
       default: {
-        reply = 'Unknown command. Reply HELP for available commands.';
+        // Unknown keyword — try RAG + LLM
+        let alertLevel: AlertLevel = 'none';
+        try {
+          const alerts = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+            filter: user ? `userId="${user.id}" && resolved=false` : 'resolved=false',
+          });
+          alertLevel = alerts.items[0]?.level ?? 'none';
+        } catch { /* no alerts */ }
+
+        const center = (user?.lat && user?.lng) ? findNearestCenter(user.lat, user.lng) : null;
+        const context: RiskContext = {
+          alertLevel,
+          trigger: null,
+          location: user?.address || 'Philippines',
+          evacCenter: center && user?.lat && user?.lng ? {
+            name: center.name,
+            address: center.address,
+            distKm: distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1),
+          } : null,
+        };
+
+        const locale: Locale = (user?.locale as Locale) ?? 'en';
+        reply = await smsReply(rawMessage.trim(), locale, context);
       }
     }
   } catch {
-    reply = 'Service temporarily unavailable. Call 911 for emergencies.';
+    reply = '[MonsoonAI] Service unavailable. Call 911 for emergencies.';
   }
 
-  // Send reply via Semaphore outbound
   if (from) await sendSms(from, reply);
 });
 

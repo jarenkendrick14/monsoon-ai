@@ -9,6 +9,8 @@ import type { PagasaData } from '../integrations/pagasa.js';
 import type { FirmsHotspot } from '../integrations/firms.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { countHotspotsNear } from '../integrations/firms.js';
+import { sendSms } from '../integrations/semaphore.js';
+import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 
 export async function runRiskEval(): Promise<void> {
   logger.info('Running riskEval job');
@@ -64,6 +66,15 @@ export async function runRiskEval(): Promise<void> {
               reEvalAt,
               resolved: false,
             });
+
+            if (user.smsOptIn && user.mobile) {
+              const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+              const evacInfo = center && user.lat && user.lng
+                ? `Go to: ${center.name} (${distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1)}km).`
+                : 'Contact barangay hall for evac center.';
+              const msg = `[MonsoonAI] ${result.level.toUpperCase()} ALERT: ${result.trigger?.replace(/_/g, ' ')}. Evac in ${result.evacuateWithin}min. ${evacInfo} Call 911.`;
+              await sendSms(user.mobile, msg.length > 155 ? msg.slice(0, 152) + '...' : msg);
+            }
           }
 
           broadcastAlert(user.id, {
