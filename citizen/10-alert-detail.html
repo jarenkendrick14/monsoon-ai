@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Active Alert</title>
-  <link rel="stylesheet" href="_brand.css" />
-  <script src="js/_api.js"></script>
+  <link rel="stylesheet" href="../_brand.css" />
+  <script src="../js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -69,7 +69,7 @@
 
      Checklist state: PATCH /api/user/checklist { alertId, checked: string[] }
      Save checked items to localStorage as fallback (offline resilience)
-     
+
      "Show evacuation route" → 11-evac-route.html
      "Send to my phone via SMS" → POST /api/sms/send-evac { userId } (Twilio)
      ============================================================ -->
@@ -183,7 +183,7 @@
       <span class="nav-label">Home</span>
     </div>
     <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
-    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="../assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
     <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
     <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
   </nav>

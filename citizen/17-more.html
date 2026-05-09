@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — More Services</title>
-  <link rel="stylesheet" href="_brand.css" />
+  <link rel="stylesheet" href="../_brand.css" />
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
@@ -32,7 +32,7 @@
      BACKEND NOTES:
      Warden proximity: GET /api/wardens/nearby?lat=&lng=&radius=500
      Response: { count: number, nearest: { name, distanceM, phone } }
-     
+
      Navigate to each service:
        Ask Monsoon    → 14-chatbot.html
        Evac centres   → 12-map.html?layer=evac
@@ -51,7 +51,7 @@
   <!-- App header -->
   <div class="app-header">
     <div class="app-logo">
-      <img src="assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
+      <img src="../assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
       <span class="app-logo-name">MONSOON<span> AI</span></span>
     </div>
     <div class="flood-pill pill-ok"><span class="dot"></span>ALL CLEAR</div>
@@ -74,7 +74,7 @@
       <!-- Ask Monsoon (primary) -->
       <div class="service-item primary" onclick="location.href='14-chatbot.html'">
         <div class="service-icon">
-          <img src="assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" />
+          <img src="../assets/short_logo.png" alt="" width="28" height="28" style="object-fit:contain;" />
         </div>
         <span class="service-label">Ask Monsoon</span>
       </div>
@@ -176,7 +176,7 @@
   <nav class="bottom-nav">
     <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
     <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
-    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="../assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
     <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
     <div class="nav-item active" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
   </nav>

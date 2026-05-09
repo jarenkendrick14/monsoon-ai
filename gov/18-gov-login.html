@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — Government Console Sign In</title>
-  <link rel="stylesheet" href="_brand.css" />
-  <script src="js/_api.js"></script>
+  <link rel="stylesheet" href="../_brand.css" />
+  <script src="../js/_api.js"></script>
   <style>
     html, body { height: 100%; background: var(--warm-bg); margin: 0; font-family: var(--font-ui); }
 
@@ -90,10 +90,10 @@
 
      Active storm banner: GET /api/alerts/active-storm (public, no auth)
      Response: { active: boolean, name: string, signal: number, raisedAt: ISO }
-     
+
      Password policy: must meet DICT government security standards
      MFA: TOTP recommended for production (optional for MVP)
-     
+
      Audit log: every login attempt should be logged with IP/timestamp
      ============================================================ -->
 
@@ -103,7 +103,7 @@
     <!-- ── LEFT: Brand + stats ── -->
     <div class="brand-panel" id="brandPanel">
       <div style="position:relative;z-index:1;">
-        <img src="assets/short_logo.png" alt="MonsoonAI" width="64" height="64" style="object-fit:contain;" />
+        <img src="../assets/short_logo.png" alt="MonsoonAI" width="64" height="64" style="object-fit:contain;" />
         <h1 class="brand-headline">
           From reactive rescue to<br/>anticipatory triage.
         </h1>

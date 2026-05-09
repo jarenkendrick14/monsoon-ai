@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — SMS Commands</title>
-  <link rel="stylesheet" href="_brand.css" />
+  <link rel="stylesheet" href="../_brand.css" />
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
@@ -39,17 +39,17 @@
 
 <!-- ============================================================
      BACKEND NOTES (Twilio two-way SMS):
-     
+
      Inbound SMS webhook: POST /api/sms/inbound
        Twilio sends: { From: '+63917...', Body: 'STATUS', To: '21587' }
-       
+
      Handler logic (deterministic, NOT LLM):
        1. Normalize Body: uppercase, trim
        2. Lookup user by From phone number → get lat/lng + household data
        3. Run risk engine for that address
        4. Template response (no LLM for critical paths)
        5. Return TwiML: <Response><Message>...</Message></Response>
-     
+
      Supported keywords:
        STATUS → Full risk summary + alert level
        EVAC   → Nearest shelter + walking time (OSRM)
@@ -59,11 +59,11 @@
        HELP   → List all commands (multi-language if locale set)
        STOP   → Unsubscribe (required by Twilio)
        START  → Re-subscribe
-     
+
      Response SLA: < 3 seconds
      Carrier: Globe, Smart, Sun, DITO, TNT (Philippine carriers)
      Short code: 21587 (register with DICT/NTC)
-     
+
      Multi-language: detect user.locale from profile
        'tl' → reply in Filipino
        'vi' → reply in Vietnamese
@@ -187,7 +187,7 @@
   <nav class="bottom-nav">
     <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
     <div class="nav-item" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
-    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="../assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;"/></div><span class="nav-center-label">Chat now</span></div>
     <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
     <div class="nav-item active" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
   </nav>

@@ -1,11 +1,11 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI â€” Sign In</title>
-  <link rel="stylesheet" href="_brand.css" />
-  <script src="js/_api.js"></script>
+  <title>MonsoonAI â€" Sign In</title>
+  <link rel="stylesheet" href="../_brand.css" />
+  <script src="../js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
     .app-shell {
@@ -53,8 +53,8 @@
 
      On success:
        - Store JWT in localStorage as 'monsoon_token'
-       - If user.riskLevel === 'critical' â†’ redirect to 09-dashboard-critical.html
-       - Else â†’ redirect to 08-dashboard-calm.html
+       - If user.riskLevel === 'critical' â†' redirect to 09-dashboard-critical.html
+       - Else â†' redirect to 08-dashboard-calm.html
 
      On error: Show .error-msg div with the message from API response.
 
@@ -70,7 +70,7 @@
   </div>
 
   <!-- Logo mark -->
-  <img src="assets/short_logo.png" alt="MonsoonAI" width="68" height="68" style="object-fit:contain;" />
+  <img src="../assets/short_logo.png" alt="MonsoonAI" width="68" height="68" style="object-fit:contain;" />
 
   <!-- Heading -->
   <div>
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <!-- BACKEND: "Forgot password" â†’ POST /api/auth/forgot-password { email } -->
+    <!-- BACKEND: "Forgot password" â†' POST /api/auth/forgot-password { email } -->
     <div class="forgot-link" onclick="location.href='#forgot-password'">Forgot password?</div>
 
     <button type="submit" class="btn btn-primary btn-lg btn-full" style="margin-top:6px;">
@@ -128,7 +128,7 @@
 </div>
 
 <script>
-/* â”€â”€ BACKEND INTEGRATION POINT â”€â”€ */
+/* â"€â"€ BACKEND INTEGRATION POINT â"€â"€ */
 async function handleSignin(e) {
   e.preventDefault();
   const form = e.target;
