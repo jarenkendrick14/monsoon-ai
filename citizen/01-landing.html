@@ -1,68 +1,224 @@
-<!-- DI PA TAPOS JARENNN -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI — A guardian for every household, in every storm</title>
-  <link rel="stylesheet" href="../_brand.css" />
-  <style>
-    /* ── Landing-specific overrides ── */
-    body { background: var(--warm-bg); margin: 0; }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
-    /* ── Top Nav ── */
-    .landing-nav {
+  <style>
+    /* ═════════════════════════════════════════════════════════════
+       MONSOONAI · LANDING PAGE
+       Self-contained · Dark mode · Animated solar hero
+       Desktop: orrery bleeds half-cut on the right
+       Mobile : orrery sits at top, scaled to fit (whole system visible)
+    ═════════════════════════════════════════════════════════════ */
+
+    /* ── BRAND TOKENS (light default) ── */
+    :root {
+      --orange:       #F26B1F;
+      --orange-deep:  #D9551A;
+      --orange-soft:  #FFE7D6;
+      --orange-tint:  #FFF3E8;
+      --blue:         #1E5BD9;
+      --blue-deep:    #143F99;
+      --critical:     #E83A2C;
+      --ok:           #1F8F4D;
+
+      --bg:           #FAF7F1;
+      --surface:      #FFFFFF;
+      --surface-2:    #FFFFFF;
+      --ink:          #1A1A1A;
+      --ink-2:        #3A3A3A;
+      --muted:        #8A8A8A;
+      --hairline:     #E8E4DC;
+
+      --orbit-color:  rgba(242,107,31,.22);
+      --mesh-color:   #F26B1F;
+      --moon-shadow:  rgba(0,0,0,.10);
+      --star-opacity: 0;
+
+      /* Solar scale — overridden per breakpoint */
+      --solar-scale:  1;
+
+      --font-display: 'Bricolage Grotesque', 'Archivo', system-ui, sans-serif;
+      --font-ui:      'Plus Jakarta Sans', -apple-system, system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    /* ── DARK MODE ── */
+    [data-theme="dark"] {
+      --bg:           #0B0D12;
+      --surface:      #14171F;
+      --surface-2:    rgba(255,255,255,.04);
+      --ink:          #F2EBDD;
+      --ink-2:        rgba(242,235,221,.74);
+      --muted:        rgba(242,235,221,.50);
+      --hairline:     rgba(255,255,255,.10);
+
+      --orbit-color:  rgba(242,107,31,.30);
+      --mesh-color:   #FFFFFF;
+      --moon-shadow:  rgba(255,235,200,.35);
+      --star-opacity: 1;
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: var(--font-ui); background: var(--bg); color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      transition: background .25s ease, color .25s ease;
+    }
+    body { overflow-x: hidden; }
+    img { display: block; max-width: 100%; }
+    a, button { color: inherit; text-decoration: none; cursor: pointer; }
+    button { font-family: inherit; }
+
+    /* ── KEYFRAMES ── */
+    @keyframes mm-pulse-red {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.15); opacity: .8; }
+    }
+    @keyframes orbit-earth {
+      from { transform: rotate(0deg);   }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes counter-spin-earth {
+      from { transform: translateX(-50%) rotate(0deg);    }
+      to   { transform: translateX(-50%) rotate(-360deg); }
+    }
+    @keyframes orbit-moon {
+      from { transform: rotate(0deg);   }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes counter-spin-moon {
+      from { transform: translateX(-50%) rotate(0deg);    }
+      to   { transform: translateX(-50%) rotate(-360deg); }
+    }
+    @keyframes sun-rotate {
+      from { transform: rotate(0deg);   }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.4; }
+      50%      { opacity: 1; }
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      height: 44px; padding: 0 18px; border-radius: 999px;
+      font-family: var(--font-ui); font-weight: 700; font-size: 14.5px;
+      letter-spacing: 0.2px; border: 1.5px solid transparent;
+      transition: opacity .15s, transform .1s, background .2s, color .2s;
+      white-space: nowrap;
+    }
+    .btn:hover { opacity: .92; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary   { background: var(--orange); color: #fff; border-color: var(--orange); box-shadow: 0 4px 14px rgba(242,107,31,.25); }
+    .btn-secondary { background: transparent; color: var(--orange); border-color: var(--orange); }
+    [data-theme="dark"] .btn-secondary { color: #FFB07A; border-color: rgba(255,176,122,.5); }
+    .btn-sm  { height: 34px; padding: 0 14px; font-size: 13px; }
+    .btn-lg  { height: 52px; padding: 0 22px; font-size: 16px; }
+
+    /* ═══════════════════ TOP NAV ═══════════════════ */
+    .nav {
       display: flex; align-items: center; gap: 14px;
-      padding: 20px 36px; position: relative; z-index: 10;
-      border-bottom: 1px solid var(--hairline);
+      padding: 16px 36px; position: relative; z-index: 50;
+      background: var(--bg);
     }
-    .landing-nav .logo-name {
-      font-family: var(--font-display); font-weight: 800; font-size: 18px;
-      color: var(--orange); letter-spacing: -0.2px;
+
+    /* Long logo — has a built-in black plate; sits cleanly against
+       the dark hero backdrop and reads as a logo "tag" in light mode. */
+    .nav-logo {
+      height: 40px; width: auto; object-fit: contain;
+      border-radius: 8px;
+      flex-shrink: 0;
     }
-    .landing-nav .logo-name span { color: var(--blue); }
-    .nav-links { display: flex; gap: 4px; margin-left: 32px; }
-    .nav-link { padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-2); border-radius: 8px; cursor: pointer; }
-    .nav-link:hover { background: #fff; }
+
+    .nav-links { display: flex; gap: 4px; margin-left: 20px; }
+    .nav-link { padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-2); border-radius: 8px; }
+    .nav-link:hover { background: var(--surface-2); color: var(--orange); }
     .nav-spacer { flex: 1; }
     .lang-toggle {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 999px; background: #fff;
+      padding: 6px 12px; border-radius: 999px; background: var(--surface);
       border: 1px solid var(--hairline); font-size: 12px; font-weight: 600; color: var(--ink-2);
+      white-space: nowrap;
     }
-    @media (max-width: 768px) {
-      .landing-nav { padding: 16px 20px; }
-      .nav-links { display: none; }
+    [data-theme="dark"] .lang-toggle { background: rgba(255,255,255,.06); }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      width: 38px; height: 38px; border-radius: 999px;
+      background: var(--surface); border: 1px solid var(--hairline);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      transition: background .2s, border-color .2s, transform .2s;
+    }
+    .theme-toggle:hover { transform: rotate(15deg); border-color: var(--orange); }
+    [data-theme="dark"] .theme-toggle { background: rgba(255,255,255,.06); }
+    .theme-toggle .icon-sun  { display: none; }
+    .theme-toggle .icon-moon { display: block; color: var(--ink-2); }
+    [data-theme="dark"] .theme-toggle .icon-sun  { display: block; color: #FFB07A; }
+    [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+    @media (max-width: 880px) {
+      .nav { padding: 14px 20px; gap: 8px; }
+      .nav-links, .lang-toggle { display: none; }
+      .nav-logo { height: 34px; }
+    }
+    @media (max-width: 480px) {
+      .nav-logo { height: 30px; }
+      .btn-sm { height: 32px; padding: 0 12px; font-size: 12px; }
     }
 
-    /* ── Hero ── */
-    .hero { padding: 48px 56px 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
-    @media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding: 32px 24px; } }
+    /* ═══════════════════ HERO ═══════════════════ */
+    .hero {
+      position: relative;
+      padding: 32px 56px 64px;
+      min-height: 660px;
+      overflow: hidden;
+    }
+    .hero-copy {
+      position: relative; z-index: 5; max-width: 620px;
+    }
 
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
       padding: 6px 12px; border-radius: 999px;
       background: var(--orange-tint); border: 1px solid var(--orange-soft);
-      color: var(--orange-deep); font-size: 11px; font-weight: 800; letter-spacing: 0.6px;
-      text-transform: uppercase; margin-bottom: 16px;
+      color: var(--orange-deep); font-size: 11px; font-weight: 800;
+      letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 16px;
+    }
+    [data-theme="dark"] .hero-badge {
+      background: rgba(242,107,31,.12);
+      border-color: rgba(242,107,31,.4);
+      color: #FFB07A;
     }
     .hero-badge .blink {
       width: 6px; height: 6px; border-radius: 99px; background: var(--critical);
       animation: mm-pulse-red 1.6s ease-in-out infinite;
     }
+
     .hero-headline {
-      font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 5vw, 64px);
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(34px, 5.6vw, 64px);
       letter-spacing: -1.2px; line-height: 1.02; color: var(--ink); margin-bottom: 24px;
     }
+    [data-theme="dark"] .hero-headline { color: #fff; }
     .hero-headline .accent { color: var(--orange); }
 
-    /* How it works steps */
     .steps-list { display: flex; flex-direction: column; gap: 16px; max-width: 520px; margin-bottom: 28px; }
+    .steps-eyebrow { font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
     .step-item { display: flex; gap: 14px; align-items: flex-start; position: relative; }
     .step-connector {
       position: absolute; left: 17px; top: 36px; bottom: -16px;
       width: 2px; background: var(--orange-soft);
     }
+    [data-theme="dark"] .step-connector { background: rgba(242,107,31,.35); }
     .step-num {
       flex-shrink: 0; width: 36px; height: 36px; border-radius: 999px;
       background: var(--orange); color: #fff;
@@ -71,105 +227,415 @@
       box-shadow: 0 4px 12px rgba(242,107,31,.35); z-index: 1;
     }
     .step-title { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--ink); line-height: 1.15; }
+    [data-theme="dark"] .step-title { color: #fff; }
     .step-desc { font-size: 14px; line-height: 1.45; color: var(--ink-2); margin-top: 4px; }
-
     .hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; }
 
-    /* Hero visual placeholder */
-    .hero-visual {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 400px; position: relative;
+    /* ═══════════════════ SOLAR HERO ═══════════════════
+       OUTER (.solar-hero)  — placement / clipping container
+       INNER (.solar-stage) — fixed 1320×1320 grid for orbital math.
+       On mobile the stage is scaled via --solar-scale so the entire
+       system fits inside the constrained outer container. */
+    .solar-hero {
+      position: absolute;
+      top: 50%; right: -502px;
+      transform: translateY(-50%);
+      width: 1320px; height: 1320px;
+      pointer-events: none; z-index: 1;
     }
-    .hero-visual-placeholder {
-      width: 320px; height: 320px; border-radius: 999px;
-      border: 2px dashed var(--orange-soft);
-      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
-      color: var(--muted); font-size: 13px; text-align: center; padding: 24px;
-      position: relative;
+    .solar-stage {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 1320px; height: 1320px;
+      transform: translate(-50%, -50%) scale(var(--solar-scale));
+      transform-origin: center center;
     }
-    .hero-visual-placeholder::before, .hero-visual-placeholder::after {
-      content: ''; position: absolute; border-radius: 999px; border: 1px solid var(--orange-soft); opacity: .5;
-    }
-    .hero-visual-placeholder::before { inset: -24px; }
-    .hero-visual-placeholder::after  { inset: -48px; }
-    .hero-logo { width: 120px; height: 120px; object-fit: contain; }
 
-    /* ── SMS Strip ── */
+    /* Star backdrop (visible in dark mode only) */
+    .star-field {
+      position: absolute; inset: 0; opacity: var(--star-opacity);
+      transition: opacity .3s ease;
+    }
+    .star-field circle { animation: twinkle 3s ease-in-out infinite; }
+
+    /* Gravity rings + sun + earth all positioned from CENTER of .solar-stage */
+    .gravity-ring {
+      position: absolute; top: 50%; left: 50%;
+      border-radius: 999px;
+    }
+    .earth-orbit {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 760px; height: 760px;
+      margin-left: -380px; margin-top: -380px;
+      animation: orbit-earth 20s linear infinite;
+    }
+    .earth-body {
+      position: absolute;
+      top: -110px; left: 50%;
+      width: 220px; height: 220px;
+      transform: translateX(-50%);
+      animation: counter-spin-earth 20s linear infinite;
+    }
+    .earth-svg-wrap {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .moon-orbit {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 280px; height: 280px;
+      margin-left: -140px; margin-top: -140px;
+      animation: orbit-moon 4.5s linear infinite;
+    }
+    .moon-orbit-ring {
+      position: absolute; inset: 0; border-radius: 999px;
+      border: 1px dashed var(--orbit-color);
+    }
+    .moon-body {
+      position: absolute;
+      top: -26px; left: 50%;
+      transform: translateX(-50%);
+      animation: counter-spin-moon 4.5s linear infinite;
+    }
+    .sun-wrap {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 290px; height: 290px;
+      margin-left: -145px; margin-top: -145px;
+    }
+    .sun-rotor {
+      width: 100%; height: 100%;
+      animation: sun-rotate 90s linear infinite;
+    }
+
+    /* ── DESKTOP RESPONSIVE (keeps right-bleed format) ── */
+    @media (max-width: 1280px) {
+      .solar-hero { right: -550px; transform: translateY(-50%) scale(0.92); }
+    }
+    @media (max-width: 1100px) {
+      .solar-hero { right: -640px; transform: translateY(-50%) scale(0.78); }
+    }
+
+    /* ── MOBILE / TABLET — orrery moves to top, fully visible (scaled) ── */
+    @media (max-width: 880px) {
+      .hero {
+        padding: 0 0 40px;
+        min-height: unset;
+        display: flex; flex-direction: column;
+      }
+      .solar-hero {
+        position: relative;
+        top: auto; right: auto;
+        transform: none;
+        width: 100%;
+        height: 360px;
+        margin: 0;
+        overflow: hidden;
+        order: 1;
+        --solar-scale: 0.42;       /* full system fits with margin */
+      }
+      .hero-copy { padding: 24px 20px 0; order: 2; }
+    }
+    /* Tablet portrait — slightly larger */
+    @media (max-width: 880px) and (min-width: 600px) {
+      .solar-hero { height: 420px; --solar-scale: 0.50; }
+    }
+    /* Standard phones */
+    @media (max-width: 600px) {
+      .solar-hero { height: 340px; --solar-scale: 0.40; }
+    }
+    /* Small phones */
+    @media (max-width: 480px) {
+      .solar-hero { height: 300px; --solar-scale: 0.34; }
+      .hero-headline { font-size: clamp(32px, 9vw, 44px); }
+    }
+    /* Very narrow */
+    @media (max-width: 380px) {
+      .solar-hero { height: 260px; --solar-scale: 0.28; }
+    }
+
+    /* ═══════════════════ SMS STRIP ═══════════════════ */
     .sms-strip {
       margin: 0 56px 36px;
-      border-radius: 24px; padding: 32px;
+      border-radius: 24px; padding: 28px 32px;
       background: linear-gradient(135deg, var(--orange), var(--orange-deep));
       color: #fff;
       display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: center;
+      position: relative; z-index: 3;
+      box-shadow: 0 12px 40px rgba(242,107,31,.18);
     }
-    @media (max-width: 900px) { .sms-strip { margin: 0 20px 32px; grid-template-columns: 1fr; } }
-    .sms-strip-headline { font-family: var(--font-display); font-weight: 800; font-size: 28px; letter-spacing: -0.4px; line-height: 1.15; margin-top: 8px; }
+    [data-theme="dark"] .sms-strip {
+      background: linear-gradient(135deg, #1a1d2a, #11131c);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    }
+    .sms-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; opacity: .82; }
+    .sms-headline { font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3vw, 30px); letter-spacing: -0.4px; line-height: 1.1; margin-top: 8px; }
     .sms-code { background: rgba(255,255,255,.18); padding: 2px 10px; border-radius: 8px; font-family: var(--font-mono); }
-    .sms-demo { display: flex; flex-direction: column; gap: 8px; }
-    .sms-bubble { padding: 10px 14px; border-radius: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; max-width: 320px; }
+    .sms-body { font-size: 13.5px; margin-top: 10px; opacity: .92; max-width: 460px; line-height: 1.5; }
+    .sms-demo { display: flex; flex-direction: column; gap: 8px; align-self: stretch; }
+    .sms-bubble { padding: 9px 13px; border-radius: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5; max-width: 320px; }
     .sms-out { align-self: flex-end; background: #3478F6; color: #fff; }
     .sms-in  { align-self: flex-start; background: #fff; color: var(--ink); }
+    @media (max-width: 880px) {
+      .sms-strip { margin: 0 20px 28px; grid-template-columns: 1fr; padding: 24px; }
+    }
 
-    /* ── Feature cards ── */
-    .features { margin: 0 56px 56px; }
-    .features-title { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: var(--ink); margin-bottom: 20px; }
-    .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    @media (max-width: 900px) { .features { margin: 0 20px 40px; } }
-    .feature-card {
-      background: #fff; border-radius: 20px; padding: 24px;
+    /* ═══════════════════ ANSWER BAND ═══════════════════ */
+    .answer-band {
+      margin: 0 56px;
+      border-radius: 24px; background: var(--surface);
       border: 1px solid var(--hairline);
+      padding: 28px 32px;
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px;
     }
-    .feature-icon { font-size: 32px; margin-bottom: 14px; }
-    .feature-title { font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
-    .feature-desc { font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+    .answer-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .answer-title { font-family: var(--font-display); font-weight: 800; font-size: 22px; color: var(--ink); line-height: 1.15; }
+    [data-theme="dark"] .answer-title { color: #fff; }
+    .answer-desc { font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.5; }
+    @media (max-width: 880px) {
+      .answer-band { margin: 0 20px; grid-template-columns: 1fr; padding: 24px; gap: 22px; }
+    }
 
-    /* ── Footer ── */
-    .landing-footer {
-      border-top: 1px solid var(--hairline); padding: 24px 56px;
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 12px; color: var(--muted); flex-wrap: wrap; gap: 12px;
+    /* ═══════════════════ FEATURES ═══════════════════ */
+    .features { padding: 48px 56px 24px; }
+    .features-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+    .features-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(22px, 3vw, 30px); color: var(--ink); letter-spacing: -0.4px; }
+    [data-theme="dark"] .features-title { color: #fff; }
+    .features-sub { font-size: 13px; color: var(--ink-2); margin-top: 4px; max-width: 540px; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
     }
-    @media (max-width: 768px) { .landing-footer { padding: 20px 24px; } }
+    .feature-card {
+      padding: 18px; border-radius: 18px; background: var(--surface);
+      border: 1px solid var(--hairline);
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .feature-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.06); border-color: var(--orange-soft); }
+    [data-theme="dark"] .feature-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.4); border-color: rgba(242,107,31,.4); }
+    .feature-icon { font-size: 24px; }
+    .feature-title { font-family: var(--font-display); font-weight: 800; font-size: 17px; color: var(--ink); margin-top: 10px; }
+    [data-theme="dark"] .feature-title { color: #fff; }
+    .feature-desc { font-size: 12.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; }
+    @media (max-width: 880px) {
+      .features { padding: 36px 20px 20px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 540px) { .features-grid { grid-template-columns: 1fr; } }
+
+    /* ═══════════════════ FOOTER ═══════════════════ */
+    .footer {
+      margin: 24px 56px 0;
+      padding: 24px 0 36px;
+      border-top: 1px solid var(--hairline);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11.5px; color: var(--muted); flex-wrap: wrap; gap: 12px;
+    }
+    .footer-left { max-width: 600px; line-height: 1.5; }
+    .footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .footer-links a:hover { color: var(--orange); }
+    @media (max-width: 768px) {
+      .footer { margin: 16px 20px 0; flex-direction: column; align-items: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .earth-orbit, .earth-body, .moon-orbit, .moon-body, .sun-rotor,
+      .star-field circle, .blink {
+        animation: none !important;
+      }
+    }
   </style>
 </head>
 <body>
 
-<!-- ============================================================
-     BACKEND NOTES:
-     - Nav "Sign in" → navigates to 03-signin.html
-     - Nav "Get the app" → app store links (iOS / Android / PWA)
-     - Language switcher → locale: en | tl | vi
-     - Hackathon badge text from: GET /api/content/announcement
-     ============================================================ -->
 
-<!-- ── Top Navigation ── -->
-<nav class="landing-nav">
-  <img src="../assets/short_logo.png" alt="MonsoonAI" height="36" style="object-fit:contain;" />
-  <span class="logo-name">MONSOON<span> AI</span></span>
+<!-- ═══════════════════ TOP NAV ═══════════════════ -->
+<nav class="nav">
+  <!-- Long logo lockup — single image including icon + wordmark -->
+  <img class="nav-logo" src="../assets/long_logo.png" alt="MonsoonAI" />
 
   <div class="nav-links">
-    <!-- BACKEND: These can be anchor links to sections on this page -->
-    <span class="nav-link">How it works</span>
-    <span class="nav-link">Features</span>
-    <span class="nav-link">SMS</span>
+    <span class="nav-link" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">How it works</span>
+    <span class="nav-link" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Features</span>
+    <span class="nav-link" onclick="document.getElementById('sms').scrollIntoView({behavior:'smooth'})">SMS</span>
     <span class="nav-link">FAQ</span>
   </div>
 
   <div class="nav-spacer"></div>
 
-  <div class="lang-toggle">
-    🌐 EN <span style="color:var(--muted)">·</span> <span style="opacity:.6">TL · VI</span>
-  </div>
-  <!-- BACKEND: onclick → /auth/login -->
+  <div class="lang-toggle">🌐 EN <span style="color:var(--muted)">·</span> <span style="opacity:.6">TL · VI</span></div>
+
+  <!-- Dark mode toggle -->
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+    <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </svg>
+  </button>
+
   <button class="btn btn-secondary btn-sm" onclick="location.href='03-signin.html'">Sign in</button>
-  <!-- BACKEND: onclick → app store / PWA install -->
   <button class="btn btn-primary btn-sm" onclick="location.href='02-splash.html'">Get the app</button>
 </nav>
 
-<!-- ── Hero ── -->
-<section class="hero" id="how-it-works">
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<section class="hero" id="how">
+
+  <!-- ─── ANIMATED SOLAR HERO ─── -->
+  <div class="solar-hero" aria-hidden="true">
+    <div class="solar-stage">
+
+      <!-- Star field (dark mode only via CSS opacity) -->
+      <svg class="star-field" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="5%"  cy="12%" r="0.9" fill="#fff" style="animation-delay:0s"/>
+        <circle cx="14%" cy="28%" r="1.4" fill="#fff" style="animation-delay:0.4s"/>
+        <circle cx="22%" cy="9%"  r="0.7" fill="#fff" style="animation-delay:0.8s"/>
+        <circle cx="32%" cy="42%" r="1.1" fill="#fff" style="animation-delay:1.2s"/>
+        <circle cx="40%" cy="18%" r="0.8" fill="#fff" style="animation-delay:1.6s"/>
+        <circle cx="48%" cy="55%" r="1.3" fill="#fff" style="animation-delay:2.0s"/>
+        <circle cx="55%" cy="8%"  r="0.7" fill="#fff" style="animation-delay:2.4s"/>
+        <circle cx="62%" cy="35%" r="1.0" fill="#fff" style="animation-delay:0.2s"/>
+        <circle cx="70%" cy="22%" r="0.9" fill="#fff" style="animation-delay:0.6s"/>
+        <circle cx="78%" cy="48%" r="1.2" fill="#fff" style="animation-delay:1.0s"/>
+        <circle cx="84%" cy="14%" r="0.7" fill="#fff" style="animation-delay:1.4s"/>
+        <circle cx="92%" cy="38%" r="1.0" fill="#fff" style="animation-delay:1.8s"/>
+        <circle cx="3%"  cy="65%" r="0.8" fill="#fff" style="animation-delay:0.3s"/>
+        <circle cx="11%" cy="78%" r="1.3" fill="#fff" style="animation-delay:0.7s"/>
+        <circle cx="19%" cy="58%" r="0.7" fill="#fff" style="animation-delay:1.1s"/>
+        <circle cx="27%" cy="88%" r="0.9" fill="#fff" style="animation-delay:1.5s"/>
+        <circle cx="35%" cy="72%" r="1.1" fill="#fff" style="animation-delay:1.9s"/>
+        <circle cx="44%" cy="92%" r="0.8" fill="#fff" style="animation-delay:2.3s"/>
+        <circle cx="52%" cy="68%" r="1.0" fill="#fff" style="animation-delay:0.5s"/>
+        <circle cx="60%" cy="82%" r="0.7" fill="#fff" style="animation-delay:0.9s"/>
+        <circle cx="68%" cy="62%" r="1.2" fill="#fff" style="animation-delay:1.3s"/>
+        <circle cx="76%" cy="89%" r="0.9" fill="#fff" style="animation-delay:1.7s"/>
+        <circle cx="83%" cy="72%" r="0.8" fill="#fff" style="animation-delay:2.1s"/>
+        <circle cx="90%" cy="58%" r="1.1" fill="#fff" style="animation-delay:2.5s"/>
+        <circle cx="96%" cy="85%" r="0.7" fill="#fff" style="animation-delay:0.1s"/>
+      </svg>
+
+      <!-- 4 concentric gravity rings -->
+      <div class="gravity-ring" style="width:980px;height:980px;margin-left:-490px;margin-top:-490px;border:1px dashed var(--orbit-color);"></div>
+      <div class="gravity-ring" style="width:760px;height:760px;margin-left:-380px;margin-top:-380px;border:1px solid var(--orbit-color);"></div>
+      <div class="gravity-ring" style="width:540px;height:540px;margin-left:-270px;margin-top:-270px;border:1px dashed var(--orbit-color);"></div>
+      <div class="gravity-ring" style="width:360px;height:360px;margin-left:-180px;margin-top:-180px;border:1px dashed var(--orbit-color);"></div>
+
+      <!-- ─── SUN ATOM (centred via margin) ─── -->
+      <div class="sun-wrap">
+        <div class="sun-rotor">
+          <svg viewBox="0 0 120 120" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="sun-grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0"  stop-color="#FFD3A8"/>
+                <stop offset=".5" stop-color="#F26B1F"/>
+                <stop offset="1"  stop-color="#D9551A"/>
+              </radialGradient>
+            </defs>
+            <circle cx="60" cy="60" r="56" fill="#F26B1F" opacity=".10"/>
+            <circle cx="60" cy="60" r="44" fill="#F26B1F" opacity=".18"/>
+            <circle cx="60" cy="60" r="22" fill="url(#sun-grad)"/>
+            <circle cx="60" cy="60" r="22" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1"/>
+            <g stroke="#F26B1F" stroke-width="1.6" fill="none">
+              <ellipse cx="60" cy="60" rx="48" ry="18"/>
+              <ellipse cx="60" cy="60" rx="48" ry="18" transform="rotate(60 60 60)"/>
+              <ellipse cx="60" cy="60" rx="48" ry="18" transform="rotate(120 60 60)"/>
+            </g>
+            <circle cx="108" cy="60"  r="3" fill="#F26B1F"/>
+            <circle cx="36"  cy="100" r="3" fill="#F26B1F"/>
+            <circle cx="36"  cy="20"  r="3" fill="#F26B1F"/>
+            <circle cx="60" cy="60" r="5" fill="#fff"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- ─── EARTH (orbits Sun, 20s) ─── -->
+      <div class="earth-orbit">
+        <div class="earth-body">
+
+          <div class="earth-svg-wrap">
+            <svg viewBox="0 0 80 80" width="220" height="220"
+                 style="filter:drop-shadow(0 8px 22px rgba(20,63,153,.22));"
+                 xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <clipPath id="earth-clip"><circle cx="40" cy="40" r="22"/></clipPath>
+                <radialGradient id="earth-grad" cx="35%" cy="32%">
+                  <stop offset="0" stop-color="#3F8DF5"/>
+                  <stop offset="1" stop-color="#143F99"/>
+                </radialGradient>
+              </defs>
+              <g stroke="var(--mesh-color)" stroke-width="0.9" fill="none" opacity=".90">
+                <circle cx="40" cy="40" r="18" stroke-dasharray="2 3"/>
+                <circle cx="40" cy="40" r="22" stroke-dasharray="2 3"/>
+                <circle cx="40" cy="40" r="26" stroke-dasharray="2 3"/>
+                <circle cx="40" cy="40" r="30" stroke-dasharray="2 3"/>
+                <circle cx="40" cy="40" r="34" stroke-dasharray="2 3"/>
+                <circle cx="40" cy="40" r="38" stroke-dasharray="2 3"/>
+                <circle cx="76"    cy="40"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="71.18" cy="58"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="58"    cy="71.18" r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="40"    cy="76"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="22"    cy="71.18" r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="8.82"  cy="58"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="4"     cy="40"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="8.82"  cy="22"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="22"    cy="8.82"  r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="40"    cy="4"     r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="58"    cy="8.82"  r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="71.18" cy="22"    r="1.6" fill="var(--mesh-color)" stroke="none"/>
+                <circle cx="40" cy="40" r="36" stroke-dasharray="6 3" opacity=".7"/>
+              </g>
+              <circle cx="40" cy="40" r="22" fill="url(#earth-grad)"/>
+              <g clip-path="url(#earth-clip)" fill="#1F8A5B" opacity=".85">
+                <path d="M28 32 q4 -4 9 -2 t8 4 q-3 5 -7 5 t-10 -7Z"/>
+                <path d="M48 44 q5 0 8 4 t-2 8 q-7 1 -10 -4 t4 -8Z"/>
+                <path d="M22 50 q4 -2 6 1 t-3 5 q-5 1 -3 -6Z"/>
+              </g>
+              <ellipse cx="40" cy="40" rx="22" ry="9" fill="none" stroke="rgba(255,255,255,.5)" stroke-width=".8"/>
+            </svg>
+          </div>
+
+          <!-- ─── MOON orbits Earth (4.5s) ─── -->
+          <div class="moon-orbit">
+            <div class="moon-orbit-ring"></div>
+            <div class="moon-body">
+              <svg viewBox="0 0 40 40" width="54" height="54" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <radialGradient id="moon-grad" cx="35%" cy="35%">
+                    <stop offset="0"  stop-color="#FFF5E0"/>
+                    <stop offset=".7" stop-color="#F0D9A8"/>
+                    <stop offset="1"  stop-color="#C9AB78"/>
+                  </radialGradient>
+                </defs>
+                <circle cx="20" cy="20" r="17" fill="url(#moon-grad)"
+                  style="filter:drop-shadow(0 4px 10px var(--moon-shadow));"/>
+                <circle cx="14" cy="22" r="1.8" fill="#B89260" opacity=".70"/>
+                <circle cx="17" cy="27" r="1.1" fill="#B89260" opacity=".65"/>
+                <circle cx="11" cy="17" r="1.3" fill="#B89260" opacity=".70"/>
+                <circle cx="24" cy="14" r="1.5" fill="#B89260" opacity=".70"/>
+                <circle cx="27" cy="22" r="1.0" fill="#B89260" opacity=".60"/>
+                <circle cx="22" cy="28" r="0.9" fill="#B89260" opacity=".55"/>
+                <circle cx="19" cy="17" r="0.8" fill="#B89260" opacity=".55"/>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /solar-stage -->
+  </div><!-- /solar-hero -->
+
+
+  <!-- ─── LEFT COPY ─── -->
   <div class="hero-copy">
-    <!-- BACKEND: badge text from GET /api/content/announcement (optional) -->
+
     <div class="hero-badge">
       <span class="blink"></span>
       Asian Hackathon for Green Future · 2026
@@ -182,7 +648,8 @@
     </h1>
 
     <div class="steps-list">
-      <p style="font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">How MonsoonAI works</p>
+      <p class="steps-eyebrow">How MonsoonAI works</p>
+
       <div class="step-item">
         <div class="step-connector"></div>
         <div class="step-num">1</div>
@@ -191,6 +658,7 @@
           <div class="step-desc">Tell us your district, home type, and who lives with you.</div>
         </div>
       </div>
+
       <div class="step-item">
         <div class="step-connector"></div>
         <div class="step-num">2</div>
@@ -199,6 +667,7 @@
           <div class="step-desc">We watch rainfall, river levels and air quality for your exact address.</div>
         </div>
       </div>
+
       <div class="step-item">
         <div class="step-num">3</div>
         <div>
@@ -210,37 +679,26 @@
 
     <div class="hero-ctas">
       <button class="btn btn-primary btn-lg" onclick="location.href='02-splash.html'">Get the app</button>
-      <button class="btn btn-secondary btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See features</button>
+      <button class="btn btn-secondary btn-lg" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">See how it works</button>
     </div>
+
   </div>
 
-  <div class="hero-visual">
-    <div class="hero-visual-placeholder">
-      <img class="hero-logo" src="../assets/short_logo.png" alt="MonsoonAI" />
-      <!-- BACKEND DEV NOTE: Replace with animated SVG diagram (solar orrery / cosmic guardian).
-           See landing.jsx → SolarHero component for the full implementation. -->
-      <p style="font-size:11px;color:var(--muted);line-height:1.4;">
-        [Animated orbital diagram:<br/>Sun atom · Earth mesh · Moon orbit]<br/>
-        See <code style="font-family:monospace">landing.jsx → SolarHero</code>
-      </p>
-    </div>
-  </div>
 </section>
 
-<!-- ── SMS Strip ── -->
+
+<!-- ═══════════════════ SMS STRIP ═══════════════════ -->
 <div class="sms-strip" id="sms">
   <div>
-    <div style="font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;opacity:.8;">For everyone without a smartphone</div>
-    <div class="sms-strip-headline">
+    <div class="sms-eyebrow">For everyone without a smartphone</div>
+    <div class="sms-headline">
       Just text <span class="sms-code">STATUS</span> to <strong>21587</strong>.
     </div>
-    <p style="font-size:13.5px;margin-top:10px;opacity:.92;max-width:460px;line-height:1.5;">
+    <p class="sms-body">
       The same engine that drives the app responds in plain language — across every major mobile carrier — in under three seconds.
     </p>
   </div>
   <div class="sms-demo">
-    <!-- BACKEND DEV NOTE: Twilio two-way SMS. Inbound keyword → POST /api/sms/inbound
-         Supported keywords: STATUS, EVAC, FLOOD, HAZE, TEMP, HELP -->
     <div class="sms-bubble sms-out">STATUS</div>
     <div class="sms-bubble sms-in">
       🚨 <strong>CRITICAL</strong> Cutcut District · Evacuate w/in 90 min<br/>
@@ -250,62 +708,109 @@
   </div>
 </div>
 
-<!-- ── Features ── -->
+
+<!-- ═══════════════════ ANSWER BAND ═══════════════════ -->
+<div class="answer-band">
+  <div>
+    <span class="answer-tag" style="background:rgba(232,58,44,.10);color:var(--critical);">The problem</span>
+    <div class="answer-title">One generic alert for everyone.</div>
+    <div class="answer-desc">National weather warnings reach 10+ million people at once — concrete high-rises and shacks on the canal get the same SMS.</div>
+  </div>
+  <div>
+    <span class="answer-tag" style="background:rgba(242,107,31,.12);color:var(--orange);">The shift</span>
+    <div class="answer-title">Risk evaluated for your address.</div>
+    <div class="answer-desc">We fuse rainfall, river-discharge AI, LiDAR flood polygons and your home profile to score every household individually.</div>
+  </div>
+  <div>
+    <span class="answer-tag" style="background:rgba(31,143,77,.12);color:var(--ok);">The result</span>
+    <div class="answer-title">You know what to do, when.</div>
+    <div class="answer-desc">Stay home with the lights on. Or grab the go-bag now and walk a specific route. No guessing, no panic.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════ FEATURES ═══════════════════ -->
 <section class="features" id="features">
-  <h2 class="features-title">Built for the Philippines. Works offline.</h2>
+  <div class="features-header">
+    <div>
+      <div class="features-title">Everything you need, nothing you don't.</div>
+      <div class="features-sub">Built to be honest about uncertainty — and to fail toward keeping you safe.</div>
+    </div>
+  </div>
+
   <div class="features-grid">
     <div class="feature-card">
-      <div class="feature-icon">🌊</div>
-      <div class="feature-title">Hyper-local flood risk</div>
-      <div class="feature-desc">LiDAR terrain, 25-year flood polygons, and real-time river discharge data give a risk score for your exact address — not your barangay.</div>
-      <!-- BACKEND: Data from Open Hydrology + PAGASA · GET /api/risk/flood?lat=&lng= -->
+      <div class="feature-icon">🏠</div>
+      <div class="feature-title">Household-level alerts</div>
+      <div class="feature-desc">Rainfall × river-discharge × your home type — only when two flood signals agree do we tell you to evacuate.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">📱</div>
-      <div class="feature-title">Works on any phone</div>
-      <div class="feature-desc">Full app for smartphones. Plain SMS fallback for any basic mobile. Two-way keyword commands via Twilio — no internet required.</div>
-      <!-- BACKEND: SMS via Twilio · POST /api/sms/inbound (Twilio webhook) -->
+      <div class="feature-icon">🛰</div>
+      <div class="feature-title">Air &amp; heat watch</div>
+      <div class="feature-desc">Satellite fire pixels and atmospheric aerosol data warn you about haze before your eyes start to sting.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🤖</div>
-      <div class="feature-title">Deterministic AI engine</div>
-      <div class="feature-desc">Risk decisions use a transparent, deterministic model. LLMs handle language only — the evacuation recommendation is never hallucinated.</div>
-      <!-- BACKEND: Risk engine is rule-based · LLM via POST /api/chat/message -->
+      <div class="feature-icon">🗺</div>
+      <div class="feature-title">Turn-by-turn evac</div>
+      <div class="feature-desc">When the time comes, we route you to the nearest open shelter on roads still passable — no guessing.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🏛️</div>
-      <div class="feature-title">Government console</div>
-      <div class="feature-desc">Pre-positions rescue teams 24 hours before landfall. Rescue Priority Manifest ranked by structural × demographic vulnerability.</div>
-      <!-- BACKEND: Gov console at 18-gov-login.html → /api/gov/* endpoints -->
+      <div class="feature-icon">🤝</div>
+      <div class="feature-title">Neighbour check-in</div>
+      <div class="feature-desc">Live alone? A nearby community responder is auto-pinged when a critical alert fires for your home.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🌫️</div>
-      <div class="feature-title">Air quality & heat index</div>
-      <div class="feature-desc">FIRMS satellite fire-pixel data, VIIRS aerosol, and real-time heat-index warnings. Especially relevant during haze season.</div>
-      <!-- BACKEND: GET /api/conditions/air · GET /api/conditions/heat (Open-Meteo) -->
+      <div class="feature-icon">💬</div>
+      <div class="feature-title">Works without internet</div>
+      <div class="feature-desc">Text STATUS, EVAC, FLOOD, HAZE, TEMP or HELP to 21587. Same engine, same answers, in 3 seconds.</div>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🗺️</div>
-      <div class="feature-title">Evacuation routing</div>
-      <div class="feature-desc">OSRM foot-mode routing adjusted for elderly/PWD companions. Real-time evac centre capacity from registered wardens.</div>
-      <!-- BACKEND: GET /api/evac/route · GET /api/evac/centers · OSRM integration -->
+      <div class="feature-icon">🌏</div>
+      <div class="feature-title">Speaks your language</div>
+      <div class="feature-desc">Multiple regional languages plus English — switch any time.</div>
     </div>
   </div>
 </section>
 
-<!-- ── Footer ── -->
-<footer class="landing-footer">
-  <div style="display:flex;align-items:center;gap:10px;">
-    <img src="../assets/short_logo.png" alt="MonsoonAI" height="28" style="object-fit:contain;" />
-    <span>MonsoonAI · Asian Hackathon for Green Future 2026</span>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="footer">
+  <div class="footer-left">
+    © 2026 MonsoonAI · Open-data · Built on open hydrology, satellite fire pixels, atmospheric aerosol and ECMWF datasets.
   </div>
-  <div style="display:flex;gap:20px;">
-    <a href="#" style="color:var(--muted)">Privacy</a>
-    <a href="#" style="color:var(--muted)">Terms</a>
-    <!-- BACKEND: Government portal link -->
-    <a href="../gov/18-gov-login.html" style="color:var(--orange);font-weight:700;">Government console →</a>
+  <div class="footer-links">
+    <a href="#" style="color:var(--muted);">Privacy</a>
+    <a href="#" style="color:var(--muted);">Methodology</a>
+    <a href="#" style="color:var(--muted);">Help</a>
+    <a href="#" style="color:var(--muted);">Contact</a>
+    <a href="18-gov-login.html" style="color:var(--orange);font-weight:700;">Government console →</a>
   </div>
 </footer>
+
+
+<script>
+/* ── DARK MODE TOGGLE ── */
+const themeToggle = document.getElementById('themeToggle');
+const root = document.documentElement;
+
+const saved = localStorage.getItem('monsoon_theme');
+if (saved) {
+  root.setAttribute('data-theme', saved);
+} else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  root.setAttribute('data-theme', 'dark');
+}
+
+themeToggle.addEventListener('click', () => {
+  const current = root.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('monsoon_theme', next);
+});
+
+document.addEventListener('visibilitychange', () => {
+  document.body.style.animationPlayState = document.hidden ? 'paused' : 'running';
+});
+</script>
 
 </body>
 </html>
