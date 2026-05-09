@@ -40,6 +40,7 @@ export const config = {
   mocks: {
     glofasScenario: optional_env('GLOFAS_MOCK_SCENARIO', 'normal') as 'normal' | 'critical',
     tropomiAai: parseFloat(optional_env('TROPOMI_MOCK_AAI', '1.2')),
+    floodZone: optional_env('FLOOD_ZONE_MOCK', 'none') as 'none' | '100yr' | '25yr',
   },
 
   openai: {

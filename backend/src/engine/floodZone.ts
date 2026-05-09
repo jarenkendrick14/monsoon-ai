@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import { config } from '../config.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
@@ -24,12 +25,16 @@ const zones25yr = loadGeoJSON('flood-zones-25yr.geojson');
 const zones100yr = loadGeoJSON('flood-zones-100yr.geojson');
 
 export function isIn25yrZone(lat: number, lng: number): boolean {
+  const mock = config.mocks.floodZone;
+  if (mock === '25yr') return true;
   if (zones25yr.features.length === 0) return false;
   const pt = point([lng, lat]);
   return zones25yr.features.some((f: GeoJSON.Feature) => booleanPointInPolygon(pt, f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>));
 }
 
 export function isIn100yrZone(lat: number, lng: number): boolean {
+  const mock = config.mocks.floodZone;
+  if (mock === '25yr' || mock === '100yr') return true;
   if (zones100yr.features.length === 0) return false;
   const pt = point([lng, lat]);
   return zones100yr.features.some((f: GeoJSON.Feature) => booleanPointInPolygon(pt, f as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>));
