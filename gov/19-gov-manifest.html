@@ -368,16 +368,43 @@ const officer = getGovOfficer() || { name: 'Officer' };
 const parts = (officer.name || 'G O').split(/[\s.]+/).filter(Boolean);
 document.getElementById('officerInitials').textContent = (parts[0]?.[0] + (parts[1]?.[0] || '')).toUpperCase();
 
+async function loadStats() {
+  try {
+    const data = await apiFetch('/api/gov/stats');
+    document.getElementById('kpiRegistered').textContent = (data.totalRegistered ?? '—').toLocaleString();
+    document.getElementById('kpiCritical').textContent = data.critical ?? '—';
+    document.getElementById('kpiHigh').textContent = data.high ?? '—';
+    document.getElementById('kpiTeams').textContent = data.teamsDeployed != null ? `${data.teamsDeployed} deployed` : '—';
+  } catch { /* keep placeholders */ }
+}
+
+async function loadStormInfo() {
+  try {
+    const data = await apiFetch('/api/alerts/active-storm');
+    if (data.signal && data.signal >= 1) {
+      document.getElementById('navStormLabel').textContent = `SIGNAL #${data.signal} · ${data.bulletinTitle || 'ACTIVE'}`;
+    } else {
+      document.getElementById('navStormLabel').textContent = 'NO ACTIVE STORM';
+      document.querySelector('.flood-pill.pill-critical').className = 'flood-pill pill-ok';
+    }
+    document.getElementById('stormClockSub').textContent =
+      data.signal >= 1 ? `${data.bulletinTitle} · Signal #${data.signal}` : 'No active storm bulletin';
+  } catch { /* keep hardcoded */ }
+}
+
 /* WebSocket real-time updates */
 connectGovWS(msg => {
-  if (msg.type === 'MANIFEST_UPDATE') loadManifest();
+  if (msg.type === 'MANIFEST_UPDATE') { loadManifest(); loadStats(); }
 });
 
 /* Auto-refresh every 15 min */
 setInterval(loadManifest, 15 * 60 * 1000);
+setInterval(loadStats, 15 * 60 * 1000);
 setInterval(tickClock, 60000);
 
 loadManifest();
+loadStats();
+loadStormInfo();
 </script>
 
 </body>

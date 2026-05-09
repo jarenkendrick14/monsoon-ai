@@ -239,9 +239,9 @@ async function loadStormBanner() {
   try {
     const data = await apiFetch('/api/alerts/active-storm');
     const banner = document.getElementById('stormBanner');
-    if (!data.active) { banner.style.display = 'none'; return; }
+    if (!data.signal || data.signal < 1) { banner.style.display = 'none'; return; }
     document.getElementById('stormBannerText').textContent =
-      `${data.name} — Signal #${data.signal} raised over ${data.area || 'the area'} at ${new Date(data.raisedAt).toLocaleTimeString()}. Manifest auto-generated.`;
+      `Signal #${data.signal} — ${data.bulletinTitle}. Manifest auto-generated.`;
   } catch { document.getElementById('stormBanner').style.display = 'none'; }
 }
 loadStormBanner();

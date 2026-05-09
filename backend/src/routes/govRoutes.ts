@@ -167,6 +167,22 @@ router.patch('/api/gov/households/:id/status', govAuthMiddleware, async (req, re
   res.json({ success: true });
 });
 
+router.get('/api/gov/stats', govAuthMiddleware, async (_req, res) => {
+  const pb = getPb();
+  const [totalUsers, criticalAlerts, highAlerts, dispatched] = await Promise.all([
+    pb.collection('users').getList(1, 1),
+    pb.collection('alerts').getList(1, 1, { filter: 'level="critical" && resolved=false' }),
+    pb.collection('alerts').getList(1, 1, { filter: 'level="high" && resolved=false' }),
+    pb.collection('gov_households').getList(1, 1, { filter: 'status="dispatched"' }),
+  ]);
+  res.json({
+    totalRegistered: totalUsers.totalItems,
+    critical: criticalAlerts.totalItems,
+    high: highAlerts.totalItems,
+    teamsDeployed: dispatched.totalItems,
+  });
+});
+
 router.get('/api/gov/manifest/export', govAuthMiddleware, async (req, res) => {
   const format = (req.query['format'] as string) ?? 'csv';
   const pb = getPb();
