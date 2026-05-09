@@ -121,13 +121,30 @@
 </div>
 
 <script>
-const sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
-
-/* Greeting */
 const _u = getUser();
 const _rawName = _u?.name?.split(' ')[0] || _u?.firstName || 'there';
 const _firstName = _rawName.charAt(0).toUpperCase() + _rawName.slice(1);
 document.getElementById('chatGreeting').textContent = `Hello ${_firstName},`;
+
+/* Stable session ID per user, persisted across page loads */
+const _sessionKey = 'monsoon_chat_session_' + (_u?.id || 'guest');
+let sessionId = localStorage.getItem(_sessionKey);
+if (!sessionId) {
+  sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
+  localStorage.setItem(_sessionKey, sessionId);
+}
+
+/* Load history on open */
+(async () => {
+  try {
+    const data = await apiFetch('/api/chat/history?sessionId=' + encodeURIComponent(sessionId));
+    (data.history || []).forEach(msg => {
+      appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
+        msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
+        msg.role === 'assistant');
+    });
+  } catch { /* no history yet */ }
+})();
 
 function escapeHtml(t) {
   return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

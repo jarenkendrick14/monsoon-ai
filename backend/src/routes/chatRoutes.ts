@@ -94,4 +94,22 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
   res.json(reply);
 });
 
+router.get('/api/chat/history', authMiddleware, async (req, res) => {
+  const { sessionId } = req.query as { sessionId?: string };
+  if (!sessionId) { res.status(400).json({ error: 'sessionId required' }); return; }
+  const user = req.user!;
+  const pb = getPb();
+  try {
+    const session = await pb.collection('chat_sessions').getList(1, 1, {
+      filter: `sessionId="${sessionId}" && userId="${user.id}"`,
+    });
+    const history: ChatMessage[] = session.items.length
+      ? ((session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [])
+      : [];
+    res.json({ history });
+  } catch {
+    res.json({ history: [] });
+  }
+});
+
 export default router;
