@@ -87,10 +87,9 @@
   <!-- Sign in form -->
   <form class="form-group" id="signinForm" onsubmit="handleSignin(event)">
     <div class="field-wrap">
-      <label class="field-label" for="username">Username</label>
+      <label class="field-label" for="username">Email</label>
       <div class="field-input-wrap">
-        <!-- BACKEND: Send as `username` in POST body -->
-        <input type="text" id="username" name="username" placeholder="your.username" autocomplete="username" />
+        <input type="email" id="username" name="username" placeholder="you@email.com" autocomplete="email" />
       </div>
     </div>
 
@@ -144,7 +143,7 @@ async function handleSignin(e) {
   try {
     const data = await apiFetch('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ email: username, password })
     });
 
     localStorage.setItem('monsoon_token', data.token);
