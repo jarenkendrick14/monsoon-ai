@@ -2,7 +2,7 @@ const API_BASE = 'https://monsoon-ai-production.up.railway.app';
 const WS_BASE = 'wss://monsoon-ai-production.up.railway.app';
 
 function _getToken() {
-  return localStorage.getItem('monsoon_token') || localStorage.getItem('monsoon_gov_token') || '';
+  return localStorage.getItem('monsoon_gov_token') || localStorage.getItem('monsoon_token') || '';
 }
 
 function authHeaders(extra = {}) {
