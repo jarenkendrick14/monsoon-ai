@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import PocketBase from 'pocketbase';
 import { getPb } from '../pb.js';
+import { config } from '../config.js';
 import { authLimiter } from '../middleware/rateLimiter.js';
 import { logger } from '../utils/logger.js';
 
@@ -26,7 +28,7 @@ router.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 
   const { username, email, mobile, password } = parsed.data;
-  const pb = getPb();
+  const pb = new PocketBase(config.pb.url);
 
   try {
     const user = await pb.collection('users').create({
@@ -76,7 +78,7 @@ router.post('/api/auth/login', authLimiter, async (req, res) => {
   }
 
   const { email, password } = parsed.data;
-  const pb = getPb();
+  const pb = new PocketBase(config.pb.url);
 
   try {
     const auth = await pb.collection('users').authWithPassword(email, password);
