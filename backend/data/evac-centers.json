@@ -25,5 +25,50 @@
     "lng": 120.9818,
     "capacity": 800,
     "type": "civic"
+  },
+  {
+    "id": "ec-004",
+    "name": "Angeles City Sports Complex",
+    "address": "Sto. Rosario St, Angeles City, Pampanga",
+    "lat": 15.1450,
+    "lng": 120.5870,
+    "capacity": 1200,
+    "type": "sports"
+  },
+  {
+    "id": "ec-005",
+    "name": "Holy Angel University Gymnasium",
+    "address": "1 Holy Angel Ave, Angeles City, Pampanga",
+    "lat": 15.1478,
+    "lng": 120.5892,
+    "capacity": 600,
+    "type": "school"
+  },
+  {
+    "id": "ec-006",
+    "name": "Pampanga High School",
+    "address": "Sta. Monica, City of San Fernando, Pampanga",
+    "lat": 15.0289,
+    "lng": 120.6929,
+    "capacity": 700,
+    "type": "school"
+  },
+  {
+    "id": "ec-007",
+    "name": "Mabalacat City Evacuation Center",
+    "address": "Poblacion, Mabalacat City, Pampanga",
+    "lat": 15.2167,
+    "lng": 120.5739,
+    "capacity": 500,
+    "type": "civic"
+  },
+  {
+    "id": "ec-008",
+    "name": "Pasay City Sports Complex",
+    "address": "F.B. Harrison St, Pasay City, Metro Manila",
+    "lat": 14.5390,
+    "lng": 121.0028,
+    "capacity": 900,
+    "type": "sports"
   }
 ]
