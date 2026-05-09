@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import PocketBase from 'pocketbase';
 import { authLimiter } from '../middleware/rateLimiter.js';
 import { govAuthMiddleware } from '../middleware/govAuth.js';
 import { getPb } from '../pb.js';
+import { config } from '../config.js';
 import { computeInaSAFEScore } from '../engine/inasafeScore.js';
 import { broadcastGov } from '../ws.js';
 import type { UserRecord } from '../types/index.js';
@@ -16,7 +18,7 @@ router.post('/api/gov/auth/login', authLimiter, async (req, res) => {
     return;
   }
 
-  const pb = getPb();
+  const pb = new PocketBase(config.pb.url);
   try {
     const auth = await pb.collection('users').authWithPassword(email, password);
     const user = auth.record;

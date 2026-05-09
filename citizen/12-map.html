@@ -165,8 +165,8 @@
 
 <script>
 const u = getUser();
-const centerLat = u?.lat ?? 15.1348;
-const centerLng = u?.lng ?? 120.5869;
+const centerLat = (u?.lat && isFinite(u.lat)) ? u.lat : 15.1348;
+const centerLng = (u?.lng && isFinite(u.lng)) ? u.lng : 120.5869;
 
 const map = L.map('mainMap', { zoomControl: true }).setView([centerLat, centerLng], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
