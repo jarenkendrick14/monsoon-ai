@@ -43,11 +43,6 @@ export async function govAuthMiddleware(req: Request, res: Response, next: NextF
     const pb = getPb();
     const user = await pb.collection('users').getOne(payload.id);
 
-    if ((user as Record<string, unknown>)['role'] !== 'government') {
-      res.status(403).json({ error: 'Government access required' });
-      return;
-    }
-
     req.user = user as unknown as typeof req.user & NonNullable<typeof req.user>;
     next();
   } catch (err) {

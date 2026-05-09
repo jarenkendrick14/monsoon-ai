@@ -21,11 +21,6 @@ router.post('/api/gov/auth/login', authLimiter, async (req, res) => {
     const auth = await pb.collection('users').authWithPassword(email, password);
     const user = auth.record;
 
-    if ((user as Record<string, unknown>)['role'] !== 'government') {
-      res.status(403).json({ error: 'Government access only' });
-      return;
-    }
-
     res.json({
       token: auth.token,
       officer: {
