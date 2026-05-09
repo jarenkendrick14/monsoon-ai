@@ -201,10 +201,10 @@ async function loadMapData() {
 
   if (condResult.status === 'fulfilled') {
     const c = condResult.value;
-    if (c.heatIndex?.value != null) document.getElementById('mapHeatPill').textContent = c.heatIndex.value + '°C';
-    if (c.airQuality?.aqi != null) document.getElementById('mapAqiPill').textContent = c.airQuality.aqi + ' AQI';
-    if (c.riverLevel?.value != null) document.getElementById('mapRiverPill').textContent = c.riverLevel.value + ' NHWL';
-    if (c.riverLevel?.status === 'critical') {
+    if (c.heatIndex != null) document.getElementById('mapHeatPill').textContent = c.heatIndex + '°C';
+    if (c.airQuality != null) document.getElementById('mapAqiPill').textContent = c.airQuality + ' AQI';
+    if (c.riverLevel != null) document.getElementById('mapRiverPill').textContent = Number(c.riverLevel).toFixed(1) + ' NHWL';
+    if (c.riverLevel?.status === 'critical' || c.critical) {
       document.getElementById('statusPill').className = 'flood-pill pill-critical mm-blink';
       document.getElementById('statusPillText').textContent = 'FLOOD WARNING';
     }
