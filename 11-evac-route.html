@@ -168,9 +168,18 @@ async function loadEvacRoute() {
 
 function startNavigation() {
   var lat = destCoords.lat, lng = destCoords.lng;
+  var gmaps = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking';
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  window.location = isIOS ? 'maps://maps.apple.com/?daddr=' + lat + ',' + lng : 'geo:' + lat + ',' + lng + '?q=' + lat + ',' + lng;
-  setTimeout(function() { window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng); }, 500);
+  var isAndroid = /Android/.test(navigator.userAgent);
+  if (isIOS) {
+    window.location.href = 'maps://maps.apple.com/?daddr=' + lat + ',' + lng;
+    setTimeout(function() { window.location.href = gmaps; }, 1000);
+  } else if (isAndroid) {
+    window.location.href = 'geo:' + lat + ',' + lng + '?q=' + lat + ',' + lng;
+    setTimeout(function() { window.location.href = gmaps; }, 1000);
+  } else {
+    window.location.href = gmaps;
+  }
 }
 
 function shareRoute() {
