@@ -1,4 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  HarmBlockThreshold,
+  HarmCategory,
+  SchemaType,
+  type ResponseSchema,
+} from '@google/generative-ai';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { ChatMessage, ChatReply, Locale, RiskContext } from '../types/index.js';
@@ -26,6 +32,48 @@ const ALLOWED_HAZARDS = [
 
 export type HazardTag = typeof ALLOWED_HAZARDS[number];
 
+const RAG_STATUS_VALUES = ['supported', 'insufficient'] as const;
+type RagStatus = typeof RAG_STATUS_VALUES[number];
+
+const ALLOWED_RAG_COMMANDS = [
+  'Call 911',
+  'Find evac center',
+  'Check conditions',
+  'Show evac route',
+  'Contact emergency services',
+  'View checklist',
+] as const;
+
+interface StructuredRagReply {
+  status: RagStatus;
+  answer: string;
+  usedSourceIds: string[];
+  emergency: boolean;
+  suggestedCommands: string[];
+}
+
+const RAG_SAFETY_SETTINGS = [
+  HarmCategory.HARM_CATEGORY_HARASSMENT,
+  HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+  HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+  HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+].map(category => ({
+  category,
+  threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+}));
+
+const GROUNDED_FALLBACKS: Record<Locale, string> = {
+  en: 'I cannot verify that from the provided guidance. Call 911 or contact local emergency responders.',
+  tl: 'Hindi ko ma-verify iyon mula sa gabay. Tumawag sa 911 o sa lokal na emergency responders.',
+  vi: 'Tôi không thể xác minh điều đó từ hướng dẫn được cung cấp. Hãy gọi 911 hoặc lực lượng ứng cứu địa phương.',
+};
+
+const SMS_GROUNDED_FALLBACKS: Record<Locale, string> = {
+  en: 'Cannot verify from guidance. Call 911 or local emergency responders.',
+  tl: 'Hindi ma-verify sa gabay. Tumawag sa 911 o local responders.',
+  vi: 'Không thể xác minh từ hướng dẫn. Gọi 911 hoặc đội ứng cứu địa phương.',
+};
+
 function formatRagSources(passages: CorpusEntry[]): string {
   return passages.map((passage, index) => [
     `[SOURCE ${index + 1}: ${passage.id} | ${passage.topic}]`,
@@ -49,11 +97,137 @@ STRICT GROUNDING RULES:
 - If the situation may be life-threatening based on the sources, tell the user to call 911 or local emergency responders.
 - Reply in ${LOCALE_NAMES[locale]}.
 - ${wordLimit}
-- Plain text only. No markdown.
+- Return JSON only. No markdown.
+- If status is supported, usedSourceIds must list only sources used in the answer.
+- If status is insufficient, answer must be the exact fallback sentence requested by the grounding rules.
+- suggestedCommands must only use commands that are relevant and available in the schema.
 
 ${formatRagSources(passages)}
 
 User question: ${message}`;
+}
+
+function buildRagResponseSchema(passages: CorpusEntry[]): ResponseSchema {
+  return {
+    type: SchemaType.OBJECT,
+    properties: {
+      status: {
+        type: SchemaType.STRING,
+        format: 'enum',
+        enum: [...RAG_STATUS_VALUES],
+      },
+      answer: {
+        type: SchemaType.STRING,
+        description: 'User-facing answer grounded only in the provided sources.',
+      },
+      usedSourceIds: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.STRING,
+          format: 'enum',
+          enum: passages.map(passage => passage.id),
+        },
+      },
+      emergency: {
+        type: SchemaType.BOOLEAN,
+      },
+      suggestedCommands: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.STRING,
+          format: 'enum',
+          enum: [...ALLOWED_RAG_COMMANDS],
+        },
+      },
+    },
+    required: ['status', 'answer', 'usedSourceIds', 'emergency', 'suggestedCommands'],
+  };
+}
+
+function cleanJsonText(text: string): string {
+  return text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+}
+
+export function fallbackGroundedReply(locale: Locale, channel: 'chat' | 'sms'): StructuredRagReply {
+  return {
+    status: 'insufficient',
+    answer: channel === 'sms' ? SMS_GROUNDED_FALLBACKS[locale] : GROUNDED_FALLBACKS[locale],
+    usedSourceIds: [],
+    emergency: true,
+    suggestedCommands: ['Call 911', 'Find evac center'],
+  };
+}
+
+export function parseAndValidateRagResponse(
+  text: string,
+  passages: CorpusEntry[],
+  locale: Locale,
+  channel: 'chat' | 'sms'
+): StructuredRagReply {
+  const fallback = fallbackGroundedReply(locale, channel);
+  const maxAnswerChars = channel === 'sms' ? 155 : 900;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleanJsonText(text));
+  } catch {
+    return fallback;
+  }
+
+  if (!parsed || typeof parsed !== 'object') return fallback;
+
+  const candidate = parsed as Partial<StructuredRagReply>;
+  const sourceIds = new Set(passages.map(passage => passage.id));
+  const allowedCommands = new Set<string>(ALLOWED_RAG_COMMANDS);
+
+  if (candidate.status !== 'supported' && candidate.status !== 'insufficient') return fallback;
+  if (typeof candidate.answer !== 'string') return fallback;
+
+  const answer = candidate.answer.trim().replace(/\s+/g, ' ');
+  if (!answer || answer.length > maxAnswerChars) return fallback;
+  if (!Array.isArray(candidate.usedSourceIds)) return fallback;
+  if (!candidate.usedSourceIds.every(id => typeof id === 'string' && sourceIds.has(id))) return fallback;
+  if (typeof candidate.emergency !== 'boolean') return fallback;
+  if (!Array.isArray(candidate.suggestedCommands)) return fallback;
+
+  const suggestedCommands = candidate.suggestedCommands
+    .filter((command): command is string => typeof command === 'string' && allowedCommands.has(command))
+    .slice(0, 3);
+
+  if (candidate.suggestedCommands.length !== suggestedCommands.length) return fallback;
+  if (candidate.status === 'insufficient') return fallback;
+  if (candidate.usedSourceIds.length === 0) return fallback;
+
+  return {
+    status: candidate.status,
+    answer,
+    usedSourceIds: candidate.usedSourceIds,
+    emergency: candidate.emergency,
+    suggestedCommands: suggestedCommands.length > 0
+      ? suggestedCommands
+      : ['Call 911', 'Find evac center', 'Check conditions'],
+  };
+}
+
+async function generateStructuredRagReply(
+  message: string,
+  locale: Locale,
+  passages: CorpusEntry[],
+  channel: 'chat' | 'sms'
+): Promise<StructuredRagReply> {
+  const model = getClient().getGenerativeModel({
+    model: config.openai.model,
+    safetySettings: RAG_SAFETY_SETTINGS,
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+      responseSchema: buildRagResponseSchema(passages),
+    },
+  });
+  const wordLimit = channel === 'sms' ? 'Under 130 characters.' : 'Under 80 words.';
+  const prompt = groundedRagPrompt(message, locale, passages, wordLimit);
+  const result = await model.generateContent(prompt);
+  return parseAndValidateRagResponse(result.response.text(), passages, locale, channel);
 }
 
 export async function tagHazards(imageBase64: string, mimeType: string): Promise<HazardTag[]> {
@@ -87,16 +261,12 @@ export async function smsReply(
     if (needsRag(message)) {
       const passages = retrievePassages(message, 2);
       if (passages.length > 0) {
-        const model = getClient().getGenerativeModel({
-          model: config.openai.model,
-          generationConfig: { temperature: 0.1 },
-        });
-        const prompt = groundedRagPrompt(message, locale, passages, 'Under 130 characters.');
-        const result = await model.generateContent(prompt);
-        const reply = result.response.text().trim().replace(/\n/g, ' ');
-        return reply.length > 155 ? reply.slice(0, 152) + '...' : reply;
+        const structuredReply = await generateStructuredRagReply(message, locale, passages, 'sms');
+        return structuredReply.answer.length > 155
+          ? structuredReply.answer.slice(0, 152) + '...'
+          : structuredReply.answer;
       }
-      return 'Cannot verify. Contact NDRRMC or call 911 for emergencies.';
+      return fallbackGroundedReply(locale, 'sms').answer;
     }
 
     const evacLine = context.evacCenter
@@ -147,21 +317,16 @@ export async function chatbotReply(
     if (needsRag(message)) {
       const passages = retrievePassages(message, 4);
       if (passages.length > 0) {
-        const ragModel = getClient().getGenerativeModel({
-          model: config.openai.model,
-          generationConfig: { temperature: 0.1 },
-        });
-        const ragPrompt = groundedRagPrompt(message, locale, passages, 'Under 80 words.');
-        const ragResult = await ragModel.generateContent(ragPrompt);
-        const ragReply = ragResult.response.text();
+        const structuredReply = await generateStructuredRagReply(message, locale, passages, 'chat');
         return {
-          reply: ragReply,
-          suggestedCommands: ['Call 911', 'Find evac center', 'Check conditions'],
+          reply: structuredReply.answer,
+          suggestedCommands: structuredReply.suggestedCommands,
         };
       } else {
+        const fallback = fallbackGroundedReply(locale, 'chat');
         return {
-          reply: 'I cannot verify that. Please contact your local disaster risk reduction office or call the NDRRMC hotline at 911.',
-          suggestedCommands: ['Call 911', 'Find evac center'],
+          reply: fallback.answer,
+          suggestedCommands: fallback.suggestedCommands,
         };
       }
     }
