@@ -159,16 +159,64 @@ function buildRagQuery(message: string, history: ChatMessage[]): string {
   return buildRecentUserContext(message, history) || message;
 }
 
+// Short questions with no strong signal that are likely follow-ups ("where should we go?", "and then?")
+function isVagueFollowUp(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (tokenizeIntent(lower).length > 9) return false;
+  return [
+    'where', 'and then', 'then what', 'what about', 'how about',
+    'can we go', 'could we go', 'should we go', 'what if',
+    'is that', 'is there', 'after that', 'what next',
+  ].some(p => lower.includes(p));
+}
+
+// Scan recent user history to infer what intent the conversation was about
+function inferHistoryIntent(history: ChatMessage[]): UserIntent | null {
+  const recentUserMessages = history
+    .filter(m => m.role === 'user')
+    .slice(-3)
+    .map(m => m.content)
+    .reverse(); // most recent first
+
+  for (const msg of recentUserMessages) {
+    if (isLiveConditionsQuestion(msg) || isStatusQuestion(msg)) return 'live_conditions';
+    if (needsRag(msg) || retrievePassages(msg, 1).length > 0) return 'emergency_guidance';
+  }
+  return null;
+}
+
 export function classifyChatIntent(message: string, history: ChatMessage[]): ClassifiedIntent {
   const ragQuery = buildRagQuery(message, history);
-  const passages = retrievePassages(ragQuery, 4);
+  // Use current message only for passage retrieval — combined ragQuery is LLM context only.
+  // Using ragQuery here would contaminate routing with history keywords (e.g. "u ok?" after
+  // "should we evacuate?" would retrieve evacuation passages from the combined text).
+  const passages = retrievePassages(message, 4);
 
   if (isCasualGreeting(message)) return { intent: 'casual', ragQuery, passages: [] };
   if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery, passages: [] };
   if (isEvacuationPrepQuestion(message) && passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery, passages: [] };
+
+  // History-aware: if message is vague, check combined context BEFORE passages so RAG history
+  // doesn't contaminate intent (e.g. "where could we go?" after "should we evacuate?")
+  if (history.length > 0 && isVagueFollowUp(message)) {
+    const combined = buildRecentUserContext(message, history);
+    if (combined !== message && (isLiveConditionsQuestion(combined) || isStatusQuestion(combined))) {
+      return { intent: 'live_conditions', ragQuery, passages: [] };
+    }
+  }
+
   if (passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
   if (isUnsupportedEmergencyQuestion(message) || needsRag(message)) return { intent: 'unsupported_emergency', ragQuery, passages: [] };
+
+  // Intent carryover for remaining vague follow-ups that didn't match above
+  if (history.length > 0 && isVagueFollowUp(message)) {
+    const inherited = inferHistoryIntent(history);
+    if (inherited === 'live_conditions') return { intent: 'live_conditions', ragQuery, passages: [] };
+    // "where" questions after any disaster context → live_conditions (evac center + alert level)
+    if (inherited && hasIntentWord(message, ['where'])) return { intent: 'live_conditions', ragQuery, passages: [] };
+  }
+
   return { intent: 'out_of_scope', ragQuery, passages: [] };
 }
 
