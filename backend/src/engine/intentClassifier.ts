@@ -1,5 +1,5 @@
 import { ChatMessage } from '../types/index.js';
-import { CorpusEntry, retrievePassages } from './ragRetrieval.js';
+import { CorpusEntry, retrievePassages, needsRag } from './ragRetrieval.js';
 
 export type UserIntent =
   | 'emergency_guidance'
@@ -32,7 +32,7 @@ function isVirtualScenario(message: string): boolean {
   const virtualTerms = [
     'minecraft', 'growtopia', 'roblox', 'fortnite', 'valorant',
     'in-game', 'in game', 'video game', 'game server', 'virtual',
-    'simulator', 'creative mode', 'survival mode',
+    'simulator', 'creative mode', 'survival mode', 'survival world', 'survival game',
   ];
   const scenarioTerms = [
     'flood', 'flooding', 'fire', 'earthquake', 'typhoon', 'storm',
@@ -46,14 +46,18 @@ function isEvacuationPrepQuestion(message: string): boolean {
   return hasIntentPhrase(message, [
     'go bag', 'gobag', 'emergency kit', 'evacuation kit',
     'what should i pack', 'what to pack', 'bring with me', 'prepare for evacuation',
-  ]) || (hasIntentWord(message, ['pack', 'packing', 'kit', 'checklist'])
+    'what to bring', 'bring during', 'bring when',
+  ]) || (hasIntentWord(message, ['pack', 'packing', 'kit', 'checklist', 'bring'])
     && hasIntentWord(message, ['evac', 'evacuate', 'evacuation', 'emergency']));
 }
 
 function isUnsupportedEmergencyQuestion(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (lower === 'help me' || lower === 'help' || lower === 'please help') return true;
   const hasUnsupportedMedicalTerm = hasIntentWord(message, [
     'bruise', 'bruised', 'swollen', 'swelling', 'ache', 'aches', 'pain', 'hurts',
     'hurt', 'injury', 'injured', 'medical', 'doctor', 'hospital',
+    'headache', 'dizzy', 'dizziness', 'nausea', 'nauseous',
     'balls', 'testicle', 'testicles', 'groin',
   ]);
   const asksForHelp = hasIntentPhrase(message, [
@@ -67,6 +71,13 @@ function isUnsupportedEmergencyQuestion(message: string): boolean {
 
 export function isLiveConditionsQuestion(message: string): boolean {
   const lower = message.toLowerCase();
+
+  // explicit conditions phrases that are always live conditions
+  if ([
+    'heat index', 'air quality', 'aqi', 'typhoon coming', 'typhoon approaching',
+    'storm coming', 'storm approaching', 'is there a typhoon', 'is there a storm',
+  ].some(phrase => lower.includes(phrase))) return true;
+
   const triviaStarters = ['who is', 'who invented', 'what is', 'when was', 'where is', 'why is'];
   if (triviaStarters.some(starter => lower.startsWith(starter))
     && !['current', 'today', 'now', 'status', 'check'].some(term => lower.includes(term))) {
@@ -130,7 +141,7 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
   if (isEvacuationPrepQuestion(message) && passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery, passages: [] };
   if (passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
-  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery, passages: [] };
+  if (isUnsupportedEmergencyQuestion(message) || needsRag(message)) return { intent: 'unsupported_emergency', ragQuery, passages: [] };
   return { intent: 'out_of_scope', ragQuery, passages: [] };
 }
 
@@ -142,6 +153,6 @@ export function classifySmsIntent(message: string): ClassifiedIntent {
   if (isEvacuationPrepQuestion(message) && passages.length > 0) return { intent: 'emergency_guidance', ragQuery: message, passages };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message, passages: [] };
   if (passages.length > 0) return { intent: 'emergency_guidance', ragQuery: message, passages };
-  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery: message, passages: [] };
+  if (isUnsupportedEmergencyQuestion(message) || needsRag(message)) return { intent: 'unsupported_emergency', ragQuery: message, passages: [] };
   return { intent: 'out_of_scope', ragQuery: message, passages: [] };
 }

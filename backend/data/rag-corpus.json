@@ -2,7 +2,7 @@
   {
     "id": "rag-001",
     "topic": "flood_drowning_response",
-    "keywords": ["flood", "floodwater", "drowning", "submerged", "swept", "swim", "floating", "rescue", "river", "canal"],
+    "keywords": ["flood", "flooding", "flooded", "floodwater", "drowning", "submerged", "swept", "swim", "floating", "rescue", "river", "canal", "rising", "overflow", "overflowing", "water level", "underwater", "water coming", "water rising", "drinking water"],
     "text": "Scenario: Flood or drowning response. Signs: the person is in floodwater, was swept by current, is coughing after rescue, is not breathing normally, or is unresponsive. Immediate actions: do not enter dangerous water unless trained; call 911 or local rescuers; throw a rope, life ring, branch, bottle, or anything that floats; help from a stable position. Once out, check breathing and responsiveness. If unresponsive and not breathing or only gasping, start CPR if trained and use an AED if available. If breathing, keep the airway open, keep the person warm, and monitor. Do not let wounds touch floodwater. Do not drive, walk, or swim through moving floodwater. Call emergency help for any near-drowning, trouble breathing, injury, confusion, or loss of consciousness. Sources: CDC Floodwater Safety; Red Cross First Aid Steps; existing MonsoonAI flood first-aid note."
   },
   {
@@ -14,7 +14,7 @@
   {
     "id": "rag-003",
     "topic": "crush_injury_collapsed_structure",
-    "keywords": ["crush", "crushed", "trapped", "rubble", "collapsed", "debris", "building", "earthquake", "landslide", "pinned", "entrapment", "rescue"],
+    "keywords": ["crush", "crushed", "trapped", "stuck", "rubble", "collapsed", "collapsing", "debris", "building", "wall", "roof", "cracking", "earthquake", "landslide", "pinned", "entrapment", "rescue"],
     "text": "Scenario: Crush injury from collapsed structures, debris, vehicles, or prolonged pressure. Signs: a limb or body part is pinned, severe pain or numbness, swelling, bleeding, weakness, confusion, or shock. Immediate actions: call emergency services; remove the crushing force as soon as safely possible; control external bleeding with direct pressure; monitor breathing and responsiveness; keep the person warm and still. If trapped, conserve energy, cover the mouth from dust, tap or signal rescuers, and shout only as a last resort. Do not delay release just to apply a tourniquet. Do not routinely apply a tourniquet before release unless there is actual or suspected life-threatening limb bleeding. Do not light matches near rubble or suspected gas leaks. Call 911 for all crush injuries, prolonged entrapment, life-threatening bleeding, breathing trouble, altered mental status, or shock. Sources: ANZCOR Guideline 9.1.7 First Aid Management of a Crushed Victim; NDRRMC preparedness guidance."
   },
   {

@@ -33,6 +33,15 @@ const RAG_TRIGGERS = [
   'vomiting', 'cut', 'smoke', 'haze', 'asthma', 'evacuate', 'evacuation',
   'collapse', 'debris', 'heat', 'heatstroke', 'elderly', 'disabled',
   'broke', 'broken', 'fracture', 'sprain', 'dislocation',
+  // flood/storm variants
+  'flood', 'flooding', 'flooded', 'floodwater', 'submerged', 'underwater',
+  // structural/typhoon damage
+  'roof', 'wall', 'blown', 'collapsed', 'collapsing', 'destroyed', 'damaged',
+  'typhoon', 'storm', 'landslide', 'mudslide', 'swept',
+  // vehicle/crash
+  'crash', 'accident', 'crashed', 'hit',
+  // electrical / gas
+  'electric', 'electrocuted', 'wire', 'wires', 'sparks', 'gas', 'leak', 'leaking',
 ];
 
 function tokenize(text: string): string[] {
@@ -42,7 +51,17 @@ function tokenize(text: string): string[] {
 function keywordMatches(keyword: string, lower: string, tokenSet: Set<string>): boolean {
   const keywordTokens = tokenize(keyword);
   if (keywordTokens.length === 0) return false;
-  if (keywordTokens.length === 1) return tokenSet.has(keywordTokens[0]);
+  if (keywordTokens.length === 1) {
+    const kw = keywordTokens[0];
+    if (tokenSet.has(kw)) return true;
+    // prefix match: "flooding" matches keyword "flood", "wires" matches "wire"
+    if (kw.length >= 4) {
+      for (const t of tokenSet) {
+        if (t.length >= 4 && (t.startsWith(kw) || kw.startsWith(t))) return true;
+      }
+    }
+    return false;
+  }
   return lower.includes(keyword.toLowerCase()) || keywordTokens.every(token => tokenSet.has(token));
 }
 
