@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { ChatMessage, ChatReply, Locale, RiskContext } from '../types/index.js';
 import { classifyChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
+import { getCorpus } from '../engine/ragRetrieval.js';
 import {
   fallbackGroundedReply,
   generateStructuredRagReply,
@@ -68,13 +69,10 @@ export async function smsReply(
 
   try {
     if (classified.intent === 'emergency_guidance') {
-      if (classified.passages.length > 0) {
-        const structuredReply = await generateStructuredRagReply(getClient(), message, locale, classified.passages, 'sms');
-        return structuredReply.answer.length > 155
-          ? structuredReply.answer.slice(0, 152) + '...'
-          : structuredReply.answer;
-      }
-      return fallbackGroundedReply(locale, 'sms').answer;
+      const structuredReply = await generateStructuredRagReply(getClient(), message, locale, getCorpus(), 'sms');
+      return structuredReply.answer.length > 155
+        ? structuredReply.answer.slice(0, 152) + '...'
+        : structuredReply.answer;
     }
 
     const evacLine = context.evacCenter
@@ -129,17 +127,13 @@ export async function chatbotReply(
 
   try {
     if (classified.intent === 'emergency_guidance') {
-      if (classified.passages.length > 0) {
-        const structuredReply = await generateStructuredRagReply(
-          getClient(), message, locale, classified.passages, 'chat', classified.ragQuery, context
-        );
-        return {
-          reply: structuredReply.answer,
-          suggestedCommands: structuredReply.suggestedCommands,
-        };
-      }
-      const fallback = fallbackGroundedReply(locale, 'chat');
-      return { reply: fallback.answer, suggestedCommands: fallback.suggestedCommands };
+      const structuredReply = await generateStructuredRagReply(
+        getClient(), message, locale, getCorpus(), 'chat', classified.ragQuery, context
+      );
+      return {
+        reply: structuredReply.answer,
+        suggestedCommands: structuredReply.suggestedCommands,
+      };
     }
 
     const evacLine = context.evacCenter

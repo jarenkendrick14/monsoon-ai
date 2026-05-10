@@ -1,5 +1,5 @@
 import { ChatMessage } from '../types/index.js';
-import { CorpusEntry, retrievePassages, needsRag } from './ragRetrieval.js';
+import { getCorpus, CorpusEntry } from './ragRetrieval.js';
 
 export type UserIntent =
   | 'emergency_guidance'
@@ -11,7 +11,6 @@ export type UserIntent =
 export interface ClassifiedIntent {
   intent: UserIntent;
   ragQuery: string;
-  passages: CorpusEntry[];
 }
 
 function tokenizeIntent(message: string): string[] {
@@ -42,24 +41,11 @@ function isVirtualScenario(message: string): boolean {
     && (hasIntentPhrase(message, scenarioTerms) || !isLiveConditionsQuestion(message));
 }
 
-function isEvacuationPrepQuestion(message: string): boolean {
-  return hasIntentPhrase(message, [
-    'go bag', 'gobag', 'emergency kit', 'evacuation kit',
-    'what should i pack', 'what to pack', 'bring with me', 'prepare for evacuation',
-    'what to bring', 'bring during', 'bring when',
-    'first aid tips', 'first aid before', 'tips before', 'what to do before',
-    'what do we do before', 'what should we do before', 'before evacuating', 'before we evacuate',
-  ]) || (hasIntentWord(message, ['pack', 'packing', 'kit', 'checklist', 'bring', 'tips', 'prepare'])
-    && hasIntentWord(message, ['evac', 'evacuate', 'evacuation', 'evacuating', 'emergency', 'disaster', 'typhoon', 'flood']));
-}
-
 function isUnsupportedEmergencyQuestion(message: string): boolean {
   const lower = message.trim().toLowerCase();
 
-  // repeated/stressed help cries
   if (/^(help\s*[!?]*\s*){1,}$/i.test(lower) || lower === 'help me' || lower === 'please help') return true;
 
-  // existential distress
   if (hasIntentPhrase(message, [
     'going to die', 'gonna die', 'we will die', 'going to drown',
     'nobody is coming', 'nobody comes', 'no one is coming', 'no one comes',
@@ -86,7 +72,6 @@ function isUnsupportedEmergencyQuestion(message: string): boolean {
 export function isLiveConditionsQuestion(message: string): boolean {
   const lower = message.toLowerCase();
 
-  // explicit conditions phrases that are always live conditions
   if ([
     'heat index', 'air quality', 'aqi', 'typhoon coming', 'typhoon approaching',
     'storm coming', 'storm approaching', 'is there a typhoon', 'is there a storm',
@@ -136,9 +121,8 @@ export function isStatusQuestion(message: string): boolean {
   ].some(term => lower.includes(term))) {
     return true;
   }
-  // don't treat "evacuation" as a status keyword if paired with emergency words
   const hasEmergencyWord = hasIntentWord(message, [
-    'blocked', 'flooded', 'flooded', 'collapsed', 'closed', 'landslide', 'full',
+    'blocked', 'collapsed', 'closed', 'landslide', 'full',
     'fell', 'fallen', 'injured', 'hurt', 'trapped', 'stuck', 'fire', 'burning',
   ]);
   if (hasEmergencyWord) return false;
@@ -149,6 +133,47 @@ export function isCasualGreeting(message: string): boolean {
   const lower = message.trim().toLowerCase();
   return ['hi', 'hello', 'hey', 'how are you', 'how r u', 'sup', 'yo']
     .some(term => lower === term || lower.startsWith(`${term}?`));
+}
+
+// Broad signal check — catches anything plausibly disaster/emergency-related
+// so the LLM gets a chance to answer. False positives are fine; the LLM returns
+// status:insufficient for things the corpus doesn't cover.
+function hasEmergencySignal(message: string): boolean {
+  const lower = message.toLowerCase();
+  return [
+    // disaster events
+    'flood', 'flooding', 'flooded', 'typhoon', 'storm', 'fire', 'earthquake',
+    'landslide', 'mudslide', 'tsunami',
+    // injuries / medical
+    'hurt', 'injured', 'injury', 'pain', 'bleed', 'bleeding', 'wound', 'cut',
+    'burn', 'broke', 'broken', 'fracture', 'sprain', 'unconscious', 'unresponsive',
+    'choking', 'choke', 'drowning', 'drown', 'trapped', 'stuck',
+    'sick', 'fever', 'dizzy', 'vomit', 'diarrhea', 'leptospirosis',
+    // vulnerable people
+    'baby', 'infant', 'pregnant', 'elderly', 'child', 'children',
+    // safety / evacuation
+    'safe', 'danger', 'dangerous', 'evacuate', 'evacuation', 'shelter',
+    'rescue', 'missing', 'lost',
+    // everyday disaster safety
+    'shower', 'bath', 'generator', 'cook', 'cooking', 'boil', 'tap', 'smell',
+    'electric', 'wire', 'gas', 'leak', 'charger', 'appliance',
+    // structural
+    'roof', 'wall', 'collapsed', 'collapse',
+    // distress
+    'dying', 'die', 'emergency', 'help',
+    // aftermath
+    'clean', 'cleanup', 'after the flood', 'after the typhoon',
+  ].some(w => lower.includes(w));
+}
+
+function isVagueFollowUp(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (tokenizeIntent(lower).length > 9) return false;
+  return [
+    'where', 'and then', 'then what', 'what about', 'how about',
+    'can we go', 'could we go', 'should we go', 'what if',
+    'is that', 'is there', 'after that', 'what next',
+  ].some(p => lower.includes(p));
 }
 
 function buildRecentUserContext(message: string, history: ChatMessage[]): string {
@@ -164,75 +189,57 @@ function buildRagQuery(message: string, history: ChatMessage[]): string {
   return buildRecentUserContext(message, history) || message;
 }
 
-// Short questions with no strong signal that are likely follow-ups ("where should we go?", "and then?")
-function isVagueFollowUp(message: string): boolean {
-  const lower = message.trim().toLowerCase();
-  if (tokenizeIntent(lower).length > 9) return false;
-  return [
-    'where', 'and then', 'then what', 'what about', 'how about',
-    'can we go', 'could we go', 'should we go', 'what if',
-    'is that', 'is there', 'after that', 'what next',
-  ].some(p => lower.includes(p));
-}
-
-// Scan recent user history to infer what intent the conversation was about
 function inferHistoryIntent(history: ChatMessage[]): UserIntent | null {
-  const recentUserMessages = history
+  const recent = history
     .filter(m => m.role === 'user')
     .slice(-3)
     .map(m => m.content)
-    .reverse(); // most recent first
-
-  for (const msg of recentUserMessages) {
+    .reverse();
+  for (const msg of recent) {
     if (isLiveConditionsQuestion(msg) || isStatusQuestion(msg)) return 'live_conditions';
-    if (needsRag(msg) || retrievePassages(msg, 1).length > 0) return 'emergency_guidance';
+    if (hasEmergencySignal(msg)) return 'emergency_guidance';
   }
   return null;
 }
 
 export function classifyChatIntent(message: string, history: ChatMessage[]): ClassifiedIntent {
   const ragQuery = buildRagQuery(message, history);
-  // Use current message only for passage retrieval — combined ragQuery is LLM context only.
-  // Using ragQuery here would contaminate routing with history keywords (e.g. "u ok?" after
-  // "should we evacuate?" would retrieve evacuation passages from the combined text).
-  const passages = retrievePassages(message, 4);
 
-  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery, passages: [] };
-  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery, passages: [] };
-  if (isEvacuationPrepQuestion(message) && passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
-  if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery, passages: [] };
+  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery };
+  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery };
+  if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
+  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery };
 
-  // History-aware: if message is vague, check combined context BEFORE passages so RAG history
-  // doesn't contaminate intent (e.g. "where could we go?" after "should we evacuate?")
+  // History-aware: check combined context before falling through
   if (history.length > 0 && isVagueFollowUp(message)) {
     const combined = buildRecentUserContext(message, history);
     if (combined !== message && (isLiveConditionsQuestion(combined) || isStatusQuestion(combined))) {
-      return { intent: 'live_conditions', ragQuery, passages: [] };
+      return { intent: 'live_conditions', ragQuery };
     }
   }
 
-  if (passages.length > 0) return { intent: 'emergency_guidance', ragQuery, passages };
-  if (isUnsupportedEmergencyQuestion(message) || needsRag(message)) return { intent: 'unsupported_emergency', ragQuery, passages: [] };
+  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery };
 
-  // Intent carryover for remaining vague follow-ups that didn't match above
+  // Intent carryover for vague follow-ups with no emergency signal
   if (history.length > 0 && isVagueFollowUp(message)) {
     const inherited = inferHistoryIntent(history);
-    if (inherited === 'live_conditions') return { intent: 'live_conditions', ragQuery, passages: [] };
-    // "where" questions after any disaster context → live_conditions (evac center + alert level)
-    if (inherited && hasIntentWord(message, ['where'])) return { intent: 'live_conditions', ragQuery, passages: [] };
+    if (inherited === 'live_conditions') return { intent: 'live_conditions', ragQuery };
+    if (inherited && hasIntentWord(message, ['where'])) return { intent: 'live_conditions', ragQuery };
   }
 
-  return { intent: 'out_of_scope', ragQuery, passages: [] };
+  return { intent: 'out_of_scope', ragQuery };
 }
 
 export function classifySmsIntent(message: string): ClassifiedIntent {
-  const passages = retrievePassages(message, 2);
+  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message };
+  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message };
+  if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message };
+  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery: message };
+  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery: message };
+  return { intent: 'out_of_scope', ragQuery: message };
+}
 
-  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message, passages: [] };
-  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message, passages: [] };
-  if (isEvacuationPrepQuestion(message) && passages.length > 0) return { intent: 'emergency_guidance', ragQuery: message, passages };
-  if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message, passages: [] };
-  if (passages.length > 0) return { intent: 'emergency_guidance', ragQuery: message, passages };
-  if (isUnsupportedEmergencyQuestion(message) || needsRag(message)) return { intent: 'unsupported_emergency', ragQuery: message, passages: [] };
-  return { intent: 'out_of_scope', ragQuery: message, passages: [] };
+// Exported for use in ragRetrieval consumers that need the full corpus
+export function getFullCorpus(): CorpusEntry[] {
+  return getCorpus();
 }

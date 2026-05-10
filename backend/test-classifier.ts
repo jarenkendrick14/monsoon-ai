@@ -1,5 +1,6 @@
 import { classifyChatIntent } from './src/engine/intentClassifier.js';
 import type { ChatMessage } from './src/types/index.js';
+
 type E = 'emergency_guidance'|'live_conditions'|'casual'|'unsupported_emergency'|'out_of_scope';
 
 const cases: [string, E][] = [
