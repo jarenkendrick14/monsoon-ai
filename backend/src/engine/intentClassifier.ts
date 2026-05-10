@@ -197,6 +197,8 @@ function isVagueFollowUp(message: string): boolean {
     'where', 'and then', 'then what', 'what about', 'how about',
     'can we go', 'could we go', 'should we go', 'what if',
     'is that', 'is there', 'after that', 'what next',
+    'my area', 'in my area', 'around me', 'near me', 'nearby',
+    'my place', 'my location', 'where i am', 'here',
     // confirmation follow-ups
     'u sure', 'you sure', 'are you sure', 'r u sure',
     'really', 'for real', 'seriously', 'you certain',

@@ -174,6 +174,8 @@ ${condLines}
 
 RULES:
 - Only state facts from the CURRENT STATUS above. Never invent sensor readings, distances, or risk scores.
+- Treat "my area", "near me", and similar wording as the saved Location above.
+- If the user asks whether a prior live-condition answer is true for their area, answer using the same verified CURRENT STATUS values.
 - Match your response length to the question. Short question = short answer. Do not pad with disclaimers.
 - Do not repeat the location name unless the user asked about it.
 - Only mention the evacuation center if alert is high or critical, or the user explicitly asked about it.
