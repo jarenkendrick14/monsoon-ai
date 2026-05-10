@@ -41,6 +41,18 @@ function isVirtualScenario(message: string): boolean {
     && (hasIntentPhrase(message, scenarioTerms) || !isLiveConditionsQuestion(message));
 }
 
+function isEvacuationPrepQuestion(message: string): boolean {
+  return hasIntentPhrase(message, [
+    'go bag', 'gobag', 'emergency kit', 'evacuation kit',
+    'what should i pack', 'what to pack', 'bring with me',
+    'what to bring', 'bring during', 'bring when',
+    'packed a bag', 'packing a bag', 'have packed',
+    'before evacuating', 'before we evacuate',
+    'what else should i bring', 'what else to bring',
+  ]) || (hasIntentWord(message, ['pack', 'packing', 'packed', 'kit', 'checklist', 'bring', 'anything'])
+    && hasIntentWord(message, ['evac', 'evacuate', 'evacuation', 'evacuating', 'emergency', 'disaster', 'typhoon', 'flood', 'bag']));
+}
+
 function isUnsupportedEmergencyQuestion(message: string): boolean {
   const lower = message.trim().toLowerCase();
 
@@ -222,6 +234,7 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
 
   if (isCasualGreeting(message)) return { intent: 'casual', ragQuery };
   if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery };
+  if (isEvacuationPrepQuestion(message)) return { intent: 'emergency_guidance', ragQuery };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
   if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery };
 
