@@ -48,16 +48,29 @@ function tokenize(text: string): string[] {
   return text.toLowerCase().split(/\W+/).filter(Boolean);
 }
 
+function stem(word: string): string {
+  if (word.length > 6 && word.endsWith('ing')) return word.slice(0, -3);
+  if (word.length > 5 && word.endsWith('tion')) return word.slice(0, -4);
+  if (word.length > 5 && word.endsWith('tion')) return word.slice(0, -4);
+  if (word.length > 4 && word.endsWith('ed')) return word.slice(0, -2);
+  if (word.length > 4 && word.endsWith('es')) return word.slice(0, -2);
+  if (word.length > 3 && word.endsWith('s')) return word.slice(0, -1);
+  if (word.length > 3 && word.endsWith('e')) return word.slice(0, -1);
+  return word;
+}
+
 function keywordMatches(keyword: string, lower: string, tokenSet: Set<string>): boolean {
   const keywordTokens = tokenize(keyword);
   if (keywordTokens.length === 0) return false;
   if (keywordTokens.length === 1) {
     const kw = keywordTokens[0];
     if (tokenSet.has(kw)) return true;
-    // prefix match: "flooding" matches keyword "flood", "wires" matches "wire"
     if (kw.length >= 4) {
+      const stemKw = stem(kw);
       for (const t of tokenSet) {
-        if (t.length >= 4 && (t.startsWith(kw) || kw.startsWith(t))) return true;
+        if (t.length < 4) continue;
+        const stemT = stem(t);
+        if (stemT === stemKw || stemT.startsWith(stemKw) || stemKw.startsWith(stemT)) return true;
       }
     }
     return false;

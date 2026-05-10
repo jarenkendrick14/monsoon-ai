@@ -62,7 +62,7 @@
   {
     "id": "rag-011",
     "topic": "fractures_immobilization",
-    "keywords": ["fracture", "broken", "broke", "broken bone", "bone", "sprain", "strain", "dislocation", "deformed", "swollen", "limb", "toe", "toes", "foot", "feet", "ankle", "rib", "pelvis", "immobilize", "splint"],
+    "keywords": ["fracture", "broken", "broke", "broken bone", "bone", "sprain", "strain", "dislocation", "deformed", "swollen", "limb", "toe", "toes", "foot", "feet", "ankle", "rib", "pelvis", "immobilize", "splint", "fell", "fallen", "fall", "cannot get up", "cannot stand"],
     "text": "Scenario: Suspected fracture, dislocation, sprain, or muscle/bone/joint injury. Signs: pain, swelling, bruising, deformity, popping/snapping sound, grating, unwillingness or inability to move, coldness, numbness, tingling, bone through skin, rib pain with shallow breathing, or shock signs. Immediate actions: treat all significant muscle, bone, and joint injuries as possible fractures; have the person rest and avoid moving or straightening the injured part; apply a cold pack wrapped in a thin dry towel for up to 20 minutes if the skin is closed; control bleeding with direct pressure if open. Do not try to push bones back in or straighten a deformity. Call 911 for head/neck/spine/pelvis/upper-leg injury, open fracture, severe or multiple injuries, shock, trouble breathing, numbness, inability to safely move the person, or a major crash/fall/collapse. Sources: American Red Cross Fractures; Global Road Safety Partnership First Response to Road Crashes."
   },
   {

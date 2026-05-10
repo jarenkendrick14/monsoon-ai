@@ -47,8 +47,10 @@ function isEvacuationPrepQuestion(message: string): boolean {
     'go bag', 'gobag', 'emergency kit', 'evacuation kit',
     'what should i pack', 'what to pack', 'bring with me', 'prepare for evacuation',
     'what to bring', 'bring during', 'bring when',
-  ]) || (hasIntentWord(message, ['pack', 'packing', 'kit', 'checklist', 'bring'])
-    && hasIntentWord(message, ['evac', 'evacuate', 'evacuation', 'emergency']));
+    'first aid tips', 'first aid before', 'tips before', 'what to do before',
+    'what do we do before', 'what should we do before', 'before evacuating', 'before we evacuate',
+  ]) || (hasIntentWord(message, ['pack', 'packing', 'kit', 'checklist', 'bring', 'tips', 'prepare'])
+    && hasIntentWord(message, ['evac', 'evacuate', 'evacuation', 'evacuating', 'emergency', 'disaster', 'typhoon', 'flood']));
 }
 
 function isUnsupportedEmergencyQuestion(message: string): boolean {
@@ -61,12 +63,13 @@ function isUnsupportedEmergencyQuestion(message: string): boolean {
     'balls', 'testicle', 'testicles', 'groin',
   ]);
   const asksForHelp = hasIntentPhrase(message, [
-    'what do i do', 'what should i do', 'need help', 'help me',
+    'what do i do', 'what should i do', 'what do we do', 'what should we do',
+    'need help', 'help me', 'what now', 'what do now',
   ]);
   const hasEmergencyContext = hasIntentWord(message, [
     'emergency', 'injured', 'injury', 'hurt', 'hurts', 'pain', 'sick', 'wounded',
   ]);
-  return hasUnsupportedMedicalTerm || (asksForHelp && hasEmergencyContext);
+  return hasUnsupportedMedicalTerm || asksForHelp || (asksForHelp && hasEmergencyContext);
 }
 
 export function isLiveConditionsQuestion(message: string): boolean {
@@ -107,10 +110,16 @@ export function isStatusQuestion(message: string): boolean {
   if (['status', 'weather', 'conditions', 'alerts', 'alert', 'evac', 'evacuation', 'flood'].includes(exact)) {
     return true;
   }
-  return [
-    'status', 'check conditions', 'weather update', 'alert', 'alerts',
-    'is it safe', 'evac', 'evacuation',
-  ].some(term => lower.includes(term));
+  if (['status', 'check conditions', 'weather update', 'is it safe'].some(term => lower.includes(term))) {
+    return true;
+  }
+  // don't treat "evacuation" as a status keyword if paired with emergency words
+  const hasEmergencyWord = hasIntentWord(message, [
+    'blocked', 'flooded', 'flooded', 'collapsed', 'closed', 'landslide', 'full',
+    'fell', 'fallen', 'injured', 'hurt', 'trapped', 'stuck', 'fire', 'burning',
+  ]);
+  if (hasEmergencyWord) return false;
+  return hasIntentWord(message, ['alert', 'alerts', 'evac', 'evacuation']);
 }
 
 export function isCasualGreeting(message: string): boolean {
