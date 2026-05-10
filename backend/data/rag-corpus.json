@@ -32,7 +32,7 @@
   {
     "id": "rag-006",
     "topic": "leptospirosis_waterborne_disease",
-    "keywords": ["leptospirosis", "floodwater", "dirty water", "contaminated", "diarrhea", "vomiting", "cholera", "dehydration", "red eyes", "jaundice", "muscle pain", "ors", "boil water"],
+    "keywords": ["leptospirosis", "floodwater", "drink floodwater", "drinking floodwater", "safe water", "dirty water", "contaminated", "diarrhea", "vomiting", "cholera", "dehydration", "red eyes", "jaundice", "muscle pain", "ors", "boil water"],
     "text": "Scenario: Leptospirosis, diarrhea, cholera, or waterborne illness after flood exposure. Signs: fever, headache, chills, muscle aches, red eyes, vomiting, nausea, diarrhea, stomach pain, rash, yellow skin or eyes, or dehydration. Leptospirosis can appear 2 to 30 days after contact with contaminated water or soil. Immediate actions: avoid wading, bathing, swallowing, or drinking floodwater; cover cuts with waterproof bandages; wear boots and protective clothing; keep food, water, and trash covered to reduce rodents. Make water safe by boiling or approved chemical treatment. For diarrhea or vomiting, replace fluid loss with oral rehydration solution and continue feeding or breastfeeding. Do not let open wounds touch floodwater. Seek medical care immediately if leptospirosis is possible, symptoms persist, dehydration appears, or there is yellowing, breathing trouble, severe weakness, or confusion. Sources: CDC Leptospirosis and Flood Prevention; Philippine Red Cross Community-Based Health and First Aid Flipchart."
   },
   {
@@ -92,7 +92,7 @@
   {
     "id": "rag-016",
     "topic": "infant_child_dehydration_feeding",
-    "keywords": ["baby", "infant", "child", "kid", "newborn", "breastfeeding", "formula", "milk", "dehydration", "ors", "diarrhea child", "vomiting child"],
+    "keywords": ["baby", "infant", "child", "kid", "newborn", "breastfeeding", "formula", "milk", "dehydration", "ors", "baby diarrhea", "infant diarrhea", "child diarrhea", "diarrhea child", "baby vomiting", "vomiting child"],
     "text": "Scenario: Infant or child illness, dehydration, feeding, or heat risk in disasters. Signs of dehydration can include unusual sleepiness, inability to drink, persistent vomiting or diarrhea, very dry mouth, sunken eyes, no tears, or reduced urination. Immediate actions: keep infants dry, warm, and shaded; continue breastfeeding when possible, especially if clean water for formula is unavailable; for diarrhea or vomiting, replace fluid loss with oral rehydration solution and continue feeding or breastfeeding. Use only safe boiled or treated water for formula or ORS. Never leave children in vehicles or hot enclosed areas. Do not give fluids to an unconscious or seizing child. Seek medical care urgently for infants with fever, dehydration signs, persistent diarrhea/vomiting, blood in stool, breathing trouble, lethargy, convulsions, or inability to drink. Sources: Philippine Red Cross Community-Based Health and First Aid Flipchart; CDC Healthy Ways to Deal with Stress after a Natural Disaster; existing MonsoonAI child emergency note."
   },
   {
@@ -104,7 +104,13 @@
   {
     "id": "rag-018",
     "topic": "evacuation_ndrrmc_response_roles",
-    "keywords": ["evacuate", "evacuation", "shelter", "evacuation center", "go bag", "relief", "ndrrmc", "pdra", "response cluster", "incident command", "state of calamity"],
+    "keywords": ["evacuate", "evacuation", "shelter", "evacuation center", "go bag", "emergency kit", "pack", "packing", "kit", "relief", "ndrrmc", "pdra", "response cluster", "incident command", "state of calamity"],
     "text": "Scenario: Evacuation and disaster response coordination. Pre-impact actions include risk assessment, emergency preparedness, contingency plan activation, public service continuity, identifying priority needs, activating emergency operations centers, response clusters, and incident management teams. Impact-phase actions focus on life safety, incident stabilization, property preservation, rapid damage assessment and needs analysis, deployment of augmentation teams, and possible state of calamity recommendations. Post-impact actions include concluding emergency response actions, deactivating or downscaling emergency operations and response clusters, early recovery authorization, and post-disaster needs assessment if needed. Citizen action: evacuate immediately when ordered, bring water, food, medicines, documents, charger, flashlight, clothes, and cash; turn off electricity/gas if safe; avoid floodwater and damaged structures. Source: NDRRMC Harmonized Disaster Response Standard Operating Procedures; existing MonsoonAI evacuation note."
+  },
+  {
+    "id": "rag-019",
+    "topic": "smoke_haze_respiratory",
+    "keywords": ["smoke", "haze", "ashfall", "air quality", "aqi", "pm2.5", "asthma", "wheezing", "cough", "breathing", "respiratory", "n95", "mask", "inhaler"],
+    "text": "Scenario: Smoke, haze, ashfall, or poor air quality affecting breathing. Signs: coughing, wheezing, asthma symptoms, chest discomfort, difficulty breathing, blue-tinged lips, or severe shortness of breath. Immediate actions: stay indoors with windows and doors closed when possible; reduce outdoor activity; use an N95 mask if going outside is unavoidable; keep asthma inhalers or prescribed respiratory medicine accessible. Do not rely on a surgical mask to filter fine particles. Seek emergency care or call 911 for difficulty breathing at rest, blue lips, chest pain, severe wheezing, confusion, or symptoms that do not improve with prescribed medicine. Sources: DOH Philippines Air Quality Health Advisory; existing MonsoonAI smoke/haze respiratory note."
   }
 ]

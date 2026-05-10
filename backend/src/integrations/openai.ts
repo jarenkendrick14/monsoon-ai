@@ -438,6 +438,14 @@ export async function chatbotReply(
   context: RiskContext,
   history: ChatMessage[]
 ): Promise<ChatReply> {
+  if (isCasualGreeting(message)) {
+    return casualReply(locale);
+  }
+
+  if (isOutOfScopeQuestion(message) && !isStatusQuestion(message)) {
+    return outOfScopeReply(locale);
+  }
+
   if (!config.openai.apiKey) {
     return {
       reply: 'AI assistant is not available. Please call emergency services if needed.',
@@ -462,14 +470,6 @@ export async function chatbotReply(
           suggestedCommands: fallback.suggestedCommands,
         };
       }
-    }
-
-    if (isCasualGreeting(message)) {
-      return casualReply(locale);
-    }
-
-    if (isOutOfScopeQuestion(message) && !isStatusQuestion(message)) {
-      return outOfScopeReply(locale);
     }
 
     const evacLine = context.evacCenter
