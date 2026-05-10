@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { ChatMessage, ChatReply, Locale, RiskContext } from '../types/index.js';
 import { classifyChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
-import { getCorpus } from '../engine/ragRetrieval.js';
+import { retrievePassages } from '../engine/ragRetrieval.js';
 import {
   fallbackGroundedReply,
   generateStructuredRagReply,
@@ -69,7 +69,10 @@ export async function smsReply(
 
   try {
     if (classified.intent === 'emergency_guidance') {
-      const structuredReply = await generateStructuredRagReply(getClient(), message, locale, getCorpus(), 'sms');
+      const passages = retrievePassages(classified.ragQuery, 2);
+      if (passages.length === 0) return fallbackGroundedReply(locale, 'sms').answer;
+
+      const structuredReply = await generateStructuredRagReply(getClient(), message, locale, passages, 'sms');
       return structuredReply.answer.length > 155
         ? structuredReply.answer.slice(0, 152) + '...'
         : structuredReply.answer;
@@ -127,8 +130,17 @@ export async function chatbotReply(
 
   try {
     if (classified.intent === 'emergency_guidance') {
+      const passages = retrievePassages(classified.ragQuery, 4);
+      if (passages.length === 0) {
+        const fallback = fallbackGroundedReply(locale, 'chat');
+        return {
+          reply: fallback.answer,
+          suggestedCommands: fallback.suggestedCommands,
+        };
+      }
+
       const structuredReply = await generateStructuredRagReply(
-        getClient(), message, locale, getCorpus(), 'chat', classified.ragQuery, context
+        getClient(), message, locale, passages, 'chat', classified.ragQuery, context
       );
       return {
         reply: structuredReply.answer,
@@ -185,7 +197,7 @@ RULES:
 
     const suggestedCommands = context.alertLevel === 'critical' || context.alertLevel === 'high'
       ? ['Show evac route', 'Contact emergency services', 'View checklist']
-      : ['Check conditions', 'View forecast', 'Update profile'];
+      : ['Check conditions', 'View forecast', 'Find evac center'];
 
     return { reply, suggestedCommands };
   } catch (err) {

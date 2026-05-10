@@ -167,7 +167,7 @@ function hasEmergencySignal(message: string): boolean {
     'flood', 'flooding', 'flooded', 'typhoon', 'storm', 'fire', 'earthquake',
     'landslide', 'mudslide', 'tsunami',
     // injuries / medical
-    'hurt', 'injured', 'injury', 'pain', 'bleed', 'bleeding', 'wound', 'cut',
+    'hurt', 'injured', 'injury', 'pain', 'bleed', 'bleeding', 'blooding', 'blood', 'wound', 'cut',
     'burn', 'broke', 'broken', 'fracture', 'sprain', 'unconscious', 'unresponsive',
     'choking', 'choke', 'drowning', 'drown', 'trapped', 'stuck',
     'sick', 'fever', 'dizzy', 'vomit', 'diarrhea', 'leptospirosis',
@@ -242,9 +242,9 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
   if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery };
   if (isEvacuationPrepQuestion(message)) return { intent: 'emergency_guidance', ragQuery };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
-  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery };
-
-  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery };
+  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message)) {
+    return { intent: 'emergency_guidance', ragQuery };
+  }
 
   // Intent carryover for vague follow-ups
   if (history.length > 0 && isVagueFollowUp(message)) {
@@ -266,8 +266,9 @@ export function classifySmsIntent(message: string): ClassifiedIntent {
   if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message };
   if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message };
-  if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery: message };
-  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery: message };
+  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message)) {
+    return { intent: 'emergency_guidance', ragQuery: message };
+  }
   return { intent: 'out_of_scope', ragQuery: message };
 }
 
