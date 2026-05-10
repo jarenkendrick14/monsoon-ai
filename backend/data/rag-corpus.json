@@ -56,7 +56,7 @@
   {
     "id": "rag-010",
     "topic": "minor_cuts_wounds",
-    "keywords": ["minor cut", "small cut", "wound", "scratch", "abrasion", "scrape", "dirty wound", "infection", "tetanus", "bandage", "dressing"],
+    "keywords": ["minor cut", "small cut", "cut", "finger", "fingers", "hand", "hands", "wound", "scratch", "abrasion", "scrape", "dirty wound", "infection", "tetanus", "bandage", "dressing"],
     "text": "Scenario: Minor cuts and wounds. Signs: small cut, scrape, or wound with controllable bleeding, dirt, mild pain, or mild swelling. Immediate actions: wash hands before treating; check that nothing is embedded; rinse dirty wounds under clean running water; pat dry with clean non-fluffy material; clean from the center outward using gauze or antiseptic wipes with a fresh piece each wipe; cover with an adhesive dressing or sterile bandage; elevate if needed to help control bleeding. Watch for infection: increasing pain, redness, swelling, warmth, pus, fever, or red streaking. Do not remove embedded foreign bodies. Do not let floodwater touch the wound. Seek medical advice if there is an embedded object, signs of infection, deep or gaping wound, puncture, animal bite, tetanus risk, or bleeding that will not stop. Sources: DOH Philippine Health Advisory Minor Cuts and Wounds; CDC Floodwater Safety."
   },
   {

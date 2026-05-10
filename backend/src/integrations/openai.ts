@@ -86,13 +86,17 @@ function groundedRagPrompt(
   message: string,
   locale: Locale,
   passages: CorpusEntry[],
-  wordLimit: string
+  wordLimit: string,
+  userContext?: string
 ): string {
   return `You are MonsoonAI. Answer the user using ONLY the provided sources.
 
 STRICT GROUNDING RULES:
 - Use only facts and instructions that appear in the sources below.
 - Do not add medical, rescue, legal, weather, location, or evacuation advice from general knowledge.
+- You may personalize wording using user-provided details from the current question and recent user context, such as body part, person, severity words, or pronouns.
+- User-provided details are context for wording and relevance only; safety instructions must still come from the sources.
+- If the user mentions a body part, refer to that body part naturally instead of using generic wording when the source guidance applies.
 - If the sources do not contain enough information to answer safely, say: "I cannot verify that from the provided guidance. Call 911 or contact local emergency responders."
 - If the situation may be life-threatening based on the sources, tell the user to call 911 or local emergency responders.
 - Reply in ${LOCALE_NAMES[locale]}.
@@ -104,7 +108,23 @@ STRICT GROUNDING RULES:
 
 ${formatRagSources(passages)}
 
-User question: ${message}`;
+${userContext ? `[RECENT USER CONTEXT]\n${userContext}\n[END RECENT USER CONTEXT]\n\n` : ''}User question: ${message}`;
+}
+
+function buildRecentUserContext(message: string, history: ChatMessage[]): string {
+  const recentUserMessages = history
+    .filter(item => item.role === 'user')
+    .slice(-3)
+    .map(item => item.content.trim())
+    .filter(Boolean);
+  return [...recentUserMessages, message.trim()]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function buildRagQuery(message: string, history: ChatMessage[]): string {
+  const recentUserContext = buildRecentUserContext(message, history);
+  return recentUserContext || message;
 }
 
 function buildRagResponseSchema(passages: CorpusEntry[]): ResponseSchema {
@@ -213,7 +233,8 @@ async function generateStructuredRagReply(
   message: string,
   locale: Locale,
   passages: CorpusEntry[],
-  channel: 'chat' | 'sms'
+  channel: 'chat' | 'sms',
+  userContext?: string
 ): Promise<StructuredRagReply> {
   const model = getClient().getGenerativeModel({
     model: config.openai.model,
@@ -225,7 +246,7 @@ async function generateStructuredRagReply(
     },
   });
   const wordLimit = channel === 'sms' ? 'Under 130 characters.' : 'Under 80 words.';
-  const prompt = groundedRagPrompt(message, locale, passages, wordLimit);
+  const prompt = groundedRagPrompt(message, locale, passages, wordLimit, userContext);
   const result = await model.generateContent(prompt);
   return parseAndValidateRagResponse(result.response.text(), passages, locale, channel);
 }
@@ -314,10 +335,11 @@ export async function chatbotReply(
   }
 
   try {
-    if (needsRag(message)) {
-      const passages = retrievePassages(message, 4);
+    const ragQuery = buildRagQuery(message, history);
+    if (needsRag(ragQuery)) {
+      const passages = retrievePassages(ragQuery, 4);
       if (passages.length > 0) {
-        const structuredReply = await generateStructuredRagReply(message, locale, passages, 'chat');
+        const structuredReply = await generateStructuredRagReply(message, locale, passages, 'chat', ragQuery);
         return {
           reply: structuredReply.answer,
           suggestedCommands: structuredReply.suggestedCommands,
