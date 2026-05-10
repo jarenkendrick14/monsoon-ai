@@ -68,6 +68,8 @@ export async function pbCall<T>(fn: (pb: PocketBase) => Promise<T>): Promise<T> 
 export async function ensureCollections(): Promise<void> {
   const client = getPb();
 
+  await ensureUserFields(client);
+
   const collections = [
     {
       name: 'alerts',
@@ -162,6 +164,43 @@ export async function ensureCollections(): Promise<void> {
       }
     }
   }
+}
+
+async function ensureUserFields(client: PocketBase): Promise<void> {
+  const usersCollection = await client.collections.getOne('users') as unknown as Record<string, unknown>;
+  const existingFields = ((usersCollection['fields'] ?? usersCollection['schema'] ?? []) as Record<string, unknown>[]);
+  const existingNames = new Set(existingFields.map(field => field['name']));
+  const requiredFields = [
+    { name: 'mobile', type: 'text' },
+    { name: 'role', type: 'text' },
+    { name: 'locale', type: 'text' },
+    { name: 'lat', type: 'number' },
+    { name: 'lng', type: 'number' },
+    { name: 'address', type: 'text' },
+    { name: 'homeType', type: 'text' },
+    { name: 'floor', type: 'number' },
+    { name: 'householdSize', type: 'number' },
+    { name: 'hasPWD', type: 'bool' },
+    { name: 'hasElderly', type: 'bool' },
+    { name: 'hasInfant', type: 'bool' },
+    { name: 'hasPregnant', type: 'bool' },
+    { name: 'riskScore', type: 'number' },
+    { name: 'riskTier', type: 'text' },
+    { name: 'isOnRescueList', type: 'bool' },
+    { name: 'alertOptIn', type: 'bool' },
+    { name: 'smsOptIn', type: 'bool' },
+  ];
+  const missingFields = requiredFields.filter(field => !existingNames.has(field.name));
+
+  if (missingFields.length === 0) {
+    logger.debug('Users collection fields already present');
+    return;
+  }
+
+  await client.collections.update('users', {
+    fields: [...existingFields, ...missingFields],
+  } as Parameters<typeof client.collections.update>[1]);
+  logger.info(`Added users fields: ${missingFields.map(field => field.name).join(', ')}`);
 }
 
 export async function isPbConnected(): Promise<boolean> {
