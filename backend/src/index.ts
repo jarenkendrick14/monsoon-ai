@@ -82,22 +82,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 async function main(): Promise<void> {
-  let pbReady = false;
-  try {
-    await authenticatePb();
-    await ensureCollections();
-    pbReady = true;
-  } catch (err) {
-    logger.error('PocketBase startup check failed; API will start with database-backed features degraded', err);
-  }
+  await authenticatePb();
+  await ensureCollections();
 
   const server = createServer(app);
   setupWebSocket(server);
-  if (pbReady) {
-    startJobs();
-  } else {
-    logger.warn('Skipping cron jobs until PocketBase authentication is fixed');
-  }
+  startJobs();
 
   server.listen(config.port, () => {
     logger.info(`MonsoonAI API running on port ${config.port} [${config.nodeEnv}]`);

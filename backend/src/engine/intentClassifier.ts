@@ -203,7 +203,8 @@ function isVagueFollowUp(message: string): boolean {
     // review / opinion follow-ups
     'what do you think', 'how does that sound', 'is that okay', 'is that fine',
     'is that enough', 'am i missing', 'did i forget', 'anything else',
-    'what else', 'is that good', 'how about that',
+    'what else', 'is that good', 'thats good', "that's good", 'that is good',
+    'good right', 'we good', 'are we good', 'how about that',
   ].some(p => lower.includes(p));
 }
 

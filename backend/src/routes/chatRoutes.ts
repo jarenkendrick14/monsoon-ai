@@ -74,6 +74,17 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
 
   const sessionKey = `${user.id}:${sessionId}`;
   let history: ChatMessage[] = sessionHistory.get(sessionKey) ?? [];
+  if (history.length === 0) {
+    try {
+      const session = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
+        filter: `sessionId="${sessionId}" && userId="${user.id}"`,
+      }));
+      history = session.items.length
+        ? ((session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [])
+        : [];
+      if (history.length > 0) sessionHistory.set(sessionKey, history.slice(-12));
+    } catch { /* best-effort history hydration */ }
+  }
 
   let reply;
   try {
@@ -88,6 +99,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     { role: 'user', content: message },
     { role: 'assistant', content: reply.reply },
   ];
+  sessionHistory.set(sessionKey, newHistory);
 
   try {
     const existing = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
