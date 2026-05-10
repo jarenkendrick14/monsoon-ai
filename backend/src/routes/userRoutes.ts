@@ -41,9 +41,19 @@ router.get('/api/user/profile', authMiddleware, async (req, res) => {
 
 const ProfileUpdateSchema = z.object({
   name: z.string().min(1).optional(),
+  firstName: z.string().optional(),
+  middleName: z.string().optional(),
+  lastName: z.string().optional(),
   address: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+  coordinates: z.object({
+    lat: z.number(),
+    lng: z.number(),
+  }).optional(),
   locale: z.enum(['en', 'tl', 'vi']).optional(),
   mobile: z.string().optional(),
+  phone: z.string().optional(),
   alertOptIn: z.boolean().optional(),
   smsOptIn: z.boolean().optional(),
 });
@@ -56,14 +66,27 @@ router.patch('/api/user/profile', authMiddleware, async (req, res) => {
   }
 
   const pb = getPb();
-  const updated = await pb.collection('users').update(req.user!.id, parsed.data);
+  const { coordinates, firstName, middleName, lastName, phone, ...data } = parsed.data;
+  const fullName = [firstName, middleName, lastName].map(part => part?.trim()).filter(Boolean).join(' ');
+  const payload = {
+    ...data,
+    ...(coordinates ? { lat: coordinates.lat, lng: coordinates.lng } : {}),
+    ...(fullName ? { name: fullName } : {}),
+    ...(phone ? { mobile: phone } : {}),
+  };
+  const updated = await pb.collection('users').update(req.user!.id, payload);
   res.json({ success: true, user: updated });
 });
 
 const HouseholdSchema = z.object({
   householdSize: z.number().min(1).optional(),
+  occupantCount: z.number().min(1).optional(),
   homeType: z.enum(['bungalow', 'standalone', 'townhouse', 'apartment', 'condo', 'duplex', 'nipa_hut', 'studio']).optional(),
   floor: z.number().min(0).optional(),
+  floorLevel: z.number().min(0).optional(),
+  hasSpecialNeeds: z.boolean().optional(),
+  specialNeedsFlags: z.array(z.string()).optional(),
+  additionalNote: z.string().optional(),
   hasPWD: z.boolean().optional(),
   hasElderly: z.boolean().optional(),
   hasInfant: z.boolean().optional(),
@@ -78,7 +101,20 @@ router.patch('/api/user/household', authMiddleware, async (req, res) => {
   }
 
   const pb = getPb();
-  const updated = await pb.collection('users').update(req.user!.id, parsed.data);
+  const { occupantCount, floorLevel, hasSpecialNeeds, specialNeedsFlags, additionalNote, ...data } = parsed.data;
+  const needs = new Set(specialNeedsFlags ?? []);
+  const payload = {
+    ...data,
+    ...(occupantCount !== undefined ? { householdSize: occupantCount } : {}),
+    ...(floorLevel !== undefined ? { floor: floorLevel } : {}),
+    ...(hasSpecialNeeds !== undefined ? {
+      hasPWD: hasSpecialNeeds && (needs.has('pwd') || needs.has('mobility')),
+      hasElderly: hasSpecialNeeds && needs.has('elderly'),
+      hasInfant: hasSpecialNeeds && needs.has('infant'),
+      hasPregnant: hasSpecialNeeds && needs.has('pregnant'),
+    } : {}),
+  };
+  const updated = await pb.collection('users').update(req.user!.id, payload);
   res.json({ success: true, user: updated });
 });
 
