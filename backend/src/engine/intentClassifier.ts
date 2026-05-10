@@ -200,6 +200,10 @@ function isVagueFollowUp(message: string): boolean {
     // confirmation follow-ups
     'u sure', 'you sure', 'are you sure', 'r u sure',
     'really', 'for real', 'seriously', 'you certain',
+    // review / opinion follow-ups
+    'what do you think', 'how does that sound', 'is that okay', 'is that fine',
+    'is that enough', 'am i missing', 'did i forget', 'anything else',
+    'what else', 'is that good', 'how about that',
   ].some(p => lower.includes(p));
 }
 
@@ -223,6 +227,7 @@ function inferHistoryIntent(history: ChatMessage[]): UserIntent | null {
     .map(m => m.content)
     .reverse();
   for (const msg of recent) {
+    if (isEvacuationPrepQuestion(msg)) return 'emergency_guidance';
     if (isLiveConditionsQuestion(msg) || isStatusQuestion(msg)) return 'live_conditions';
     if (hasEmergencySignal(msg)) return 'emergency_guidance';
   }
@@ -238,19 +243,17 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
   if (isUnsupportedEmergencyQuestion(message)) return { intent: 'unsupported_emergency', ragQuery };
 
-  // History-aware: check combined context before falling through
+  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery };
+
+  // Intent carryover for vague follow-ups
   if (history.length > 0 && isVagueFollowUp(message)) {
+    const inherited = inferHistoryIntent(history);
+    // Emergency guidance wins — don't let combined-context live_conditions check override it
+    if (inherited === 'emergency_guidance') return { intent: 'emergency_guidance', ragQuery };
     const combined = buildRecentUserContext(message, history);
     if (combined !== message && (isLiveConditionsQuestion(combined) || isStatusQuestion(combined))) {
       return { intent: 'live_conditions', ragQuery };
     }
-  }
-
-  if (hasEmergencySignal(message)) return { intent: 'emergency_guidance', ragQuery };
-
-  // Intent carryover for vague follow-ups with no emergency signal
-  if (history.length > 0 && isVagueFollowUp(message)) {
-    const inherited = inferHistoryIntent(history);
     if (inherited === 'live_conditions') return { intent: 'live_conditions', ragQuery };
     if (inherited && hasIntentWord(message, ['where'])) return { intent: 'live_conditions', ragQuery };
   }
