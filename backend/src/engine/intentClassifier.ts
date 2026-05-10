@@ -208,17 +208,57 @@ function isVagueFollowUp(message: string): boolean {
   ].some(p => lower.includes(p));
 }
 
+function isEmergencyFollowUp(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (tokenizeIntent(lower).length > 10) return false;
+  return [
+    'i put cloth', 'put cloth', 'put a cloth', 'cloth on it',
+    'i put gauze', 'put gauze', 'gauze on it',
+    'i applied pressure', 'applying pressure', 'put pressure',
+    'pressure on it', 'bandaged it', 'i bandaged',
+    'it stopped', 'stopped now', 'bleeding stopped',
+    'still bleeding', 'still hurts', 'still pain',
+  ].some(p => lower.includes(p));
+}
+
 function buildRecentUserContext(message: string, history: ChatMessage[]): string {
   const recentUserMessages = history
     .filter(item => item.role === 'user')
-    .slice(-3)
+    .slice(-2)
     .map(item => item.content.trim())
     .filter(Boolean);
   return [...recentUserMessages, message.trim()].filter(Boolean).join('\n');
 }
 
+function messageMatchesIntent(message: string, intent: UserIntent): boolean {
+  if (intent === 'emergency_guidance') {
+    return isEvacuationPrepQuestion(message) || isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message);
+  }
+  if (intent === 'live_conditions') {
+    return isLiveConditionsQuestion(message) || isStatusQuestion(message);
+  }
+  return false;
+}
+
+function buildInheritedContext(message: string, history: ChatMessage[], intent: UserIntent): string {
+  const recentSameIntent = history
+    .filter(item => item.role === 'user')
+    .reverse()
+    .filter(item => messageMatchesIntent(item.content, intent))
+    .slice(0, 2)
+    .reverse()
+    .map(item => item.content.trim())
+    .filter(Boolean);
+  return [...recentSameIntent, message.trim()].filter(Boolean).join('\n');
+}
+
 function buildRagQuery(message: string, history: ChatMessage[]): string {
-  return buildRecentUserContext(message, history) || message;
+  if (history.length === 0 || (!isVagueFollowUp(message) && !isEmergencyFollowUp(message))) {
+    return message;
+  }
+
+  const inherited = inferHistoryIntent(history);
+  return inherited ? buildInheritedContext(message, history, inherited) : message;
 }
 
 function inferHistoryIntent(history: ChatMessage[]): UserIntent | null {
@@ -247,7 +287,7 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
   }
 
   // Intent carryover for vague follow-ups
-  if (history.length > 0 && isVagueFollowUp(message)) {
+  if (history.length > 0 && (isVagueFollowUp(message) || isEmergencyFollowUp(message))) {
     const inherited = inferHistoryIntent(history);
     // Emergency guidance wins — don't let combined-context live_conditions check override it
     if (inherited === 'emergency_guidance') return { intent: 'emergency_guidance', ragQuery };
