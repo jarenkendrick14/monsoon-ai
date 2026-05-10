@@ -1,4 +1,4 @@
-import PocketBase from 'pocketbase';
+import PocketBase, { ClientResponseError } from 'pocketbase';
 import { config } from './config.js';
 import { logger } from './utils/logger.js';
 
@@ -28,6 +28,22 @@ export async function ensurePbAuth(): Promise<void> {
   const client = getPb();
   if (!client.authStore.isValid) {
     await authenticatePb();
+  }
+}
+
+// Wraps any PocketBase call: if it gets a 401, re-auths once and retries.
+// This handles server-side token invalidation that authStore.isValid misses.
+export async function pbCall<T>(fn: (pb: PocketBase) => Promise<T>): Promise<T> {
+  const client = getPb();
+  try {
+    return await fn(client);
+  } catch (err) {
+    if (err instanceof ClientResponseError && err.status === 401) {
+      logger.warn('PocketBase 401 — re-authenticating');
+      await authenticatePb();
+      return fn(client);
+    }
+    throw err;
   }
 }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
-import { getPb, ensurePbAuth } from '../pb.js';
+import { pbCall } from '../pb.js';
 import { chatbotReply } from '../integrations/gemini.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { getCurrentConditions, getCondition } from '../utils/conditionsCache.js';
@@ -26,16 +26,14 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
 
   const { message, sessionId, locale } = parsed.data;
   const user = req.user!;
-  await ensurePbAuth();
-  const pb = getPb();
 
   let alertLevel: AlertLevel = 'none';
   let alertType: AlertRecord['type'] | null = null;
   try {
-    const activeAlert = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+    const activeAlert = await pbCall(c => c.collection('alerts').getList<AlertRecord>(1, 1, {
       filter: `userId="${user.id}" && resolved=false`,
       sort: '-created',
-    });
+    }));
     alertLevel = activeAlert.items[0]?.level ?? 'none';
     alertType = activeAlert.items[0]?.type ?? null;
   } catch { /* alerts collection may not exist yet */ }
@@ -74,9 +72,9 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
 
   let history: ChatMessage[] = [];
   try {
-    const session = await pb.collection('chat_sessions').getList(1, 1, {
+    const session = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
       filter: `sessionId="${sessionId}" && userId="${user.id}"`,
-    });
+    }));
     if (session.items.length > 0) {
       history = (session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [];
     }
@@ -85,7 +83,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
   let reply;
   try {
     reply = await chatbotReply(message, locale as Locale, context, history);
-  } catch (err) {
+  } catch {
     res.status(503).json({ reply: 'The AI engine is temporarily unavailable. Try texting STATUS to MonsoonAI.', suggestedCommands: ['STATUS', 'EVAC', 'HELP'] });
     return;
   }
@@ -97,18 +95,13 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
   ];
 
   try {
-    const existing = await pb.collection('chat_sessions').getList(1, 1, {
+    const existing = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
       filter: `sessionId="${sessionId}" && userId="${user.id}"`,
-    });
+    }));
     if (existing.items.length > 0) {
-      await pb.collection('chat_sessions').update(existing.items[0].id, { history: newHistory });
+      await pbCall(c => c.collection('chat_sessions').update(existing.items[0].id, { history: newHistory }));
     } else {
-      await pb.collection('chat_sessions').create({
-        userId: user.id,
-        sessionId,
-        locale,
-        history: newHistory,
-      });
+      await pbCall(c => c.collection('chat_sessions').create({ userId: user.id, sessionId, locale, history: newHistory }));
     }
   } catch { /* best-effort */ }
 
@@ -119,11 +112,10 @@ router.get('/api/chat/history', authMiddleware, async (req, res) => {
   const { sessionId } = req.query as { sessionId?: string };
   if (!sessionId) { res.status(400).json({ error: 'sessionId required' }); return; }
   const user = req.user!;
-  const pb = getPb();
   try {
-    const session = await pb.collection('chat_sessions').getList(1, 1, {
+    const session = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
       filter: `sessionId="${sessionId}" && userId="${user.id}"`,
-    });
+    }));
     const history: ChatMessage[] = session.items.length
       ? ((session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [])
       : [];
