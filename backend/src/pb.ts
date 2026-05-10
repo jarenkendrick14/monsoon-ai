@@ -24,6 +24,10 @@ export async function authenticatePb(): Promise<void> {
       logger.info('PocketBase superuser authenticated');
       return;
     } catch (superuserErr) {
+      if (!(superuserErr instanceof ClientResponseError) || superuserErr.status !== 404) {
+        throw superuserErr;
+      }
+
       // Older PocketBase versions use /api/admins/auth-with-password.
       await client.admins.authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
       logger.info('PocketBase admin authenticated');
