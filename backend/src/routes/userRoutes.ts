@@ -80,10 +80,10 @@ router.patch('/api/user/profile', authMiddleware, async (req, res) => {
 
 const HouseholdSchema = z.object({
   householdSize: z.number().min(1).optional(),
-  occupantCount: z.number().min(1).optional(),
+  occupantCount: z.union([z.number().min(1), z.string()]).optional(),
   homeType: z.enum(['bungalow', 'standalone', 'townhouse', 'apartment', 'condo', 'duplex', 'nipa_hut', 'studio']).optional(),
   floor: z.number().min(0).optional(),
-  floorLevel: z.number().min(0).optional(),
+  floorLevel: z.union([z.number().min(0), z.string()]).optional(),
   hasSpecialNeeds: z.boolean().optional(),
   specialNeedsFlags: z.array(z.string()).optional(),
   additionalNote: z.string().optional(),
@@ -92,6 +92,25 @@ const HouseholdSchema = z.object({
   hasInfant: z.boolean().optional(),
   hasPregnant: z.boolean().optional(),
 });
+
+function parseFloorLevel(value: number | string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'number') return value;
+  if (value === 'ground') return 0;
+  if (value === '4+') return 4;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOccupantCount(value: number | string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value === 'number') return value;
+  if (value === '2-4') return 4;
+  if (value === '5-8') return 8;
+  if (value === '9+') return 9;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 router.patch('/api/user/household', authMiddleware, async (req, res) => {
   const parsed = HouseholdSchema.safeParse(req.body);
@@ -103,10 +122,12 @@ router.patch('/api/user/household', authMiddleware, async (req, res) => {
   const pb = getPb();
   const { occupantCount, floorLevel, hasSpecialNeeds, specialNeedsFlags, additionalNote, ...data } = parsed.data;
   const needs = new Set(specialNeedsFlags ?? []);
+  const parsedOccupantCount = parseOccupantCount(occupantCount);
+  const parsedFloorLevel = parseFloorLevel(floorLevel);
   const payload = {
     ...data,
-    ...(occupantCount !== undefined ? { householdSize: occupantCount } : {}),
-    ...(floorLevel !== undefined ? { floor: floorLevel } : {}),
+    ...(parsedOccupantCount !== undefined ? { householdSize: parsedOccupantCount } : {}),
+    ...(parsedFloorLevel !== undefined ? { floor: parsedFloorLevel } : {}),
     ...(hasSpecialNeeds !== undefined ? {
       hasPWD: hasSpecialNeeds && (needs.has('pwd') || needs.has('mobility')),
       hasElderly: hasSpecialNeeds && needs.has('elderly'),
