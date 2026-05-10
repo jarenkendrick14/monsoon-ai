@@ -128,6 +128,11 @@ export function isStatusQuestion(message: string): boolean {
     'should i evacuate', 'should we evacuate', 'do i need to evacuate',
     'do we need to evacuate', 'is it time to evacuate', 'time to evacuate',
     'need to evacuate', 'have to evacuate',
+    'where should we go', 'where can we go', 'where do we go',
+    'where could we go', 'where would we go', 'where will we go',
+    'where to go', 'where to evacuate',
+    'is it time to leave', 'is it safe to leave', 'time to leave',
+    'can we leave', 'should we leave',
   ].some(term => lower.includes(term))) {
     return true;
   }

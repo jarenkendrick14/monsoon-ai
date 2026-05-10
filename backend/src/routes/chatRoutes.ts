@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
-import { getPb } from '../pb.js';
+import { getPb, ensurePbAuth } from '../pb.js';
 import { chatbotReply } from '../integrations/gemini.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { getCurrentConditions, getCondition } from '../utils/conditionsCache.js';
@@ -26,6 +26,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
 
   const { message, sessionId, locale } = parsed.data;
   const user = req.user!;
+  await ensurePbAuth();
   const pb = getPb();
 
   let alertLevel: AlertLevel = 'none';

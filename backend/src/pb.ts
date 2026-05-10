@@ -23,6 +23,14 @@ export async function authenticatePb(): Promise<void> {
   }
 }
 
+// Re-authenticate if the admin token is expired or missing
+export async function ensurePbAuth(): Promise<void> {
+  const client = getPb();
+  if (!client.authStore.isValid) {
+    await authenticatePb();
+  }
+}
+
 export async function ensureCollections(): Promise<void> {
   const client = getPb();
 
