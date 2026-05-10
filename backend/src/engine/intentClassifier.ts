@@ -79,6 +79,7 @@ export function isLiveConditionsQuestion(message: string): boolean {
   const liveIntentTerms = [
     'current', 'today', 'now', 'update', 'alert', 'alerts',
     'status', 'check', 'safe', 'conditions', 'forecast', 'rainfall', 'umbrella',
+    'rain', 'raining', 'weather', 'temperature', 'hot', 'cold', 'humid',
   ];
   const emergencyTerms = [
     'hurt', 'injured', 'injury', 'wound', 'bleed', 'bleeding',
