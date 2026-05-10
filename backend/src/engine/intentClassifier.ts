@@ -57,8 +57,8 @@ function isUnsupportedEmergencyQuestion(message: string): boolean {
   ])) return true;
 
   const hasUnsupportedMedicalTerm = hasIntentWord(message, [
-    'bruise', 'bruised', 'swollen', 'swelling', 'ache', 'aches', 'pain', 'hurts',
-    'injury', 'injured', 'medical', 'doctor', 'hospital',
+    'bruise', 'bruised', 'swollen', 'swelling', 'ache', 'aches',
+    'medical', 'doctor', 'hospital',
     'headache', 'dizzy', 'dizziness', 'nausea', 'nauseous',
     'balls', 'testicle', 'testicles', 'groin',
   ]);
@@ -115,9 +115,12 @@ export function isStatusQuestion(message: string): boolean {
     'need to evacuate', 'have to evacuate',
     'where should we go', 'where can we go', 'where do we go',
     'where could we go', 'where would we go', 'where will we go',
+    'where we could go', 'where we can go', 'where we should go',
     'where to go', 'where to evacuate',
     'is it time to leave', 'is it safe to leave', 'time to leave',
     'can we leave', 'should we leave',
+    'nearby shelter', 'find shelter', 'nearest shelter', 'evacuation shelter',
+    'nearest evac', 'find evac', 'nearby evac',
   ].some(term => lower.includes(term))) {
     return true;
   }
@@ -157,6 +160,8 @@ function hasEmergencySignal(message: string): boolean {
     // everyday disaster safety
     'shower', 'bath', 'generator', 'cook', 'cooking', 'boil', 'tap', 'smell',
     'electric', 'wire', 'gas', 'leak', 'charger', 'appliance',
+    // first aid follow-ups
+    'cold pack', 'ice pack', 'cold compress', 'first aid', 'bandage', 'tourniquet',
     // structural
     'roof', 'wall', 'collapsed', 'collapse',
     // distress
