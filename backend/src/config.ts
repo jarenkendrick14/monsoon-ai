@@ -1,4 +1,11 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+loadEnv();
+loadEnv({ path: resolve(__dirname, '../.env'), override: false });
 
 function require_env(key: string): string {
   const val = process.env[key];

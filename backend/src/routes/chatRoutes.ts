@@ -11,6 +11,8 @@ import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '
 
 const router = Router();
 
+const sessionHistory = new Map<string, ChatMessage[]>();
+
 const ChatSchema = z.object({
   message: z.string().min(1).max(500),
   sessionId: z.string().min(1),
@@ -70,15 +72,8 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     },
   };
 
-  let history: ChatMessage[] = [];
-  try {
-    const session = await pbCall(c => c.collection('chat_sessions').getList(1, 1, {
-      filter: `sessionId="${sessionId}" && userId="${user.id}"`,
-    }));
-    if (session.items.length > 0) {
-      history = (session.items[0] as Record<string, unknown>)['history'] as ChatMessage[] ?? [];
-    }
-  } catch { /* new session */ }
+  const sessionKey = `${user.id}:${sessionId}`;
+  let history: ChatMessage[] = sessionHistory.get(sessionKey) ?? [];
 
   let reply;
   try {

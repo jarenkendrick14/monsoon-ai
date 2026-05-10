@@ -13,12 +13,26 @@ export function getPb(): PocketBase {
 
 export async function authenticatePb(): Promise<void> {
   const client = getPb();
+  if (!config.pb.adminEmail || !config.pb.adminPassword) {
+    throw new Error('Missing PB_ADMIN_EMAIL or PB_ADMIN_PASSWORD. Set them on the backend service.');
+  }
+
   try {
-    // PocketBase v0.23+ uses collection('_superusers') instead of admins
-    await client.collection('_superusers').authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
-    logger.info('PocketBase admin authenticated');
+    try {
+      // PocketBase v0.23+ uses the _superusers auth collection.
+      await client.collection('_superusers').authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
+      logger.info('PocketBase superuser authenticated');
+      return;
+    } catch (superuserErr) {
+      // Older PocketBase versions use /api/admins/auth-with-password.
+      await client.admins.authWithPassword(config.pb.adminEmail, config.pb.adminPassword);
+      logger.info('PocketBase admin authenticated');
+    }
   } catch (err) {
-    logger.error('PocketBase admin auth failed', err);
+    logger.error(
+      'PocketBase admin auth failed. Check that backend PB_URL points to the PocketBase service URL and PB_ADMIN_EMAIL/PB_ADMIN_PASSWORD match the existing PocketBase superuser. If PB has a persistent volume, changing env vars will not reset the saved admin password.',
+      err
+    );
     throw err;
   }
 }

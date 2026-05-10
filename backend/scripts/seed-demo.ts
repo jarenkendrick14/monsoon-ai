@@ -1,4 +1,11 @@
+import { config as loadEnv } from 'dotenv';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import PocketBase from 'pocketbase';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+loadEnv();
+loadEnv({ path: resolve(__dirname, '../.env'), override: false });
 
 const PB_URL = process.env['PB_URL'] ?? 'http://localhost:8090';
 const PB_EMAIL = process.env['PB_ADMIN_EMAIL'] ?? 'admin@monsoon.ai';
