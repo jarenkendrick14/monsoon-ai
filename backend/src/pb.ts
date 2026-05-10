@@ -68,7 +68,11 @@ export async function pbCall<T>(fn: (pb: PocketBase) => Promise<T>): Promise<T> 
 export async function ensureCollections(): Promise<void> {
   const client = getPb();
 
-  await ensureUserFields(client);
+  try {
+    await ensureUserFields(client);
+  } catch (err) {
+    logger.warn('Could not ensure users collection fields; profile updates may fail until schema is repaired', err);
+  }
 
   const collections = [
     {
