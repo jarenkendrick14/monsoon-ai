@@ -4,11 +4,16 @@ import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface CorpusEntry {
+export interface CorpusEntry {
   id: string;
   topic: string;
   keywords: string[];
   text: string;
+}
+
+interface ScoredCorpusEntry {
+  entry: CorpusEntry;
+  score: number;
 }
 
 let corpus: CorpusEntry[] | null = null;
@@ -31,29 +36,36 @@ const RAG_TRIGGERS = [
 
 export function needsRag(message: string): boolean {
   const lower = message.toLowerCase();
-  return RAG_TRIGGERS.some(kw => lower.includes(kw));
+  return RAG_TRIGGERS.some(kw => lower.includes(kw))
+    || getCorpus().some(entry => entry.keywords.some(kw => lower.includes(kw)));
 }
 
-export function retrievePassage(message: string): CorpusEntry | null {
+function scoreCorpus(message: string): ScoredCorpusEntry[] {
   const lower = message.toLowerCase();
   const tokens = lower.split(/\W+/).filter(Boolean);
+  const tokenSet = new Set(tokens);
 
-  let best: CorpusEntry | null = null;
-  let bestScore = 0;
-
-  for (const entry of getCorpus()) {
+  return getCorpus().map(entry => {
     let score = 0;
     for (const kw of entry.keywords) {
-      if (lower.includes(kw)) score += 2;
+      const keywordTokens = kw.split(/\W+/).filter(Boolean);
+      if (lower.includes(kw)) score += 2 + Math.min(keywordTokens.length, 3);
+      if (keywordTokens.length > 1 && keywordTokens.every(token => tokenSet.has(token))) {
+        score += keywordTokens.length;
+      }
     }
     for (const token of tokens) {
       if (entry.keywords.includes(token)) score += 1;
     }
-    if (score > bestScore) {
-      bestScore = score;
-      best = entry;
-    }
-  }
+    return { entry, score };
+  }).filter(item => item.score >= 2)
+    .sort((a, b) => b.score - a.score);
+}
 
-  return bestScore >= 2 ? best : null;
+export function retrievePassages(message: string, limit = 4): CorpusEntry[] {
+  return scoreCorpus(message).slice(0, limit).map(item => item.entry);
+}
+
+export function retrievePassage(message: string): CorpusEntry | null {
+  return retrievePassages(message, 1)[0] ?? null;
 }

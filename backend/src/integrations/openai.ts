@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { ChatMessage, ChatReply, Locale, RiskContext } from '../types/index.js';
-import { needsRag, retrievePassage } from '../engine/ragRetrieval.js';
+import { CorpusEntry, needsRag, retrievePassages } from '../engine/ragRetrieval.js';
 
 let client: GoogleGenerativeAI | null = null;
 
@@ -25,6 +25,36 @@ const ALLOWED_HAZARDS = [
 ] as const;
 
 export type HazardTag = typeof ALLOWED_HAZARDS[number];
+
+function formatRagSources(passages: CorpusEntry[]): string {
+  return passages.map((passage, index) => [
+    `[SOURCE ${index + 1}: ${passage.id} | ${passage.topic}]`,
+    passage.text,
+    `[END SOURCE ${index + 1}]`,
+  ].join('\n')).join('\n\n');
+}
+
+function groundedRagPrompt(
+  message: string,
+  locale: Locale,
+  passages: CorpusEntry[],
+  wordLimit: string
+): string {
+  return `You are MonsoonAI. Answer the user using ONLY the provided sources.
+
+STRICT GROUNDING RULES:
+- Use only facts and instructions that appear in the sources below.
+- Do not add medical, rescue, legal, weather, location, or evacuation advice from general knowledge.
+- If the sources do not contain enough information to answer safely, say: "I cannot verify that from the provided guidance. Call 911 or contact local emergency responders."
+- If the situation may be life-threatening based on the sources, tell the user to call 911 or local emergency responders.
+- Reply in ${LOCALE_NAMES[locale]}.
+- ${wordLimit}
+- Plain text only. No markdown.
+
+${formatRagSources(passages)}
+
+User question: ${message}`;
+}
 
 export async function tagHazards(imageBase64: string, mimeType: string): Promise<HazardTag[]> {
   if (!config.openai.apiKey) return [];
@@ -55,10 +85,13 @@ export async function smsReply(
 
   try {
     if (needsRag(message)) {
-      const passage = retrievePassage(message);
-      if (passage) {
-        const model = getClient().getGenerativeModel({ model: config.openai.model });
-        const prompt = `Answer using ONLY this official text. Under 130 chars. Plain text, no markdown. Reply in ${LOCALE_NAMES[locale]}.\n\n[TEXT]\n${passage.text}\n[END]\n\nQuestion: ${message}`;
+      const passages = retrievePassages(message, 2);
+      if (passages.length > 0) {
+        const model = getClient().getGenerativeModel({
+          model: config.openai.model,
+          generationConfig: { temperature: 0.1 },
+        });
+        const prompt = groundedRagPrompt(message, locale, passages, 'Under 130 characters.');
         const result = await model.generateContent(prompt);
         const reply = result.response.text().trim().replace(/\n/g, ' ');
         return reply.length > 155 ? reply.slice(0, 152) + '...' : reply;
@@ -112,10 +145,13 @@ export async function chatbotReply(
 
   try {
     if (needsRag(message)) {
-      const passage = retrievePassage(message);
-      if (passage) {
-        const ragModel = getClient().getGenerativeModel({ model: config.openai.model });
-        const ragPrompt = `Answer the user's question using ONLY the following official text. Do not extrapolate or add information not present in the text. Reply in ${LOCALE_NAMES[locale]}. Under 80 words. Plain text only.\n\n[OFFICIAL TEXT]\n${passage.text}\n[END OFFICIAL TEXT]\n\nUser question: ${message}`;
+      const passages = retrievePassages(message, 4);
+      if (passages.length > 0) {
+        const ragModel = getClient().getGenerativeModel({
+          model: config.openai.model,
+          generationConfig: { temperature: 0.1 },
+        });
+        const ragPrompt = groundedRagPrompt(message, locale, passages, 'Under 80 words.');
         const ragResult = await ragModel.generateContent(ragPrompt);
         const ragReply = ragResult.response.text();
         return {
@@ -155,8 +191,10 @@ ${evacLine}
 ${condLines}
 
 STRICT RULES:
+- Only use the CURRENT ENGINE VERDICT and LIVE CONDITIONS above
 - DO NOT invent evacuation centers, distances, risk scores, or sensor readings
 - DO NOT perform any calculations — the engine already did this
+- If the user asks for first aid, medical, rescue, or disaster advice that is not covered by the current verdict, say you can only verify the current alert status and they should contact local emergency responders or call 911
 - If alert level is critical or high, you MUST mention the evacuation center above by name
 - Always respond in ${LOCALE_NAMES[locale]}
 - Under 80 words. Plain text only. No markdown, no asterisks.
