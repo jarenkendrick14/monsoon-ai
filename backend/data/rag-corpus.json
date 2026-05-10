@@ -1,3 +1,110 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ae50691dd3d2c583b2a2659c3834486a6248a1c3337f3547f9fc9254f969de46
-size 21924
+[
+  {
+    "id": "rag-001",
+    "topic": "flood_drowning_response",
+    "keywords": ["flood", "floodwater", "drowning", "submerged", "swept", "current", "swim", "floating", "rescue", "river", "canal"],
+    "text": "Scenario: Flood or drowning response. Signs: the person is in floodwater, was swept by current, is coughing after rescue, is not breathing normally, or is unresponsive. Immediate actions: do not enter dangerous water unless trained; call 911 or local rescuers; throw a rope, life ring, branch, bottle, or anything that floats; help from a stable position. Once out, check breathing and responsiveness. If unresponsive and not breathing or only gasping, start CPR if trained and use an AED if available. If breathing, keep the airway open, keep the person warm, and monitor. Do not let wounds touch floodwater. Do not drive, walk, or swim through moving floodwater. Call emergency help for any near-drowning, trouble breathing, injury, confusion, or loss of consciousness. Sources: CDC Floodwater Safety; Red Cross First Aid Steps; existing MonsoonAI flood first-aid note."
+  },
+  {
+    "id": "rag-002",
+    "topic": "vehicle_crash_trauma",
+    "keywords": ["car", "vehicle", "crash", "accident", "collision", "road", "motorcycle", "helmet", "seatbelt", "windshield", "hit head", "head injury", "spine", "neck"],
+    "text": "Scenario: Vehicle crash or road trauma. Signs: crash impact, head/neck/back pain, confusion, vomiting, seizure, weakness, numbness, heavy bleeding, damaged helmet, impaired breathing, or the person was thrown from a vehicle. Immediate actions: check scene safety first; make the crash site visible; call emergency services; do not move the casualty unless there is immediate danger, CPR is needed, or bleeding cannot be controlled. Tell the person not to move and to answer verbally. Keep the airway open and monitor breathing. Control severe bleeding with firm direct pressure. Do not remove a helmet unless trained and needed for airway or CPR. Do not give painkillers for a head injury because they can mask danger signs. Call 911 for any significant crash, suspected head/neck/spine injury, abnormal behavior, vomiting, seizure, heavy bleeding, shock signs, or breathing problems. Sources: Global Road Safety Partnership First Response to Road Crashes; American Red Cross Head, Neck, and Spinal Injury."
+  },
+  {
+    "id": "rag-003",
+    "topic": "crush_injury_collapsed_structure",
+    "keywords": ["crush", "crushed", "trapped", "rubble", "collapsed", "debris", "building", "earthquake", "landslide", "pinned", "entrapment", "rescue"],
+    "text": "Scenario: Crush injury from collapsed structures, debris, vehicles, or prolonged pressure. Signs: a limb or body part is pinned, severe pain or numbness, swelling, bleeding, weakness, confusion, or shock. Immediate actions: call emergency services; remove the crushing force as soon as safely possible; control external bleeding with direct pressure; monitor breathing and responsiveness; keep the person warm and still. If trapped, conserve energy, cover the mouth from dust, tap or signal rescuers, and shout only as a last resort. Do not delay release just to apply a tourniquet. Do not routinely apply a tourniquet before release unless there is actual or suspected life-threatening limb bleeding. Do not light matches near rubble or suspected gas leaks. Call 911 for all crush injuries, prolonged entrapment, life-threatening bleeding, breathing trouble, altered mental status, or shock. Sources: ANZCOR Guideline 9.1.7 First Aid Management of a Crushed Victim; NDRRMC preparedness guidance."
+  },
+  {
+    "id": "rag-004",
+    "topic": "electrical_injury_downed_power_lines",
+    "keywords": ["electric", "electrical", "electrocuted", "electrocution", "shock", "power line", "downed line", "downed power line", "wire", "outlet", "current", "lightning", "generator"],
+    "text": "Scenario: Electrical injury or downed power lines during floods, typhoons, earthquakes, or cleanup. Signs: a person touched a wire, appliance, generator, lightning, or electrified water; burns; confusion; collapse; trouble breathing; no breathing; shock signs. Immediate actions: do not touch the person, wire, vehicle, or water until the power source is isolated. Call 911 and the power company. Stay away from fallen power lines and do not drive through standing water if lines may be in it. If a line falls on a car, stay inside and drive away if possible; warn others not to touch the car. Once the scene is safe, check breathing and responsiveness; start CPR/AED if trained and needed; cool burns with cool running water and cover loosely. Do not use electrical tools while standing in water. Call emergency help for any suspected electric shock. Sources: CDC Electrical Hazards After a Disaster; CDC Floodwater Safety; American Red Cross Lightning Strike Injury."
+  },
+  {
+    "id": "rag-005",
+    "topic": "burns_fire_chemical_electrical",
+    "keywords": ["burn", "burns", "burning", "fire", "scald", "hot water", "flame", "chemical burn", "electrical burn", "blister", "charred", "smoke"],
+    "text": "Scenario: Burns from fire, hot liquids, chemicals, electricity, or post-disaster fires. Signs: red painful skin, swelling, blisters, glossy leaking skin, charred/white/brown/black skin, airway burn, or burn with breathing trouble. Immediate actions: stop the burning if safe; cool minor burns under cool clean running water for 15 to 20 minutes or until pain improves; remove jewelry or clothing only if not stuck; cover with sterile gauze or clean non-fluffy cloth. For chemical burns, flush with large amounts of water and remove contaminated clothing if safe. Do not use ice, butter, ointments, toothpaste, or home remedies. Do not break blisters. Do not attempt to treat serious burns unless trained. Call 911 for burns to face, airway, hands, feet, genitals, joints, large areas, electrical or chemical burns, third-degree signs, breathing problems, infants, elderly people, or shock. Sources: DOH Philippine Health Advisory Burns; Philippine Red Cross Community-Based Health and First Aid Flipchart; Global Road Safety Partnership First Response to Road Crashes."
+  },
+  {
+    "id": "rag-006",
+    "topic": "leptospirosis_waterborne_disease",
+    "keywords": ["leptospirosis", "floodwater", "dirty water", "contaminated", "diarrhea", "vomiting", "cholera", "dehydration", "red eyes", "jaundice", "muscle pain", "ors", "boil water"],
+    "text": "Scenario: Leptospirosis, diarrhea, cholera, or waterborne illness after flood exposure. Signs: fever, headache, chills, muscle aches, red eyes, vomiting, nausea, diarrhea, stomach pain, rash, yellow skin or eyes, or dehydration. Leptospirosis can appear 2 to 30 days after contact with contaminated water or soil. Immediate actions: avoid wading, bathing, swallowing, or drinking floodwater; cover cuts with waterproof bandages; wear boots and protective clothing; keep food, water, and trash covered to reduce rodents. Make water safe by boiling or approved chemical treatment. For diarrhea or vomiting, replace fluid loss with oral rehydration solution and continue feeding or breastfeeding. Do not let open wounds touch floodwater. Seek medical care immediately if leptospirosis is possible, symptoms persist, dehydration appears, or there is yellowing, breathing trouble, severe weakness, or confusion. Sources: CDC Leptospirosis and Flood Prevention; Philippine Red Cross Community-Based Health and First Aid Flipchart."
+  },
+  {
+    "id": "rag-007",
+    "topic": "heatstroke_heat_exhaustion",
+    "keywords": ["heat", "heatstroke", "heat stroke", "overheat", "hot", "temperature", "faint", "dizzy", "collapse", "sweating", "seizure", "dehydrated"],
+    "text": "Scenario: Heatstroke or heat exhaustion during evacuation, cleanup, crowded shelters, or power outages. Signs of heatstroke: confusion, loss of consciousness, seizure, hot skin that may be wet or dry, vomiting, rapid shallow breathing, rapid weak heartbeat, headache, dizziness, weakness, or collapse. Immediate actions: call 911 for heatstroke signs; move the person to shade or a cool area; remove excess clothing; rapidly cool with cold-water immersion if safe, or cold wet cloths, ice packs, fanning, or a cold shower. Continue cooling until EMS arrives or the person improves. For heat exhaustion without severe signs, rest in a cool area and sip water if fully awake. Do not give fluids to an unconscious, confused, vomiting, or seizing person. Watch for shock and breathing changes. Sources: American Red Cross Heat Stroke; existing MonsoonAI heat emergency note."
+  },
+  {
+    "id": "rag-008",
+    "topic": "choking_cpr_unresponsive",
+    "keywords": ["choking", "choke", "airway", "can't breathe", "cannot breathe", "not breathing", "gasping", "cpr", "aed", "unresponsive", "unconscious", "blue lips", "back blows", "abdominal thrusts"],
+    "text": "Scenario: Choking, blocked airway, or unresponsive person not breathing. Signs of choking: weak or no cough, high-pitched noises or no sound, pale or blue skin, unable to speak/cry/cough, panic, or hands at throat. Immediate actions for a responsive adult or child: call for help; give 5 back blows between the shoulder blades; if not improved, give 5 abdominal thrusts; continue cycles until they can cough, cry, speak, or become unresponsive. If unresponsive and not breathing or only gasping, call 911, get an AED, and start CPR if trained. Before rescue breaths, look in the mouth and remove an object only if you see it. Do not do blind finger sweeps. Do not hang a child upside down. Call emergency help for severe choking, blue color, unconsciousness, abnormal breathing, or any CPR need. Sources: American Red Cross Adult/Child Choking; American Red Cross CPR Steps; American Red Cross First Aid Steps."
+  },
+  {
+    "id": "rag-009",
+    "topic": "severe_bleeding_control",
+    "keywords": ["bleeding", "bleed", "blood", "spurting", "hemorrhage", "wound", "cut", "gash", "laceration", "tourniquet", "pressure"],
+    "text": "Scenario: Severe bleeding from cuts, debris, glass, crash trauma, or disaster cleanup. Signs of life-threatening bleeding: blood flowing continuously or spurting, large blood volume, soaked clothing, amputation, or shock signs such as pale cool skin, rapid breathing, confusion, thirst, or weakness. Immediate actions: call 911 for life-threatening bleeding; apply steady firm direct pressure directly over the wound with gauze, cloth, a shirt, or the person's own hand; keep pressure until bleeding stops or advanced help arrives. If trained and bleeding is on an arm or leg, use a tourniquet for life-threatening bleeding. For scalp, neck, shoulder, groin, back, or no-tourniquet situations, use wound packing only if trained. Do not remove embedded objects; stabilize around them. Do not keep lifting the dressing to check. Keep the person warm and monitor breathing. Sources: American Red Cross External Bleeding; Philippine Red Cross Community-Based Health and First Aid Flipchart."
+  },
+  {
+    "id": "rag-010",
+    "topic": "minor_cuts_wounds",
+    "keywords": ["minor cut", "small cut", "wound", "scratch", "abrasion", "scrape", "dirty wound", "infection", "tetanus", "bandage", "dressing"],
+    "text": "Scenario: Minor cuts and wounds. Signs: small cut, scrape, or wound with controllable bleeding, dirt, mild pain, or mild swelling. Immediate actions: wash hands before treating; check that nothing is embedded; rinse dirty wounds under clean running water; pat dry with clean non-fluffy material; clean from the center outward using gauze or antiseptic wipes with a fresh piece each wipe; cover with an adhesive dressing or sterile bandage; elevate if needed to help control bleeding. Watch for infection: increasing pain, redness, swelling, warmth, pus, fever, or red streaking. Do not remove embedded foreign bodies. Do not let floodwater touch the wound. Seek medical advice if there is an embedded object, signs of infection, deep or gaping wound, puncture, animal bite, tetanus risk, or bleeding that will not stop. Sources: DOH Philippine Health Advisory Minor Cuts and Wounds; CDC Floodwater Safety."
+  },
+  {
+    "id": "rag-011",
+    "topic": "fractures_immobilization",
+    "keywords": ["fracture", "broken bone", "bone", "sprain", "strain", "dislocation", "deformed", "swollen", "limb", "rib", "pelvis", "immobilize", "splint"],
+    "text": "Scenario: Suspected fracture, dislocation, sprain, or muscle/bone/joint injury. Signs: pain, swelling, bruising, deformity, popping/snapping sound, grating, unwillingness or inability to move, coldness, numbness, tingling, bone through skin, rib pain with shallow breathing, or shock signs. Immediate actions: treat all significant muscle, bone, and joint injuries as possible fractures; have the person rest and avoid moving or straightening the injured part; apply a cold pack wrapped in a thin dry towel for up to 20 minutes if the skin is closed; control bleeding with direct pressure if open. Do not try to push bones back in or straighten a deformity. Call 911 for head/neck/spine/pelvis/upper-leg injury, open fracture, severe or multiple injuries, shock, trouble breathing, numbness, inability to safely move the person, or a major crash/fall/collapse. Sources: American Red Cross Fractures; Global Road Safety Partnership First Response to Road Crashes."
+  },
+  {
+    "id": "rag-012",
+    "topic": "shock_recognition_treatment",
+    "keywords": ["shock", "pale", "clammy", "cold skin", "rapid pulse", "weak pulse", "thirst", "confused", "restless", "faint", "serious injury"],
+    "text": "Scenario: Shock after serious injury, bleeding, burns, allergic reaction, heat illness, crush injury, or trauma. Signs: rapid weak heartbeat, rapid breathing, pale gray cool or moist skin, confusion, restlessness, irritability, unresponsiveness, nausea, vomiting, excessive thirst, weakness, or collapse. Immediate actions: call 911; treat the cause if trained, especially severe bleeding; have the person lie on their back if comfortable and no head, neck, back, breathing, or injury concern prevents it; keep them from getting cold or overheated; reassure them; continue checking breathing and responsiveness. Do not give food or drink even if thirsty because vomiting or aspiration can occur. Do not move a person with suspected head, neck, or back injury unless needed for safety, CPR, or bleeding control. Sources: American Red Cross Shock; DOH Philippine Health Advisory Burns."
+  },
+  {
+    "id": "rag-013",
+    "topic": "mental_health_panic_disaster",
+    "keywords": ["panic", "panic attack", "anxiety", "stress", "trauma", "afraid", "overwhelmed", "crying", "can't calm", "mental health", "suicide", "distress", "disaster distress", "earthquake panic"],
+    "text": "Scenario: Panic, anxiety, or emotional distress during or after a disaster. Signs: intense fear, crying, shaking, feeling overwhelmed, trouble sleeping or eating, anger, withdrawal, guilt, unexplained aches, hopelessness, or thoughts of self-harm. Immediate actions: move to a safer quieter place if possible; speak calmly; help the person slow down and focus on one immediate practical need; connect them with a trusted person, family member, counselor, health worker, or shelter staff; encourage rest, food, water, and breaks from repeated news exposure. Do not shame, argue, crowd, or force the person to talk. Do not leave someone alone if they may hurt themselves or others. Call emergency services for immediate danger, self-harm, violence, confusion, or inability to stay safe. In the U.S., call or text 988 for suicidal crisis, or SAMHSA Disaster Distress Helpline 1-800-985-5990 for disaster distress. Sources: CDC Coping After a Natural Disaster; SAMHSA Disaster Distress Helpline; WHO Psychological First Aid."
+  },
+  {
+    "id": "rag-014",
+    "topic": "fever_convulsions_child",
+    "keywords": ["fever", "convulsion", "seizure", "febrile", "child fever", "baby fever", "infant fever", "temperature", "chills"],
+    "text": "Scenario: Fever or convulsions, especially in children during evacuation or sheltering. Signs: hot body, chills, weakness, child unable to drink/eat/move normally, or convulsions/seizure-like movements. Immediate actions for fever: give more fluids than usual if the person can drink; remove excess covering if too hot and add covering if cold; monitor closely. For convulsions, protect from injury, move nearby hazards away, do not restrain the person, and do not put anything in the mouth. After the shaking stops, check breathing and responsiveness. Do not force food, drink, or medicine into the mouth during a convulsion. Seek medical care urgently for infants, fever with danger signs, repeated or prolonged convulsions, breathing trouble, dehydration, stiff neck, confusion, rash, or if the person does not recover normally. Sources: Philippine Red Cross Community-Based Health and First Aid Flipchart; American Red Cross First Aid Steps."
+  },
+  {
+    "id": "rag-015",
+    "topic": "pregnancy_emergency_disaster",
+    "keywords": ["pregnant", "pregnancy", "labor", "contractions", "birth", "bleeding pregnancy", "fetal movement", "maternal", "prenatal"],
+    "text": "Scenario: Pregnancy emergency during evacuation, flooding, typhoon, heat, or sheltering. Danger signs: fever or chills of 38 C or higher, foul-smelling vaginal discharge, severe headache or blurred vision, decreased or no fetal movement, vaginal bleeding, severe abdominal pain, convulsions, labor pains, or water breaking before reaching care. Immediate actions: prioritize early evacuation and transport to a health center or hospital with maternity capability; keep the person calm, shaded, hydrated if fully awake, and lying or sitting comfortably; bring prenatal records, medicines, and emergency contacts. Do not delay evacuation until conditions worsen. Do not attempt delivery unless birth is unavoidable and trained help is unavailable. Call 911 or local emergency services for heavy bleeding, severe pain, convulsions, high fever, labor during evacuation, or no fetal movement. Sources: Philippine Red Cross Community-Based Health and First Aid Flipchart; existing MonsoonAI maternal emergency note."
+  },
+  {
+    "id": "rag-016",
+    "topic": "infant_child_dehydration_feeding",
+    "keywords": ["baby", "infant", "child", "kid", "newborn", "breastfeeding", "formula", "milk", "dehydration", "ors", "diarrhea child", "vomiting child"],
+    "text": "Scenario: Infant or child illness, dehydration, feeding, or heat risk in disasters. Signs of dehydration can include unusual sleepiness, inability to drink, persistent vomiting or diarrhea, very dry mouth, sunken eyes, no tears, or reduced urination. Immediate actions: keep infants dry, warm, and shaded; continue breastfeeding when possible, especially if clean water for formula is unavailable; for diarrhea or vomiting, replace fluid loss with oral rehydration solution and continue feeding or breastfeeding. Use only safe boiled or treated water for formula or ORS. Never leave children in vehicles or hot enclosed areas. Do not give fluids to an unconscious or seizing child. Seek medical care urgently for infants with fever, dehydration signs, persistent diarrhea/vomiting, blood in stool, breathing trouble, lethargy, convulsions, or inability to drink. Sources: Philippine Red Cross Community-Based Health and First Aid Flipchart; CDC Healthy Ways to Deal with Stress after a Natural Disaster; existing MonsoonAI child emergency note."
+  },
+  {
+    "id": "rag-017",
+    "topic": "typhoon_wind_signal_impacts",
+    "keywords": ["typhoon", "cyclone", "wind signal", "tcws", "pagasa", "signal 1", "signal 2", "signal 3", "signal 4", "signal 5", "winds", "storm"],
+    "text": "Scenario: PAGASA Tropical Cyclone Wind Signal interpretation. TCWS #1 means winds of 30 to 60 kph may arrive within about 36 hours on first issuance, with no to very light damage expected. TCWS #2 means 61 to 120 kph within about 24 hours, with light to moderate damage. TCWS #3 means 121 to 170 kph within about 18 hours, with moderate to heavy damage. TCWS #4 means 171 to 220 kph within about 12 hours, with heavy to very heavy damage. TCWS #5 means more than 220 kph within about 12 hours, with very heavy to widespread damage. Immediate actions: follow local evacuation and shelter instructions, secure loose items, avoid travel, charge devices, prepare water/food/medicine/documents, and monitor official bulletins. Do not treat lower signal numbers as safe; impacts depend on structure strength, exposure, flooding, and landslide risk. Source: DOST-PAGASA Tropical Cyclone Wind Signals PDF."
+  },
+  {
+    "id": "rag-018",
+    "topic": "evacuation_ndrrmc_response_roles",
+    "keywords": ["evacuate", "evacuation", "shelter", "evacuation center", "go bag", "relief", "ndrrmc", "pdra", "response cluster", "incident command", "state of calamity"],
+    "text": "Scenario: Evacuation and disaster response coordination. Pre-impact actions include risk assessment, emergency preparedness, contingency plan activation, public service continuity, identifying priority needs, activating emergency operations centers, response clusters, and incident management teams. Impact-phase actions focus on life safety, incident stabilization, property preservation, rapid damage assessment and needs analysis, deployment of augmentation teams, and possible state of calamity recommendations. Post-impact actions include concluding emergency response actions, deactivating or downscaling emergency operations and response clusters, early recovery authorization, and post-disaster needs assessment if needed. Citizen action: evacuate immediately when ordered, bring water, food, medicines, documents, charger, flashlight, clothes, and cash; turn off electricity/gas if safe; avoid floodwater and damaged structures. Source: NDRRMC Harmonized Disaster Response Standard Operating Procedures; existing MonsoonAI evacuation note."
+  }
+]
