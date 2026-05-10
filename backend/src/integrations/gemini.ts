@@ -131,7 +131,7 @@ export async function chatbotReply(
     if (classified.intent === 'emergency_guidance') {
       if (classified.passages.length > 0) {
         const structuredReply = await generateStructuredRagReply(
-          getClient(), message, locale, classified.passages, 'chat', classified.ragQuery
+          getClient(), message, locale, classified.passages, 'chat', classified.ragQuery, context
         );
         return {
           reply: structuredReply.answer,

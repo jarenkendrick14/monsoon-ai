@@ -125,6 +125,9 @@ export function isStatusQuestion(message: string): boolean {
     'when can we go back', 'when can i go back', 'safe to go back',
     'return home', 'go back home', 'when is it safe', 'is it safe outside',
     'is it safe to go back', 'is it safe to return',
+    'should i evacuate', 'should we evacuate', 'do i need to evacuate',
+    'do we need to evacuate', 'is it time to evacuate', 'time to evacuate',
+    'need to evacuate', 'have to evacuate',
   ].some(term => lower.includes(term))) {
     return true;
   }
@@ -134,7 +137,7 @@ export function isStatusQuestion(message: string): boolean {
     'fell', 'fallen', 'injured', 'hurt', 'trapped', 'stuck', 'fire', 'burning',
   ]);
   if (hasEmergencyWord) return false;
-  return hasIntentWord(message, ['alert', 'alerts', 'evac', 'evacuation']);
+  return hasIntentWord(message, ['alert', 'alerts', 'evac', 'evacuation', 'evacuate', 'evacuating']);
 }
 
 export function isCasualGreeting(message: string): boolean {

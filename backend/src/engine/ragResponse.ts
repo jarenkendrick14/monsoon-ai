@@ -7,7 +7,7 @@ import {
 } from '@google/generative-ai';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import { Locale } from '../types/index.js';
+import { Locale, RiskContext } from '../types/index.js';
 import { CorpusEntry } from './ragRetrieval.js';
 import { LOCALE_NAMES, GROUNDED_FALLBACKS, SMS_GROUNDED_FALLBACKS } from './replyHelpers.js';
 
@@ -49,18 +49,38 @@ function formatRagSources(passages: CorpusEntry[]): string {
   ].join('\n')).join('\n\n');
 }
 
+function buildUserContextBlock(userContext?: string, riskContext?: RiskContext): string {
+  const lines: string[] = [];
+
+  if (riskContext) {
+    lines.push(`Alert level: ${riskContext.alertLevel}`);
+    if (riskContext.trigger) lines.push(`Alert trigger: ${riskContext.trigger}`);
+    if (riskContext.location) lines.push(`User location: ${riskContext.location}`);
+    if (riskContext.evacCenter) {
+      lines.push(`Nearest evacuation center: ${riskContext.evacCenter.name}, ${riskContext.evacCenter.address} (${riskContext.evacCenter.distKm} km away)`);
+    }
+  }
+
+  if (userContext) lines.push(`Recent messages: ${userContext}`);
+
+  if (lines.length === 0) return '';
+  return `[USER CONTEXT]\n${lines.join('\n')}\n[END USER CONTEXT]\n\n`;
+}
+
 function groundedRagPrompt(
   message: string,
   locale: Locale,
   passages: CorpusEntry[],
   wordLimit: string,
-  userContext?: string
+  userContext?: string,
+  riskContext?: RiskContext
 ): string {
+  const hasEvacCenter = !!riskContext?.evacCenter;
   return `You are MonsoonAI. Answer the user using ONLY the provided sources.
 
 STRICT GROUNDING RULES:
 - Use only facts and instructions that appear in the sources below.
-- Do not add medical, rescue, legal, weather, location, or evacuation advice from general knowledge.
+- Do not add medical, rescue, legal, weather, or evacuation advice from general knowledge.
 - You may personalize wording using user-provided details from the current question and recent user context, such as body part, person, severity words, or pronouns.
 - User-provided details are context for wording and relevance only; safety instructions must still come from the sources.
 - If the user mentions a body part, refer to that body part naturally instead of using generic wording when the source guidance applies.
@@ -69,7 +89,7 @@ STRICT GROUNDING RULES:
 - Order the answer by urgency: immediate danger, call/help, then wound or symptom-specific care.
 - Avoid absolute instructions like "do not move" unless the source clearly supports them and the user context fits; prefer conditional safety wording.
 - If the sources do not contain enough information to answer safely, say: "I cannot verify that from the provided guidance. Call 911 or contact local emergency responders."
-- If the situation may be life-threatening based on the sources, tell the user to call 911 or local emergency responders.
+- If the situation may be life-threatening based on the sources, tell the user to call 911 or local emergency responders.${hasEvacCenter ? '\n- If the sources recommend evacuation, name the evacuation center from USER CONTEXT.' : ''}
 - Reply in ${LOCALE_NAMES[locale]}.
 - ${wordLimit}
 - Return JSON only. No markdown.
@@ -79,7 +99,7 @@ STRICT GROUNDING RULES:
 
 ${formatRagSources(passages)}
 
-${userContext ? `[RECENT USER CONTEXT]\n${userContext}\n[END RECENT USER CONTEXT]\n\n` : ''}User question: ${message}`;
+${buildUserContextBlock(userContext, riskContext)}User question: ${message}`;
 }
 
 function buildRagResponseSchema(passages: CorpusEntry[]): ResponseSchema {
@@ -188,7 +208,8 @@ export async function generateStructuredRagReply(
   locale: Locale,
   passages: CorpusEntry[],
   channel: 'chat' | 'sms',
-  userContext?: string
+  userContext?: string,
+  riskContext?: RiskContext
 ): Promise<StructuredRagReply> {
   const model = client.getGenerativeModel({
     model: config.openai.model,
@@ -200,7 +221,7 @@ export async function generateStructuredRagReply(
     },
   });
   const wordLimit = channel === 'sms' ? 'Under 130 characters.' : 'Under 80 words.';
-  const prompt = groundedRagPrompt(message, locale, passages, wordLimit, userContext);
+  const prompt = groundedRagPrompt(message, locale, passages, wordLimit, userContext, riskContext);
   const result = await model.generateContent(prompt);
   return parseAndValidateRagResponse(result.response.text(), passages, locale, channel);
 }
