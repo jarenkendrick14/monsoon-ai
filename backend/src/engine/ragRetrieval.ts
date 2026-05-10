@@ -29,27 +29,40 @@ function getCorpus(): CorpusEntry[] {
 const RAG_TRIGGERS = [
   'hurt', 'injured', 'injury', 'sick', 'fever', 'wound', 'bleed', 'bleeding',
   'burn', 'burning', 'pain', 'baby', 'infant', 'pregnant', 'food', 'water',
-  'drink', 'shelter', 'trapped', 'stuck', 'help', 'drowning', 'diarrhea',
+  'drink', 'shelter', 'trapped', 'stuck', 'drowning', 'diarrhea',
   'vomiting', 'cut', 'smoke', 'haze', 'asthma', 'evacuate', 'evacuation',
   'collapse', 'debris', 'heat', 'heatstroke', 'elderly', 'disabled',
+  'broke', 'broken', 'fracture', 'sprain', 'dislocation',
 ];
+
+function tokenize(text: string): string[] {
+  return text.toLowerCase().split(/\W+/).filter(Boolean);
+}
+
+function keywordMatches(keyword: string, lower: string, tokenSet: Set<string>): boolean {
+  const keywordTokens = tokenize(keyword);
+  if (keywordTokens.length === 0) return false;
+  if (keywordTokens.length === 1) return tokenSet.has(keywordTokens[0]);
+  return lower.includes(keyword.toLowerCase()) || keywordTokens.every(token => tokenSet.has(token));
+}
 
 export function needsRag(message: string): boolean {
   const lower = message.toLowerCase();
-  return RAG_TRIGGERS.some(kw => lower.includes(kw))
-    || getCorpus().some(entry => entry.keywords.some(kw => lower.includes(kw)));
+  const tokenSet = new Set(tokenize(message));
+  return RAG_TRIGGERS.some(kw => tokenSet.has(kw))
+    || getCorpus().some(entry => entry.keywords.some(kw => keywordMatches(kw, lower, tokenSet)));
 }
 
 function scoreCorpus(message: string): ScoredCorpusEntry[] {
   const lower = message.toLowerCase();
-  const tokens = lower.split(/\W+/).filter(Boolean);
+  const tokens = tokenize(message);
   const tokenSet = new Set(tokens);
 
   return getCorpus().map(entry => {
     let score = 0;
     for (const kw of entry.keywords) {
-      const keywordTokens = kw.split(/\W+/).filter(Boolean);
-      if (lower.includes(kw)) score += 2 + Math.min(keywordTokens.length, 3);
+      const keywordTokens = tokenize(kw);
+      if (keywordMatches(kw, lower, tokenSet)) score += 2 + Math.min(keywordTokens.length, 3);
       if (keywordTokens.length > 1 && keywordTokens.every(token => tokenSet.has(token))) {
         score += keywordTokens.length;
       }

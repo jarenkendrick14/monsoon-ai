@@ -127,6 +127,117 @@ function buildRagQuery(message: string, history: ChatMessage[]): string {
   return recentUserContext || message;
 }
 
+function isLiveConditionsQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  const triviaStarters = ['who is', 'who invented', 'what is', 'when was', 'where is', 'why is'];
+  if (triviaStarters.some(starter => lower.startsWith(starter))
+    && !['current', 'today', 'now', 'status', 'check'].some(term => lower.includes(term))) {
+    return false;
+  }
+  const conditionTerms = [
+    'weather',
+    'umbrella',
+    'rain',
+    'rainfall',
+    'forecast',
+    'condition',
+    'conditions',
+    'temperature',
+    'outside',
+  ];
+  const liveIntentTerms = [
+    'current',
+    'today',
+    'now',
+    'update',
+    'alert',
+    'alerts',
+    'status',
+    'check',
+    'safe',
+    'conditions',
+    'forecast',
+    'rainfall',
+    'umbrella',
+  ];
+  const emergencyTerms = [
+    'hurt',
+    'injured',
+    'injury',
+    'wound',
+    'bleed',
+    'bleeding',
+    'burn',
+    'cut',
+    'pain',
+    'sick',
+    'fever',
+    'heatstroke',
+    'heat stroke',
+  ];
+  return conditionTerms.some(term => lower.includes(term))
+    && liveIntentTerms.some(term => lower.includes(term))
+    && !emergencyTerms.some(term => lower.includes(term));
+}
+
+function isStatusQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  return [
+    'status',
+    'check conditions',
+    'weather update',
+    'alert',
+    'alerts',
+    'is it safe',
+    'evac',
+    'evacuation',
+  ].some(term => lower.includes(term));
+}
+
+function isCasualGreeting(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  return [
+    'hi',
+    'hello',
+    'hey',
+    'how are you',
+    'how r u',
+    'sup',
+    'yo',
+  ].some(term => lower === term || lower.startsWith(`${term}?`));
+}
+
+function isOutOfScopeQuestion(message: string): boolean {
+  const lower = message.toLowerCase();
+  const questionStarters = ['who is', 'what is', 'when was', 'where is', 'why is', 'how do i'];
+  if (!questionStarters.some(starter => lower.startsWith(starter))) return false;
+  return !isLiveConditionsQuestion(message) && !needsRag(message);
+}
+
+function casualReply(locale: Locale): ChatReply {
+  const replies: Record<Locale, string> = {
+    en: "I'm here and ready. Ask me about weather, alerts, evacuation, or emergency first aid.",
+    tl: 'Nandito ako at handa. Magtanong tungkol sa panahon, alerto, evacuation, o emergency first aid.',
+    vi: 'Tôi sẵn sàng. Hãy hỏi về thời tiết, cảnh báo, sơ tán hoặc sơ cứu khẩn cấp.',
+  };
+  return {
+    reply: replies[locale],
+    suggestedCommands: ['Check conditions', 'Find evac center'],
+  };
+}
+
+function outOfScopeReply(locale: Locale): ChatReply {
+  const replies: Record<Locale, string> = {
+    en: "I'm focused on disaster readiness and emergency guidance, so I can't verify general trivia here. Ask me about local conditions, evacuation, or first aid.",
+    tl: 'Nakatuon ako sa disaster readiness at emergency guidance, kaya hindi ko ma-verify ang general trivia rito. Magtanong tungkol sa local conditions, evacuation, o first aid.',
+    vi: 'Tôi tập trung vào sẵn sàng ứng phó thiên tai và hướng dẫn khẩn cấp, nên không xác minh câu hỏi kiến thức chung ở đây. Hãy hỏi về điều kiện địa phương, sơ tán hoặc sơ cứu.',
+  };
+  return {
+    reply: replies[locale],
+    suggestedCommands: ['Check conditions', 'Find evac center'],
+  };
+}
+
 function buildRagResponseSchema(passages: CorpusEntry[]): ResponseSchema {
   return {
     type: SchemaType.OBJECT,
@@ -279,7 +390,7 @@ export async function smsReply(
   if (!config.openai.apiKey) return 'Service unavailable. Call 911 for emergencies.';
 
   try {
-    if (needsRag(message)) {
+    if (!isLiveConditionsQuestion(message) && needsRag(message)) {
       const passages = retrievePassages(message, 2);
       if (passages.length > 0) {
         const structuredReply = await generateStructuredRagReply(message, locale, passages, 'sms');
@@ -336,7 +447,7 @@ export async function chatbotReply(
 
   try {
     const ragQuery = buildRagQuery(message, history);
-    if (needsRag(ragQuery)) {
+    if (!isLiveConditionsQuestion(message) && needsRag(ragQuery)) {
       const passages = retrievePassages(ragQuery, 4);
       if (passages.length > 0) {
         const structuredReply = await generateStructuredRagReply(message, locale, passages, 'chat', ragQuery);
@@ -351,6 +462,14 @@ export async function chatbotReply(
           suggestedCommands: fallback.suggestedCommands,
         };
       }
+    }
+
+    if (isCasualGreeting(message)) {
+      return casualReply(locale);
+    }
+
+    if (isOutOfScopeQuestion(message) && !isStatusQuestion(message)) {
+      return outOfScopeReply(locale);
     }
 
     const evacLine = context.evacCenter

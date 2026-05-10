@@ -2,7 +2,7 @@
   {
     "id": "rag-001",
     "topic": "flood_drowning_response",
-    "keywords": ["flood", "floodwater", "drowning", "submerged", "swept", "current", "swim", "floating", "rescue", "river", "canal"],
+    "keywords": ["flood", "floodwater", "drowning", "submerged", "swept", "swim", "floating", "rescue", "river", "canal"],
     "text": "Scenario: Flood or drowning response. Signs: the person is in floodwater, was swept by current, is coughing after rescue, is not breathing normally, or is unresponsive. Immediate actions: do not enter dangerous water unless trained; call 911 or local rescuers; throw a rope, life ring, branch, bottle, or anything that floats; help from a stable position. Once out, check breathing and responsiveness. If unresponsive and not breathing or only gasping, start CPR if trained and use an AED if available. If breathing, keep the airway open, keep the person warm, and monitor. Do not let wounds touch floodwater. Do not drive, walk, or swim through moving floodwater. Call emergency help for any near-drowning, trouble breathing, injury, confusion, or loss of consciousness. Sources: CDC Floodwater Safety; Red Cross First Aid Steps; existing MonsoonAI flood first-aid note."
   },
   {
@@ -20,7 +20,7 @@
   {
     "id": "rag-004",
     "topic": "electrical_injury_downed_power_lines",
-    "keywords": ["electric", "electrical", "electrocuted", "electrocution", "shock", "power line", "downed line", "downed power line", "wire", "outlet", "current", "lightning", "generator"],
+    "keywords": ["electric", "electrical", "electrocuted", "electrocution", "shock", "power line", "downed line", "downed power line", "wire", "outlet", "lightning", "generator"],
     "text": "Scenario: Electrical injury or downed power lines during floods, typhoons, earthquakes, or cleanup. Signs: a person touched a wire, appliance, generator, lightning, or electrified water; burns; confusion; collapse; trouble breathing; no breathing; shock signs. Immediate actions: do not touch the person, wire, vehicle, or water until the power source is isolated. Call 911 and the power company. Stay away from fallen power lines and do not drive through standing water if lines may be in it. If a line falls on a car, stay inside and drive away if possible; warn others not to touch the car. Once the scene is safe, check breathing and responsiveness; start CPR/AED if trained and needed; cool burns with cool running water and cover loosely. Do not use electrical tools while standing in water. Call emergency help for any suspected electric shock. Sources: CDC Electrical Hazards After a Disaster; CDC Floodwater Safety; American Red Cross Lightning Strike Injury."
   },
   {
@@ -62,7 +62,7 @@
   {
     "id": "rag-011",
     "topic": "fractures_immobilization",
-    "keywords": ["fracture", "broken bone", "bone", "sprain", "strain", "dislocation", "deformed", "swollen", "limb", "rib", "pelvis", "immobilize", "splint"],
+    "keywords": ["fracture", "broken", "broke", "broken bone", "bone", "sprain", "strain", "dislocation", "deformed", "swollen", "limb", "toe", "toes", "foot", "feet", "ankle", "rib", "pelvis", "immobilize", "splint"],
     "text": "Scenario: Suspected fracture, dislocation, sprain, or muscle/bone/joint injury. Signs: pain, swelling, bruising, deformity, popping/snapping sound, grating, unwillingness or inability to move, coldness, numbness, tingling, bone through skin, rib pain with shallow breathing, or shock signs. Immediate actions: treat all significant muscle, bone, and joint injuries as possible fractures; have the person rest and avoid moving or straightening the injured part; apply a cold pack wrapped in a thin dry towel for up to 20 minutes if the skin is closed; control bleeding with direct pressure if open. Do not try to push bones back in or straighten a deformity. Call 911 for head/neck/spine/pelvis/upper-leg injury, open fracture, severe or multiple injuries, shock, trouble breathing, numbness, inability to safely move the person, or a major crash/fall/collapse. Sources: American Red Cross Fractures; Global Road Safety Partnership First Response to Road Crashes."
   },
   {
