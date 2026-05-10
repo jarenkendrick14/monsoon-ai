@@ -55,10 +55,24 @@ function isEvacuationPrepQuestion(message: string): boolean {
 
 function isUnsupportedEmergencyQuestion(message: string): boolean {
   const lower = message.trim().toLowerCase();
-  if (lower === 'help me' || lower === 'help' || lower === 'please help') return true;
+
+  // repeated/stressed help cries
+  if (/^(help\s*[!?]*\s*){1,}$/i.test(lower) || lower === 'help me' || lower === 'please help') return true;
+
+  // existential distress
+  if (hasIntentPhrase(message, [
+    'going to die', 'gonna die', 'we will die', 'going to drown',
+    'nobody is coming', 'nobody comes', 'no one is coming', 'no one comes',
+    'cant find my family', "can't find my family", 'lost my family',
+    'cant find my child', "can't find my child", 'missing child',
+    'stopped moving', 'not moving', 'stopped breathing', 'not responding',
+    'wont stop', "won't stop", 'water is rising', 'water keeps rising',
+    'water is very high', 'water is getting high',
+  ])) return true;
+
   const hasUnsupportedMedicalTerm = hasIntentWord(message, [
     'bruise', 'bruised', 'swollen', 'swelling', 'ache', 'aches', 'pain', 'hurts',
-    'hurt', 'injury', 'injured', 'medical', 'doctor', 'hospital',
+    'injury', 'injured', 'medical', 'doctor', 'hospital',
     'headache', 'dizzy', 'dizziness', 'nausea', 'nauseous',
     'balls', 'testicle', 'testicles', 'groin',
   ]);
@@ -66,10 +80,7 @@ function isUnsupportedEmergencyQuestion(message: string): boolean {
     'what do i do', 'what should i do', 'what do we do', 'what should we do',
     'need help', 'help me', 'what now', 'what do now',
   ]);
-  const hasEmergencyContext = hasIntentWord(message, [
-    'emergency', 'injured', 'injury', 'hurt', 'hurts', 'pain', 'sick', 'wounded',
-  ]);
-  return hasUnsupportedMedicalTerm || asksForHelp || (asksForHelp && hasEmergencyContext);
+  return hasUnsupportedMedicalTerm || asksForHelp;
 }
 
 export function isLiveConditionsQuestion(message: string): boolean {

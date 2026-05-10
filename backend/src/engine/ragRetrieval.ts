@@ -42,6 +42,11 @@ const RAG_TRIGGERS = [
   'crash', 'accident', 'crashed', 'hit',
   // electrical / gas
   'electric', 'electrocuted', 'wire', 'wires', 'sparks', 'gas', 'leak', 'leaking',
+  // distress / unresponsive
+  'unresponsive', 'unconscious', 'moving', 'responding', 'breathing',
+  'dying', 'die', 'drown', 'drowning',
+  // missing persons in disaster
+  'missing', 'lost', 'family', 'child', 'children',
 ];
 
 function tokenize(text: string): string[] {
