@@ -50,13 +50,13 @@
   {
     "id": "rag-009",
     "topic": "severe_bleeding_control",
-    "keywords": ["bleeding", "bleed", "blood", "spurting", "hemorrhage", "wound", "cut", "gash", "laceration", "tourniquet", "pressure"],
+    "keywords": ["bleeding", "bleed", "blood", "spurting", "hemorrhage", "wound", "wounds", "wounded", "cut", "gash", "laceration", "tourniquet", "pressure"],
     "text": "Scenario: Severe bleeding from cuts, debris, glass, crash trauma, or disaster cleanup. Signs of life-threatening bleeding: blood flowing continuously or spurting, large blood volume, soaked clothing, amputation, or shock signs such as pale cool skin, rapid breathing, confusion, thirst, or weakness. Immediate actions: call 911 for life-threatening bleeding; apply steady firm direct pressure directly over the wound with gauze, cloth, a shirt, or the person's own hand; keep pressure until bleeding stops or advanced help arrives. If trained and bleeding is on an arm or leg, use a tourniquet for life-threatening bleeding. For scalp, neck, shoulder, groin, back, or no-tourniquet situations, use wound packing only if trained. Do not remove embedded objects; stabilize around them. Do not keep lifting the dressing to check. Keep the person warm and monitor breathing. Sources: American Red Cross External Bleeding; Philippine Red Cross Community-Based Health and First Aid Flipchart."
   },
   {
     "id": "rag-010",
     "topic": "minor_cuts_wounds",
-    "keywords": ["minor cut", "small cut", "cut", "finger", "fingers", "hand", "hands", "wound", "scratch", "abrasion", "scrape", "dirty wound", "infection", "tetanus", "bandage", "dressing"],
+    "keywords": ["minor cut", "small cut", "cut", "finger", "fingers", "hand", "hands", "wound", "wounds", "wounded", "scratch", "abrasion", "scrape", "dirty wound", "infection", "tetanus", "bandage", "dressing"],
     "text": "Scenario: Minor cuts and wounds. Signs: small cut, scrape, or wound with controllable bleeding, dirt, mild pain, or mild swelling. Immediate actions: wash hands before treating; check that nothing is embedded; rinse dirty wounds under clean running water; pat dry with clean non-fluffy material; clean from the center outward using gauze or antiseptic wipes with a fresh piece each wipe; cover with an adhesive dressing or sterile bandage; elevate if needed to help control bleeding. Watch for infection: increasing pain, redness, swelling, warmth, pus, fever, or red streaking. Do not remove embedded foreign bodies. Do not let floodwater touch the wound. Seek medical advice if there is an embedded object, signs of infection, deep or gaping wound, puncture, animal bite, tetanus risk, or bleeding that will not stop. Sources: DOH Philippine Health Advisory Minor Cuts and Wounds; CDC Floodwater Safety."
   },
   {

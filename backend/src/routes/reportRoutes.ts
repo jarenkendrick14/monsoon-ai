@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
-import { tagHazards } from '../integrations/openai.js';
+import { tagHazards } from '../integrations/gemini.js';
 import { logger } from '../utils/logger.js';
 import multer from 'multer';
 

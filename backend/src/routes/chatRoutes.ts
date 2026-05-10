@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
-import { chatbotReply } from '../integrations/openai.js';
+import { chatbotReply } from '../integrations/gemini.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { getCurrentConditions, getCondition } from '../utils/conditionsCache.js';
 import type { OpenMeteoData } from '../integrations/openmeteo.js';

@@ -5,7 +5,7 @@ import { getCurrentConditions } from '../utils/conditionsCache.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
-import { smsReply } from '../integrations/openai.js';
+import { smsReply } from '../integrations/gemini.js';
 import type { UserRecord, AlertRecord, AlertLevel, RiskContext, Locale } from '../types/index.js';
 
 const router = Router();
