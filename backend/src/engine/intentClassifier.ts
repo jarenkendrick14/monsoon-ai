@@ -79,7 +79,7 @@ export function isLiveConditionsQuestion(message: string): boolean {
 
   const triviaStarters = ['who is', 'who invented', 'what is', 'when was', 'where is', 'why is'];
   if (triviaStarters.some(starter => lower.startsWith(starter))
-    && !['current', 'today', 'now', 'status', 'check'].some(term => lower.includes(term))) {
+    && !['current', 'today', 'now', 'status', 'check', 'temperature', 'outside', 'weather'].some(term => lower.includes(term))) {
     return false;
   }
   const conditionTerms = [
@@ -121,9 +121,16 @@ export function isStatusQuestion(message: string): boolean {
     'can we leave', 'should we leave',
     'nearby shelter', 'find shelter', 'nearest shelter', 'evacuation shelter',
     'nearest evac', 'find evac', 'nearby evac',
+    'is it hot', 'is it cold', 'is it warm', 'is it humid',
+    'how hot', 'how cold', 'how warm', 'how humid',
+    'what is the temperature', "what's the temperature",
+    'temperature outside', 'temperature today', 'temperature right now',
   ].some(term => lower.includes(term))) {
     return true;
   }
+  // "is it safe" alone is a status check; "is it safe to shower" is emergency_guidance
+  if (/\bis it safe[?.]?\s*$/.test(lower)) return true;
+
   const hasEmergencyWord = hasIntentWord(message, [
     'blocked', 'collapsed', 'closed', 'landslide', 'full',
     'fell', 'fallen', 'injured', 'hurt', 'trapped', 'stuck', 'fire', 'burning',
@@ -178,6 +185,9 @@ function isVagueFollowUp(message: string): boolean {
     'where', 'and then', 'then what', 'what about', 'how about',
     'can we go', 'could we go', 'should we go', 'what if',
     'is that', 'is there', 'after that', 'what next',
+    // confirmation follow-ups
+    'u sure', 'you sure', 'are you sure', 'r u sure',
+    'really', 'for real', 'seriously', 'you certain',
   ].some(p => lower.includes(p));
 }
 
