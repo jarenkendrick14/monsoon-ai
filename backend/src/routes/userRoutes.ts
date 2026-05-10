@@ -1,11 +1,16 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { ClientResponseError } from 'pocketbase';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { computeInaSAFEScore } from '../engine/inasafeScore.js';
 import type { UserRecord } from '../types/index.js';
 
 const router = Router();
+
+function isMissingPocketBaseRecord(err: unknown): boolean {
+  return err instanceof ClientResponseError && err.status === 404;
+}
 
 router.get('/api/user/profile', authMiddleware, async (req, res) => {
   const user = req.user!;
@@ -74,8 +79,16 @@ router.patch('/api/user/profile', authMiddleware, async (req, res) => {
     ...(fullName ? { name: fullName } : {}),
     ...(phone ? { mobile: phone } : {}),
   };
-  const updated = await pb.collection('users').update(req.user!.id, payload);
-  res.json({ success: true, user: updated });
+  try {
+    const updated = await pb.collection('users').update(req.user!.id, payload);
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    if (isMissingPocketBaseRecord(err)) {
+      res.status(401).json({ error: 'User session is stale. Please sign in again.' });
+      return;
+    }
+    throw err;
+  }
 });
 
 const HouseholdSchema = z.object({
@@ -135,8 +148,16 @@ router.patch('/api/user/household', authMiddleware, async (req, res) => {
       hasPregnant: hasSpecialNeeds && needs.has('pregnant'),
     } : {}),
   };
-  const updated = await pb.collection('users').update(req.user!.id, payload);
-  res.json({ success: true, user: updated });
+  try {
+    const updated = await pb.collection('users').update(req.user!.id, payload);
+    res.json({ success: true, user: updated });
+  } catch (err) {
+    if (isMissingPocketBaseRecord(err)) {
+      res.status(401).json({ error: 'User session is stale. Please sign in again.' });
+      return;
+    }
+    throw err;
+  }
 });
 
 router.get('/api/user/risk-summary', authMiddleware, async (req, res) => {
