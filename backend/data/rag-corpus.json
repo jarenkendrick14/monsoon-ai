@@ -20,7 +20,7 @@
   {
     "id": "rag-004",
     "topic": "electrical_injury_downed_power_lines",
-    "keywords": ["electric", "electrical", "electrocuted", "electrocution", "shock", "power line", "downed line", "downed power line", "wire", "outlet", "lightning", "generator"],
+    "keywords": ["electric", "electrical", "electrocuted", "electrocution", "shock", "power line", "downed line", "downed power line", "wire", "outlet", "lightning", "generator", "shower", "bath", "bathing", "charger", "appliance", "power out", "no power", "lights out"],
     "text": "Scenario: Electrical injury or downed power lines during floods, typhoons, earthquakes, or cleanup. Signs: a person touched a wire, appliance, generator, lightning, or electrified water; burns; confusion; collapse; trouble breathing; no breathing; shock signs. Immediate actions: do not touch the person, wire, vehicle, or water until the power source is isolated. Call 911 and the power company. Stay away from fallen power lines and do not drive through standing water if lines may be in it. If a line falls on a car, stay inside and drive away if possible; warn others not to touch the car. Once the scene is safe, check breathing and responsiveness; start CPR/AED if trained and needed; cool burns with cool running water and cover loosely. Do not use electrical tools while standing in water. Call emergency help for any suspected electric shock. Sources: CDC Electrical Hazards After a Disaster; CDC Floodwater Safety; American Red Cross Lightning Strike Injury."
   },
   {
@@ -32,7 +32,7 @@
   {
     "id": "rag-006",
     "topic": "leptospirosis_waterborne_disease",
-    "keywords": ["leptospirosis", "floodwater", "drink floodwater", "drinking floodwater", "safe water", "dirty water", "contaminated", "diarrhea", "vomiting", "cholera", "dehydration", "red eyes", "jaundice", "muscle pain", "ors", "boil water"],
+    "keywords": ["leptospirosis", "floodwater", "drink floodwater", "drinking floodwater", "safe water", "dirty water", "contaminated", "diarrhea", "vomiting", "cholera", "dehydration", "red eyes", "jaundice", "muscle pain", "ors", "boil water", "cook", "cooking", "food safe", "safe to eat", "food safety", "tap water", "drinking water"],
     "text": "Scenario: Leptospirosis, diarrhea, cholera, or waterborne illness after flood exposure. Signs: fever, headache, chills, muscle aches, red eyes, vomiting, nausea, diarrhea, stomach pain, rash, yellow skin or eyes, or dehydration. Leptospirosis can appear 2 to 30 days after contact with contaminated water or soil. Immediate actions: avoid wading, bathing, swallowing, or drinking floodwater; cover cuts with waterproof bandages; wear boots and protective clothing; keep food, water, and trash covered to reduce rodents. Make water safe by boiling or approved chemical treatment. For diarrhea or vomiting, replace fluid loss with oral rehydration solution and continue feeding or breastfeeding. Do not let open wounds touch floodwater. Seek medical care immediately if leptospirosis is possible, symptoms persist, dehydration appears, or there is yellowing, breathing trouble, severe weakness, or confusion. Sources: CDC Leptospirosis and Flood Prevention; Philippine Red Cross Community-Based Health and First Aid Flipchart."
   },
   {

@@ -121,7 +121,11 @@ export function isStatusQuestion(message: string): boolean {
   if (['status', 'weather', 'conditions', 'alerts', 'alert', 'evac', 'evacuation', 'flood'].includes(exact)) {
     return true;
   }
-  if (['status', 'check conditions', 'weather update', 'is it safe'].some(term => lower.includes(term))) {
+  if (['status', 'check conditions', 'weather update',
+    'when can we go back', 'when can i go back', 'safe to go back',
+    'return home', 'go back home', 'when is it safe', 'is it safe outside',
+    'is it safe to go back', 'is it safe to return',
+  ].some(term => lower.includes(term))) {
     return true;
   }
   // don't treat "evacuation" as a status keyword if paired with emergency words
