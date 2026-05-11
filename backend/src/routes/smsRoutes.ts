@@ -55,7 +55,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
     switch (keyword) {
       case 'STATUS': {
         if (!user) {
-          reply = sms(['[MonsoonAI] Not registered. Sign up at monsoon-ai.app to get your risk status. Reply HELP for commands.']);
+          reply = sms(['[MonsoonAI] Not registered yet. Register in the app to get risk status. Reply HELP for commands.']);
           break;
         }
         let alerts;
@@ -80,7 +80,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
       case 'EVAC': {
         if (!user) {
-          reply = sms(['[MonsoonAI] Not registered. Sign up at monsoon-ai.app to find your evac center.']);
+          reply = sms(['[MonsoonAI] Not registered yet. Register in the app to find your evac center.']);
           break;
         }
         const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
