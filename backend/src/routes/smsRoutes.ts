@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getPb } from '../pb.js';
-import { sendSms } from '../integrations/semaphore.js';
+import { isHttpSmsWebhook, normalizeInboundSms, sendSms, verifyHttpSmsWebhook } from '../integrations/sms.js';
 import { getCurrentConditions } from '../utils/conditionsCache.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
@@ -17,9 +17,24 @@ function sms(parts: string[]): string {
 }
 
 router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
-  const body = req.body as Record<string, string>;
-  const from: string = body['from'] ?? body['From'] ?? '';
-  const rawMessage: string = body['message'] ?? body['Body'] ?? '';
+  if (isHttpSmsWebhook(req.body) && !verifyHttpSmsWebhook(req)) {
+    res.status(401).json({ error: 'Invalid httpSMS webhook signature' });
+    return;
+  }
+
+  const inbound = normalizeInboundSms(req.body);
+  if (!inbound.shouldProcess) {
+    res.status(200).json({ success: true, ignored: inbound.eventType ?? 'unknown' });
+    return;
+  }
+
+  const from = inbound.from;
+  const rawMessage = inbound.message;
+  if (!from || !rawMessage.trim()) {
+    res.status(400).json({ error: 'Missing SMS sender or message' });
+    return;
+  }
+
   const keyword = rawMessage.trim().toUpperCase().split(/\s+/)[0];
 
   res.status(200).json({ success: true });

@@ -61,8 +61,19 @@ export const config = {
     phoneNumber: optional_env('TWILIO_PHONE_NUMBER', ''),
   },
 
+  sms: {
+    provider: optional_env('SMS_PROVIDER', 'semaphore') as 'semaphore' | 'httpsms' | 'twilio',
+  },
+
   semaphore: {
     apiKey: optional_env('SEMAPHORE_API_KEY', ''),
     senderName: optional_env('SEMAPHORE_SENDER_NAME', 'MonsoonAI'),
+  },
+
+  httpsms: {
+    apiKey: optional_env('HTTPSMS_API_KEY', ''),
+    phoneNumber: optional_env('HTTPSMS_PHONE_NUMBER', ''),
+    webhookSigningKey: optional_env('HTTPSMS_WEBHOOK_SIGNING_KEY', ''),
+    baseUrl: optional_env('HTTPSMS_BASE_URL', 'https://api.httpsms.com/v1'),
   },
 } as const;

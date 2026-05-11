@@ -1,6 +1,6 @@
 import { getPb } from '../pb.js';
 import { getCondition } from '../utils/conditionsCache.js';
-import { sendBulkSms } from '../integrations/semaphore.js';
+import { sendBulkSms } from '../integrations/sms.js';
 import { countHotspotsNear, FirmsHotspot } from '../integrations/firms.js';
 import { logger } from '../utils/logger.js';
 import type { UserRecord } from '../types/index.js';

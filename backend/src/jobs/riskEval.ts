@@ -9,7 +9,7 @@ import type { PagasaData } from '../integrations/pagasa.js';
 import type { FirmsHotspot } from '../integrations/firms.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { countHotspotsNear } from '../integrations/firms.js';
-import { sendSms } from '../integrations/semaphore.js';
+import { sendSms } from '../integrations/sms.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 
 export async function runRiskEval(): Promise<void> {

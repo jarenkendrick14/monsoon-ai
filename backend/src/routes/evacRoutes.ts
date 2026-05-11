@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { findNearestCenter, getEvacCenters, distanceKm } from '../integrations/evacCenters.js';
 import { computeEvacWindow } from '../engine/evacWindow.js';
-import { sendSms } from '../integrations/semaphore.js';
+import { sendSms } from '../integrations/sms.js';
 
 const router = Router();
 
