@@ -149,6 +149,20 @@ function smsChecklist(context: RiskContext): string {
   return sms([`[MonsoonAI] Checklist: ${items.slice(0, 6).join(', ')}. Avoid floodwater. Reply EVAC for route.`]);
 }
 
+export function isSmsDisasterModeEnabled(): boolean {
+  return config.sms.disasterMode === 'critical';
+}
+
+export function smsCriticalStatusReply(context: RiskContext): string {
+  const center = context.evacCenter?.name ?? 'nearest evac center';
+  const rainfall = context.conditions?.rainfall ?? DISASTER_SCENARIO.rainfall24h;
+  const river = context.conditions?.riverLevel ?? DISASTER_SCENARIO.riverLevel;
+  return sms([
+    `[MonsoonAI] CRITICAL FLOOD: ${rainfall}mm/24h rain, river ${river}m, Signal #${DISASTER_SCENARIO.signal}.`,
+    `Go to ${center}. Reply CHECKLIST.`,
+  ]);
+}
+
 function statefulSmsReply(message: string, context: RiskContext): string | null {
   const active = context.alertLevel === 'critical' || context.alertLevel === 'high';
   if (!active) return null;
@@ -171,7 +185,12 @@ function statefulSmsReply(message: string, context: RiskContext): string | null 
   return null;
 }
 
-async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | null, situation?: RiskContext['situation']): Promise<RiskContext> {
+async function buildSmsContext(
+  pb: ReturnType<typeof getPb>,
+  user: UserRecord | null,
+  situation?: RiskContext['situation'],
+  disasterMode = false
+): Promise<RiskContext> {
   let alertLevel: AlertLevel = 'none';
   let trigger: AlertRecord['type'] | null = null;
   try {
@@ -188,7 +207,7 @@ async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | 
   const conditions = user?.lat && user?.lng
     ? await getLocalizedConditions(user.lat, user.lng)
     : null;
-  return {
+  const context: RiskContext = {
     alertLevel,
     trigger,
     location: user?.address || 'Philippines',
@@ -217,6 +236,7 @@ async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | 
       forecast7day: [],
     } : null,
   };
+  return disasterMode ? applyDisasterContext(context) : context;
 }
 
 router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
@@ -248,6 +268,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
   try {
     const pb = getPb();
     let user: UserRecord | null = await findSmsUser(from, originalFrom);
+    const smsDisasterMode = isSmsDisasterModeEnabled();
 
     if (keyword === 'STOP') {
       if (user) await getPb().collection('users').update(user.id, { smsOptIn: false });
@@ -257,7 +278,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
     }
 
     if (['VERSION', 'DEBUG', 'PING'].includes(keyword)) {
-      reply = sms([`[MonsoonAI] ${SMS_BUILD_ID}. Reply JOIN to register.`]);
+      reply = sms([`[MonsoonAI] ${SMS_BUILD_ID}. Disaster=${isSmsDisasterModeEnabled() ? 'critical' : 'off'}. Reply JOIN to register.`]);
       if (from) await sendSms(from, reply);
       return;
     }
@@ -280,7 +301,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
           reply = sms(['[MonsoonAI] Text ASK plus your question. Example: ASK what to do after a flood?']);
           break;
         }
-        const context = await buildSmsContext(pb, user, situation);
+        const context = await buildSmsContext(pb, user, situation, smsDisasterMode);
         const stateReply = statefulSmsReply(question, context);
         if (stateReply) {
           reply = stateReply;
@@ -294,6 +315,11 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
       case 'STATUS': {
         if (!user) {
           reply = sms(['[MonsoonAI] Not registered yet. Reply JOIN to register by SMS.']);
+          break;
+        }
+        const context = await buildSmsContext(pb, user, situation, smsDisasterMode);
+        if (context.alertLevel === 'critical' || context.alertLevel === 'high') {
+          reply = smsCriticalStatusReply(context);
           break;
         }
         let alerts;
@@ -333,13 +359,13 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
       }
 
       case 'CHECKLIST': {
-        const context = await buildSmsContext(pb, user, situation);
+        const context = await buildSmsContext(pb, user, situation, smsDisasterMode);
         reply = smsChecklist(context);
         break;
       }
 
       case 'FLOOD': {
-        const cond = await getLocalizedConditions(user?.lat, user?.lng);
+        const cond = smsDisasterMode ? disasterConditions() : await getLocalizedConditions(user?.lat, user?.lng);
         const status = cond.glofasCritical ? 'CRITICAL river discharge!' : cond.riverLevel >= 2.0 ? 'River level HIGH.' : 'River level normal.';
         reply = sms([`[MonsoonAI] Rain: ${cond.rainfall}mm. River: ${cond.riverLevel}m.`, status, 'Reply EVAC if flooding.']);
         break;
@@ -373,7 +399,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
       default: {
         // Unknown keyword — try RAG + LLM
-        const context = await buildSmsContext(pb, user, situation);
+        const context = await buildSmsContext(pb, user, situation, smsDisasterMode);
 
         const locale: Locale = (user?.locale as Locale) ?? 'en';
         reply = statefulSmsReply(rawMessage.trim(), context) ?? await smsReply(rawMessage.trim(), locale, context);
