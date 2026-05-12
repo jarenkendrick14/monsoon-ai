@@ -6,7 +6,7 @@ type Store = {
   onboardingStates: any[];
 };
 
-function makePb(store: Store, options: { breakOnboardingState?: boolean } = {}) {
+function makePb(store: Store, options: { breakOnboardingState?: boolean; dropSmsStateFields?: boolean } = {}) {
   const collectionItems = (name: string) => {
     if (name === 'sms_onboarding_state') return store.onboardingStates;
     if (name === 'sms_sessions') return store.sessions;
@@ -29,6 +29,15 @@ function makePb(store: Store, options: { breakOnboardingState?: boolean } = {}) 
           items: collectionItems(name).slice().reverse(),
         }),
         create: async (data: any) => {
+          if (options.dropSmsStateFields && (name === 'sms_onboarding_state' || name === 'sms_sessions')) {
+            const item = {
+              id: `${name}:${Math.random().toString(36).slice(2)}`,
+              created: new Date().toISOString(),
+              updated: new Date().toISOString(),
+            };
+            collectionItems(name).push(item);
+            return item;
+          }
           const item = {
             id: `${name}:${Math.random().toString(36).slice(2)}`,
             created: new Date().toISOString(),
@@ -41,6 +50,10 @@ function makePb(store: Store, options: { breakOnboardingState?: boolean } = {}) 
         update: async (id: string, patch: any) => {
           const item = collectionItems(name).find((x: any) => x.id === id);
           if (!item) throw new Error(`missing ${name} ${id}`);
+          if (options.dropSmsStateFields && (name === 'sms_onboarding_state' || name === 'sms_sessions')) {
+            Object.assign(item, { updated: new Date().toISOString() });
+            return item;
+          }
           Object.assign(item, patch, { updated: new Date().toISOString() });
           return item;
         },
@@ -69,6 +82,23 @@ async function runFlow(label: string, mobile: string, options: { breakOnboarding
   }
   if (options.breakOnboardingState && store.sessions.length === 0) {
     throw new Error(`${label}: expected fallback sms_sessions state to be used`);
+  }
+}
+
+async function runFieldlessPocketBaseFailsClosed() {
+  const mobile = '+639771234570';
+  const store: Store = { users: [], sessions: [], onboardingStates: [] };
+  const pb: any = makePb(store, { dropSmsStateFields: true });
+
+  resetSmsOnboardingMemoryForTest(mobile);
+  const result = await handleSmsOnboarding(pb, mobile, 'JOIN', null);
+  console.log(`fieldless-state: JOIN => ${result.reply}`);
+
+  if (result.reply !== '[MonsoonAI] SMS registration is temporarily unavailable. Please try JOIN again in a few minutes. Emergencies: call 911.') {
+    throw new Error(`fieldless-state: expected temporary failure, got ${result.reply}`);
+  }
+  if (store.onboardingStates.some(row => row.mobile || row.state) || store.sessions.some(row => row.mobile || row.state)) {
+    throw new Error('fieldless-state: mock unexpectedly persisted SMS state fields');
   }
 }
 
@@ -114,6 +144,7 @@ async function runMixedStatePrefersNewest() {
 
 await runFlow('primary-state', '+639771234567');
 await runFlow('legacy-fallback', '+639771234568', { breakOnboardingState: true });
+await runFieldlessPocketBaseFailsClosed();
 await runMixedStatePrefersNewest();
 
 console.log('SMS onboarding tests passed');

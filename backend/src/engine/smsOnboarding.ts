@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import PocketBase, { ClientResponseError } from 'pocketbase';
+import { config } from '../config.js';
 import { authenticatePb } from '../pb.js';
 import { computeInaSAFEScore } from './inasafeScore.js';
 import { geocodeAddress } from '../integrations/geocoder.js';
@@ -60,7 +61,15 @@ const VULNERABILITY_PROMPT = '[MonsoonAI] Any elderly, baby, pregnant, or PWD? R
 const HOME_TYPE_PROMPT = '[MonsoonAI] Home type? Reply 1 concrete/house, 2 apartment/condo, 3 light materials/nipa.';
 const FLOOR_PROMPT = '[MonsoonAI] What floor do you sleep on? Reply 0 ground, 1, 2, 3, or 4.';
 const COMPLETE_PROMPT = '[MonsoonAI] Registered. Commands: STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, HELP.';
+const STATE_UNAVAILABLE_PROMPT = '[MonsoonAI] SMS registration is temporarily unavailable. Please try JOIN again in a few minutes. Emergencies: call 911.';
 const fallbackSessions = new Map<string, SmsSessionRecord>();
+
+class SmsOnboardingPersistenceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SmsOnboardingPersistenceError';
+  }
+}
 
 export function resetSmsOnboardingMemoryForTest(mobile?: string): void {
   if (mobile) fallbackSessions.delete(mobile);
@@ -165,6 +174,19 @@ function isActiveState(state: unknown): state is SmsSessionState {
   return typeof state === 'string' && VALID_STATES.has(state) && state !== 'complete';
 }
 
+function isDurableSessionRecord(value: unknown, mobile: string): value is SmsSessionRecord {
+  const record = value && typeof value === 'object' ? value as Partial<SmsSessionRecord> : {};
+  return typeof record.id === 'string'
+    && !record.id.startsWith('memory:')
+    && record.mobile === mobile
+    && typeof record.state === 'string'
+    && VALID_STATES.has(record.state);
+}
+
+function persistenceFailure(message: string): SmsOnboardingPersistenceError {
+  return new SmsOnboardingPersistenceError(`${message} (${config.nodeEnv})`);
+}
+
 async function pbClientCall<T>(pb: PocketBase, fn: (client: PocketBase) => Promise<T>): Promise<T> {
   try {
     return await fn(pb);
@@ -179,6 +201,13 @@ async function pbClientCall<T>(pb: PocketBase, fn: (client: PocketBase) => Promi
 
 function tagSession(session: SmsSessionRecord, collectionName: SmsSessionRecord['collectionName']): SmsSessionRecord {
   return { ...session, collectionName };
+}
+
+function tagDurableSession(session: SmsSessionRecord, collectionName: SmsSessionRecord['collectionName'], mobile: string): SmsSessionRecord {
+  if (!isDurableSessionRecord(session, mobile)) {
+    throw persistenceFailure(`PocketBase ${collectionName} did not persist SMS onboarding fields`);
+  }
+  return tagSession(session, collectionName);
 }
 
 function sessionTime(session: SmsSessionRecord): number {
@@ -268,25 +297,28 @@ async function createSession(pb: PocketBase, mobile: string): Promise<SmsSession
 
   try {
     const session = await pbClientCall(pb, client => client.collection('sms_onboarding_state').create<SmsSessionRecord>(payload));
-    const tagged = tagSession(session, 'sms_onboarding_state');
+    const tagged = tagDurableSession(session, 'sms_onboarding_state', mobile);
     fallbackSessions.set(mobile, tagged);
     return tagged;
-  } catch {
-    // Fall back to the legacy collection, then memory if PocketBase is unavailable.
+  } catch (err) {
+    if (err instanceof SmsOnboardingPersistenceError) {
+      // Try the legacy durable store before failing the turn.
+    }
+    // Fall back to the legacy collection if the preferred state store is unavailable.
   }
 
   try {
     const session = await pbClientCall(pb, client => client.collection('sms_sessions').create<SmsSessionRecord>(payload));
-    const tagged = tagSession(session, 'sms_sessions');
+    const tagged = tagDurableSession(session, 'sms_sessions', mobile);
     fallbackSessions.set(mobile, tagged);
     return tagged;
-  } catch {
-    // Last resort keeps one-process local development usable.
+  } catch (err) {
+    if (err instanceof SmsOnboardingPersistenceError) {
+      throw err;
+    }
   }
 
-  const session: SmsSessionRecord = { id: `memory:${mobile}`, collectionName: 'sms_sessions', ...payload };
-  fallbackSessions.set(mobile, session);
-  return session;
+  throw persistenceFailure('PocketBase could not create durable SMS onboarding state');
 }
 
 async function getOrCreateSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
@@ -313,24 +345,29 @@ async function updateSession(
     history,
     lastMessageAt: now,
   };
-  fallbackSessions.set(session.mobile, nextSession);
 
-  if (session.id.startsWith('memory:')) return;
+  if (session.id.startsWith('memory:')) {
+    throw persistenceFailure('SMS onboarding state is memory-only');
+  }
 
   const collectionName = session.collectionName ?? 'sms_onboarding_state';
   try {
-    await pbClientCall(pb, client => client.collection(collectionName).update(session.id, {
+    const saved = await pbClientCall(pb, client => client.collection(collectionName).update<SmsSessionRecord>(session.id, {
       ...patch,
       history,
       lastMessageAt: now,
     }));
+    const tagged = tagDurableSession(saved, collectionName, session.mobile);
+    fallbackSessions.set(session.mobile, tagged);
     return;
   } catch {
     // If the preferred collection is unavailable in production, keep the conversation
     // durable in the older sms_sessions collection instead of dropping the next reply.
   }
 
-  if (collectionName === 'sms_sessions') return;
+  if (collectionName === 'sms_sessions') {
+    throw persistenceFailure('PocketBase could not update durable SMS onboarding state');
+  }
 
   try {
     const backup = await pbClientCall(pb, client => client.collection('sms_sessions').create<SmsSessionRecord>({
@@ -342,10 +379,31 @@ async function updateSession(
       history,
       lastMessageAt: now,
     }));
-    fallbackSessions.set(session.mobile, tagSession(backup, 'sms_sessions'));
+    const tagged = tagDurableSession(backup, 'sms_sessions', session.mobile);
+    fallbackSessions.set(session.mobile, tagged);
   } catch {
-    // In-memory fallback is already updated above.
+    throw persistenceFailure('PocketBase could not write backup SMS onboarding state');
   }
+}
+
+async function updateSessionOrUnavailable(
+  pb: PocketBase,
+  session: SmsSessionRecord,
+  patch: Partial<SmsSessionRecord>,
+  userMessage: string,
+  reply: string
+): Promise<boolean> {
+  try {
+    await updateSession(pb, session, patch, userMessage, reply);
+    return true;
+  } catch (err) {
+    if (err instanceof SmsOnboardingPersistenceError) return false;
+    throw err;
+  }
+}
+
+function unavailableResult(user: UserRecord | null): SmsOnboardingResult {
+  return { handled: true, reply: STATE_UNAVAILABLE_PROMPT, user };
 }
 
 function buildSmsUser(mobile: string, locale: Locale, partial: SmsPartialProfile): Omit<UserRecord, 'id' | 'created' | 'updated'> & { password: string; passwordConfirm: string } {
@@ -436,7 +494,13 @@ export async function handleSmsOnboarding(
     return { handled: true, reply: '[MonsoonAI] Reply JOIN to start SMS registration.', user };
   }
 
-  const session = activeSession ?? await getOrCreateSession(pb, mobile);
+  let session: SmsSessionRecord;
+  try {
+    session = activeSession ?? await getOrCreateSession(pb, mobile);
+  } catch (err) {
+    if (err instanceof SmsOnboardingPersistenceError) return unavailableResult(user);
+    throw err;
+  }
   let reply: string;
   let patch: Partial<SmsSessionRecord> = {};
   let createdUser: UserRecord | null = user;
@@ -445,13 +509,17 @@ export async function handleSmsOnboarding(
 
   if (!activeSession && ['JOIN', 'START', 'REGISTER'].includes(keyword)) {
     reply = REGISTER_PROMPT;
-    await updateSession(pb, session, {}, normalizedMessage, reply);
+    if (!(await updateSessionOrUnavailable(pb, session, {}, normalizedMessage, reply))) {
+      return unavailableResult(user);
+    }
     return { handled: true, reply, user };
   }
 
   if (!activeSession && localeReplyWithoutSession) {
     reply = ADDRESS_PROMPT;
-    await updateSession(pb, session, { state: 'address', locale: localeReplyWithoutSession }, normalizedMessage, reply);
+    if (!(await updateSessionOrUnavailable(pb, session, { state: 'address', locale: localeReplyWithoutSession }, normalizedMessage, reply))) {
+      return unavailableResult(user);
+    }
     return { handled: true, reply, user };
   }
 
@@ -549,6 +617,8 @@ export async function handleSmsOnboarding(
     }
   }
 
-  await updateSession(pb, session, patch, normalizedMessage, reply);
+  if (!(await updateSessionOrUnavailable(pb, session, patch, normalizedMessage, reply))) {
+    return unavailableResult(user);
+  }
   return { handled: true, reply, user: createdUser };
 }

@@ -13,7 +13,7 @@ const router = Router();
 
 // Hard cap at 155 chars — standard SMS is 160, 5-char buffer for carrier headers
 const sms = smsText;
-const SMS_BUILD_ID = 'sms-onboarding-state-v5';
+const SMS_BUILD_ID = 'sms-onboarding-schema-v6';
 
 interface SmsSituationRecord {
   id: string;
