@@ -94,7 +94,7 @@
       <div class="alert-hero-inner">
         <div class="alert-label">Critical · Flood</div>
         <!-- BACKEND: evacuateWithin from API → countdown -->
-        <div class="alert-headline">Evacuate within<br/><span id="alertCountdown">1 hour 28 min</span></div>
+        <div class="alert-headline"><span id="alertHeadline">Evacuate within</span><br/><span id="alertCountdown">1 hour 28 min</span></div>
         <div class="alert-meta">
           <!-- BACKEND: issuedAt formatted -->
           <span id="issuedAt">Issued 10:07 AM</span>
@@ -203,6 +203,10 @@ for (let i = 0; i < 18; i++) {
 
 let currentAlertId = null;
 
+function escapeHtml(t) {
+  return String(t ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function loadAlertDetail() {
   try {
     const data = await apiFetch('/api/alerts/active');
@@ -217,6 +221,9 @@ async function loadAlertDetail() {
     if (data.issuedAt) {
       document.getElementById('issuedAt').textContent = 'Issued ' + new Date(data.issuedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
+    if (data.headline) {
+      document.getElementById('alertHeadline').textContent = data.headline;
+    }
 
     /* Reasons */
     if (data.reasons?.length) {
@@ -227,8 +234,18 @@ async function loadAlertDetail() {
       data.reasons.forEach(r => {
         const row = document.createElement('div'); row.className = 'why-row';
         row.innerHTML = `<div class="why-tick">✓</div><div><div class="why-title">${r.title}</div><div class="why-sub">${r.detail || ''}</div></div>`;
+        row.querySelector('.why-title').textContent = r.title;
+        row.querySelector('.why-sub').textContent = r.detail || '';
         whyCard.appendChild(row);
       });
+      if (data.sourceIds?.length) {
+        const sourceRow = document.createElement('div');
+        sourceRow.className = 'why-row';
+        sourceRow.innerHTML = '<div class="why-tick">i</div><div><div class="why-title"></div><div class="why-sub"></div></div>';
+        sourceRow.querySelector('.why-title').textContent = 'Guidance sources';
+        sourceRow.querySelector('.why-sub').textContent = data.sourceIds.join(', ');
+        whyCard.appendChild(sourceRow);
+      }
     }
 
     /* Checklist */
@@ -242,7 +259,8 @@ async function loadAlertDetail() {
         const row = document.createElement('div');
         row.className = 'check-row' + (saved.includes(item) ? ' checked' : '');
         row.onclick = () => { row.classList.toggle('checked'); saveChecklist(); };
-        row.innerHTML = `<div class="check-box"></div><span class="check-label">${item}</span>`;
+        row.innerHTML = `<div class="check-box"></div><span class="check-label"></span>`;
+        row.querySelector('.check-label').textContent = item;
         card.appendChild(row);
       });
     } else {

@@ -3,9 +3,10 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { getCondition } from '../utils/conditionsCache.js';
 import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
-import { DISASTER_FORECAST, DISASTER_SCENARIO, disasterAlert, isDisasterMode } from '../utils/disasterMode.js';
+import { applyDisasterContext, DISASTER_FORECAST, DISASTER_SCENARIO, disasterAlert, isDisasterMode } from '../utils/disasterMode.js';
+import { generateAlertDetailGuidance } from '../integrations/gemini.js';
 import type { PagasaData } from '../integrations/pagasa.js';
-import type { AlertRecord } from '../types/index.js';
+import type { AlertRecord, RiskContext } from '../types/index.js';
 
 const router = Router();
 
@@ -53,6 +54,14 @@ router.get('/api/alerts/active', authMiddleware, async (req, res) => {
   const pb = getPb();
   if (isDisasterMode(req)) {
     const alert = disasterAlert(user);
+    const context: RiskContext = applyDisasterContext({
+      alertLevel: alert.level,
+      trigger: alert.type,
+      location: user.address || 'Philippines',
+      evacCenter: null,
+      conditions: null,
+    });
+    const guidance = await generateAlertDetailGuidance(user, context);
     res.json({
       alertId: alert.id,
       level: alert.level,
@@ -62,8 +71,11 @@ router.get('/api/alerts/active', authMiddleware, async (req, res) => {
       riverDischarge: alert.riverDischarge,
       issuedAt: alert.issuedAt,
       reEvalAt: alert.reEvalAt,
-      reasons: alert.reasons,
-      checklist: alert.checklist,
+      headline: guidance.headline,
+      reasons: guidance.reasons,
+      checklist: guidance.checklist,
+      sourceIds: guidance.sourceIds,
+      generatedBy: 'llm_rag',
     });
     return;
   }

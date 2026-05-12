@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, type ResponseSchema } from '@google/generative-ai';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import { ChatMessage, ChatReply, HazardTag, Locale, RiskContext } from '../types/index.js';
+import { AlertReason, ChatMessage, ChatReply, HazardTag, Locale, RiskContext, UserRecord } from '../types/index.js';
 import { classifyChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
 import { retrievePassages } from '../engine/ragRetrieval.js';
 import {
@@ -29,6 +29,13 @@ export interface HazardTaggingResult {
   needsHumanReview: true;
 }
 
+export interface AlertDetailGuidance {
+  headline: string;
+  reasons: AlertReason[];
+  checklist: string[];
+  sourceIds: string[];
+}
+
 let client: GoogleGenerativeAI | null = null;
 
 function getClient(): GoogleGenerativeAI {
@@ -36,6 +43,154 @@ function getClient(): GoogleGenerativeAI {
     client = new GoogleGenerativeAI(config.openai.apiKey);
   }
   return client;
+}
+
+const ALERT_DETAIL_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    headline: {
+      type: SchemaType.STRING,
+      description: 'Short urgent alert headline personalized to the household.',
+    },
+    reasons: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          detail: { type: SchemaType.STRING },
+        },
+        required: ['title', 'detail'],
+      },
+    },
+    checklist: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+    },
+    sourceIds: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+    },
+  },
+  required: ['headline', 'reasons', 'checklist', 'sourceIds'],
+};
+
+function cleanJsonText(text: string): string {
+  return text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
+}
+
+function formatAlertSources(passages: ReturnType<typeof retrievePassages>): string {
+  return passages.map((p, i) => `[SOURCE ${i + 1}: ${p.id} | ${p.topic}]\n${p.text}\n[END SOURCE ${i + 1}]`).join('\n\n');
+}
+
+function fallbackAlertDetailGuidance(user: UserRecord): AlertDetailGuidance {
+  const householdNotes = [
+    Number(user.floor) === 0 ? 'ground-floor home' : '',
+    user.hasElderly ? 'elderly household member' : '',
+    user.hasPWD ? 'PWD household member' : '',
+    user.hasInfant ? 'infant' : '',
+    user.hasPregnant ? 'pregnant household member' : '',
+  ].filter(Boolean).join(', ');
+
+  return {
+    headline: 'Evacuate within 45 min',
+    reasons: [
+      { title: 'Extreme 24-hour rainfall', detail: '248 mm/24h in the active disaster scenario.' },
+      { title: 'Flood hazard at saved address', detail: `${user.address || 'Your saved address'} is being tested as a 25-year flood hazard zone.` },
+      { title: 'Household priority', detail: householdNotes ? `Prioritized because of ${householdNotes}.` : 'Prioritized because of flood exposure.' },
+    ],
+    checklist: [
+      'Bring IDs, medicines, phone, charger, water, food, flashlight, and cash.',
+      'Turn off electricity or gas only if it is safe to do so.',
+      'Avoid walking or driving through floodwater.',
+      'Follow the evacuation route and LGU instructions.',
+      'Call 911 or local responders if trapped or in immediate danger.',
+    ],
+    sourceIds: ['rag-001', 'rag-018'],
+  };
+}
+
+export async function generateAlertDetailGuidance(user: UserRecord, context: RiskContext): Promise<AlertDetailGuidance> {
+  const passages = retrievePassages('flood evacuation emergency kit avoid floodwater typhoon shelter', 4);
+  if (!config.openai.apiKey || passages.length === 0) return fallbackAlertDetailGuidance(user);
+
+  const householdContext = [
+    `Name: ${user.name}`,
+    `Saved address: ${user.address || 'unknown'}`,
+    `Home type: ${user.homeType || 'unknown'}`,
+    `Floor: ${Number(user.floor) === 0 ? 'ground floor' : user.floor}`,
+    `Household size: ${user.householdSize || 'unknown'}`,
+    `Vulnerable members: ${[
+      user.hasElderly ? 'elderly' : '',
+      user.hasPWD ? 'PWD' : '',
+      user.hasInfant ? 'infant' : '',
+      user.hasPregnant ? 'pregnant' : '',
+    ].filter(Boolean).join(', ') || 'none recorded'}`,
+    `Alert level: ${context.alertLevel}`,
+    `Trigger: ${context.trigger ?? 'none'}`,
+    `Rainfall: ${context.conditions?.rainfall ?? 'unknown'} mm/24h`,
+    `River level: ${context.conditions?.riverLevel ?? 'unknown'} m NHWL`,
+    context.evacCenter ? `Nearest evacuation center: ${context.evacCenter.name}, ${context.evacCenter.address} (${context.evacCenter.distKm} km)` : 'Nearest evacuation center: unknown',
+  ].join('\n');
+
+  const model = getClient().getGenerativeModel({
+    model: config.openai.model,
+    safetySettings: RAG_SAFETY_SETTINGS,
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: 'application/json',
+      responseSchema: ALERT_DETAIL_SCHEMA,
+    },
+  });
+
+  const prompt = `You generate the content for a citizen active-alert page.
+
+Return JSON only.
+
+Rules:
+- Use ONLY the provided sources for safety advice and checklist actions.
+- Use household context only for personalization and prioritization.
+- Do not invent sensor readings, evacuation centers, distances, medical advice, or structural safety claims.
+- reasons must contain 3 concise personalized reasons.
+- checklist must contain 5 concise practical items/actions grounded in the sources.
+- sourceIds must list only source IDs actually used.
+- headline must be urgent and short, under 45 characters.
+- Plain language for a mobile app. No markdown.
+
+[HOUSEHOLD AND ALERT CONTEXT]
+${householdContext}
+[END HOUSEHOLD AND ALERT CONTEXT]
+
+${formatAlertSources(passages)}`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const parsed = JSON.parse(cleanJsonText(result.response.text())) as Partial<AlertDetailGuidance>;
+    const validSourceIds = new Set(passages.map(p => p.id));
+    const reasons = Array.isArray(parsed.reasons)
+      ? parsed.reasons
+          .filter(r => r && typeof r.title === 'string' && typeof r.detail === 'string')
+          .slice(0, 3)
+      : [];
+    const checklist = Array.isArray(parsed.checklist)
+      ? parsed.checklist.filter(item => typeof item === 'string' && item.trim()).slice(0, 5)
+      : [];
+    const sourceIds = Array.isArray(parsed.sourceIds)
+      ? parsed.sourceIds.filter((id): id is string => typeof id === 'string' && validSourceIds.has(id))
+      : [];
+    if (!parsed.headline || typeof parsed.headline !== 'string' || reasons.length < 2 || checklist.length < 3 || sourceIds.length === 0) {
+      return fallbackAlertDetailGuidance(user);
+    }
+    return {
+      headline: parsed.headline.slice(0, 60),
+      reasons,
+      checklist,
+      sourceIds,
+    };
+  } catch (err) {
+    logger.warn('Gemini alert detail generation failed', err instanceof Error ? err.message : err);
+    return fallbackAlertDetailGuidance(user);
+  }
 }
 
 export async function tagHazards(imageBase64: string, mimeType: string): Promise<HazardTaggingResult> {
