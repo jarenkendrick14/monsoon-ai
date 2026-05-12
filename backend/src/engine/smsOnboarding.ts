@@ -236,7 +236,9 @@ export async function handleSmsOnboarding(
     return { handled: false, user };
   }
 
-  if (!activeSession && !['JOIN', 'START', 'REGISTER'].includes(keyword)) {
+  const localeReplyWithoutSession = parseLocale(normalizedMessage);
+
+  if (!activeSession && !['JOIN', 'START', 'REGISTER'].includes(keyword) && !localeReplyWithoutSession) {
     if (keyword === 'STATUS') {
       return { handled: true, reply: '[MonsoonAI] Not registered yet. Reply JOIN to register by SMS.', user };
     }
