@@ -80,8 +80,10 @@ function escapePbString(value: string): string {
 
 function parseLocale(message: string): Locale | null {
   const normalized = message
+    .normalize('NFKC')
     .trim()
     .toLowerCase()
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/[^\S\r\n]+/g, ' ')
     .replace(/[１]/g, '1')
     .replace(/[２]/g, '2')
@@ -98,7 +100,9 @@ function parseLocale(message: string): Locale | null {
 
 function parseLeadingLocaleChoice(message: string): Locale | null {
   const firstChoice = message
+    .normalize('NFKC')
     .trim()
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
     .replace(/[１]/g, '1')
     .replace(/[２]/g, '2')
     .replace(/[３]/g, '3')

@@ -13,6 +13,7 @@ const router = Router();
 
 // Hard cap at 155 chars — standard SMS is 160, 5-char buffer for carrier headers
 const sms = smsText;
+const SMS_BUILD_ID = 'sms-onboarding-state-v4';
 
 interface SmsSituationRecord {
   id: string;
@@ -249,6 +250,12 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
     if (keyword === 'STOP') {
       if (user) await getPb().collection('users').update(user.id, { smsOptIn: false });
       reply = sms(['[MonsoonAI] Unsubscribed from alerts. Reply START to re-subscribe. Emergencies: call 911.']);
+      if (from) await sendSms(from, reply);
+      return;
+    }
+
+    if (['VERSION', 'DEBUG', 'PING'].includes(keyword)) {
+      reply = sms([`[MonsoonAI] ${SMS_BUILD_ID}. Reply JOIN to register.`]);
       if (from) await sendSms(from, reply);
       return;
     }
