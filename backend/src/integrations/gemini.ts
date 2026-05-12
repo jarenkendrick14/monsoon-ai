@@ -112,6 +112,7 @@ function fallbackAlertDetailGuidance(user: UserRecord, context?: RiskContext): A
   ].filter(Boolean).join(', ');
   const chatCompanions = context?.situation?.companions ?? [];
   const chatNeeds = context?.situation?.needs ?? [];
+  const profileFlagsNotPresent = context?.situation?.profileFlagsNotPresent === true;
   const chatNotes = [...chatCompanions, ...chatNeeds].join(', ');
 
   return {
@@ -119,12 +120,13 @@ function fallbackAlertDetailGuidance(user: UserRecord, context?: RiskContext): A
     reasons: [
       { title: 'Extreme 24-hour rainfall', detail: '248 mm/24h in the active disaster scenario.' },
       { title: 'Flood hazard at saved address', detail: `${user.address || 'Your saved address'} is being tested as a 25-year flood hazard zone.` },
-      { title: 'Household priority', detail: chatNotes ? `Prioritized from chat: ${chatNotes}.` : householdNotes ? `Prioritized because of ${householdNotes}.` : 'Prioritized because of flood exposure.' },
+      { title: 'Household priority', detail: profileFlagsNotPresent ? `Prioritized for people currently with you: ${chatCompanions.join(', ') || 'current household members'}. Saved vulnerable members are not with you right now.` : chatNotes ? `Prioritized from chat: ${chatNotes}.` : householdNotes ? `Prioritized because of ${householdNotes}.` : 'Prioritized because of flood exposure.' },
     ],
     checklist: [
-      ...(chatNeeds.some(need => /medicine|med/i.test(need)) ? ['Pack diabetes/essential medicines where you can reach them quickly.'] : []),
-      ...(chatNeeds.some(need => /wheelchair|mobility/i.test(need)) ? ['Bring wheelchair or mobility aids and allow extra time leaving.'] : []),
+      ...(chatNeeds.some(need => /medicine|med/i.test(need)) && !profileFlagsNotPresent ? ['Pack diabetes/essential medicines where you can reach them quickly.'] : []),
+      ...(chatNeeds.some(need => /wheelchair|mobility/i.test(need)) && !profileFlagsNotPresent ? ['Bring wheelchair or mobility aids and allow extra time leaving.'] : []),
       ...(chatCompanions.some(person => /baby|infant/i.test(person)) ? ['Keep baby supplies, dry clothes, and feeding items together.'] : []),
+      ...(profileFlagsNotPresent ? ['Contact absent vulnerable household members if safe and share the evacuation alert.'] : []),
       'Bring IDs, medicines, phone, charger, water, food, flashlight, and cash.',
       'Turn off electricity or gas only if it is safe to do so.',
       'Avoid walking or driving through floodwater.',
@@ -141,6 +143,8 @@ function formatSituationContext(context: RiskContext): string {
   const lines = [
     situation.companions?.length ? `People with user: ${situation.companions.join(', ')}` : '',
     situation.needs?.length ? `Priority needs from chat: ${situation.needs.join(', ')}` : '',
+    situation.absent?.length ? `Not currently with user: ${situation.absent.join(', ')}` : '',
+    situation.profileFlagsNotPresent ? 'Current chat correction: saved vulnerable profile members are not currently with the user.' : '',
     situation.waterLevel ? `Water level from chat: ${situation.waterLevel}` : '',
     situation.canLeaveSafely ? `Can leave safely: ${situation.canLeaveSafely}` : '',
     situation.notes?.length ? `Other chat notes: ${situation.notes.join('; ')}` : '',
@@ -189,6 +193,8 @@ Return JSON only.
 Rules:
 - Use ONLY the provided sources for safety advice and checklist actions.
 - Use household and chat situation context only for personalization and prioritization.
+- Current chat situation overrides saved onboarding/profile fields for who is physically with the user right now.
+- If chat situation says saved vulnerable profile members are not currently with the user, do not write reasons/checklist items telling the user to transport those absent people. Use a checklist item to contact/check on them if safe or share evacuation info.
 - If chat situation lists companions or needs, reflect them directly in at least one reason and at least two checklist items when possible.
 - Treat diabetes medication, wheelchair, baby, elderly/grandma/grandparent, and mobility support as evacuation packing/assistance priorities, not as medical diagnosis.
 - Do not add symptom warnings unless the chat situation says someone has symptoms.

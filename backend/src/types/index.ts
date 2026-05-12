@@ -179,6 +179,8 @@ export interface RiskContext {
   situation?: {
     companions?: string[];
     needs?: string[];
+    absent?: string[];
+    profileFlagsNotPresent?: boolean;
     waterLevel?: string | null;
     canLeaveSafely?: string | null;
     notes?: string[];

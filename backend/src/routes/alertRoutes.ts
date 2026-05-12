@@ -17,6 +17,8 @@ function readSituationContext(req: { get(name: string): string | undefined }): R
     return {
       companions: Array.isArray(parsed.companions) ? parsed.companions.filter(v => typeof v === 'string').slice(0, 6) : [],
       needs: Array.isArray(parsed.needs) ? parsed.needs.filter(v => typeof v === 'string').slice(0, 8) : [],
+      absent: Array.isArray(parsed.absent) ? parsed.absent.filter(v => typeof v === 'string').slice(0, 8) : [],
+      profileFlagsNotPresent: parsed.profileFlagsNotPresent === true,
       waterLevel: typeof parsed.waterLevel === 'string' ? parsed.waterLevel : null,
       canLeaveSafely: typeof parsed.canLeaveSafely === 'string' ? parsed.canLeaveSafely : null,
       notes: Array.isArray(parsed.notes) ? parsed.notes.filter(v => typeof v === 'string').slice(0, 6) : [],

@@ -73,6 +73,8 @@ function buildUserContextBlock(userContext?: string, riskContext?: RiskContext):
       const situationLines = [
         riskContext.situation.companions?.length ? `People with user: ${riskContext.situation.companions.join(', ')}` : '',
         riskContext.situation.needs?.length ? `Priority needs: ${riskContext.situation.needs.join(', ')}` : '',
+        riskContext.situation.absent?.length ? `Not currently with user: ${riskContext.situation.absent.join(', ')}` : '',
+        riskContext.situation.profileFlagsNotPresent ? 'Current chat correction: saved vulnerable profile members are not currently with the user.' : '',
         riskContext.situation.waterLevel ? `Water level: ${riskContext.situation.waterLevel}` : '',
         riskContext.situation.canLeaveSafely ? `Can leave safely: ${riskContext.situation.canLeaveSafely}` : '',
       ].filter(Boolean);
@@ -106,6 +108,9 @@ STRICT GROUNDING RULES:
 - Speak directly to the user's situation and avoid generic checklist wording.
 - If alert level is high or critical, start with a one-sentence disaster update using USER CONTEXT before giving guidance.
 - If alert level is high or critical and the user asks for a checklist or describes their situation, tailor 3 to 5 checklist items using the evacuation/source guidance, onboarding context, and the user's stated answers.
+- Current chat corrections override saved onboarding/profile fields for who is physically with the user right now.
+- If USER CONTEXT says saved vulnerable profile members are not currently with the user, do not tell the user to transport or physically prioritize those absent people. Instead, advise them to contact/check on those people if safe, share the alert/evacuation info, and contact local responders if they may be in danger.
+- Use saved profile vulnerability only as background risk information unless the chat confirms those people are currently with the user.
 - During a high or critical alert, ask exactly one short follow-up question only if the answer would change the next checklist item. Never ask compound questions.
 - Intake order: first ask who is with them; once answered, ask whether they can leave safely right now; once answered, ask water level; once answered, ask medicine/mobility needs. Skip any question already answered in recent messages.
 - If the user says they have a baby, elderly person, diabetes medicine, wheelchair, PWD, or mobility need, treat that as checklist-priority context. Do not switch into symptom screening unless the user reports symptoms or asks about illness.

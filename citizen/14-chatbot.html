@@ -204,6 +204,7 @@ function updateSituationContext(text) {
   try { ctx = JSON.parse(localStorage.getItem(_situationKey) || '{}'); } catch { ctx = {}; }
   ctx.companions = Array.isArray(ctx.companions) ? ctx.companions : [];
   ctx.needs = Array.isArray(ctx.needs) ? ctx.needs : [];
+  ctx.absent = Array.isArray(ctx.absent) ? ctx.absent : [];
   ctx.notes = Array.isArray(ctx.notes) ? ctx.notes : [];
 
   const add = (key, value) => {
@@ -221,6 +222,12 @@ function updateSituationContext(text) {
   if (/\b(diabetes|diabetic|insulin|maintenance meds?|medicine|medication|meds)\b/.test(lower)) add('needs', 'essential medicines');
   if (/\b(power bank|charger|phone)\b/.test(lower)) add('needs', 'phone and charging supplies');
   if (/\b(knee|ankle|cannot walk|can't walk|cant walk)\b/.test(lower)) add('needs', 'walking assistance');
+
+  if (/\b(they|grandma|grandmother|lola|child|kid|baby|pwd|wheelchair|mobility)\b.*\b(not with us|not here|aren't with us|are not with us|isn't with us|is not with us|elsewhere|away)\b/.test(lower)
+    || /\b(not with us|not here|aren't with us|are not with us|isn't with us|is not with us)\b/.test(lower)) {
+    ctx.profileFlagsNotPresent = true;
+    add('absent', 'saved vulnerable household members are not currently with user');
+  }
 
   const waterMatch = lower.match(/\b(ankle|knee|waist|chest)\s*[- ]?(deep|level)?\b|water (?:is |level is |about )([^.,;]+)/);
   if (waterMatch) ctx.waterLevel = waterMatch[0].trim();
