@@ -122,11 +122,11 @@ function parseFloor(message: string): number | null {
 
 async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord | null> {
   try {
-    const result = await pb.collection('sms_sessions').getList<SmsSessionRecord>(1, 1, {
-      filter: `mobile="${escapePbString(mobile)}" && state!="complete"`,
+    const result = await pb.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
+      filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-created',
     });
-    return result.items[0] ?? null;
+    return result.items.find(session => session.state !== 'complete') ?? null;
   } catch {
     return null;
   }
