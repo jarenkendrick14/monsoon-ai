@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { config } from '../config.js';
 import { getPb } from '../pb.js';
 import { isHttpSmsWebhook, normalizeInboundSms, sendSms, verifyHttpSmsWebhook } from '../integrations/sms.js';
 import { getLocalizedConditions } from '../utils/localConditions.js';
@@ -7,13 +8,14 @@ import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { smsReply } from '../integrations/gemini.js';
 import { handleSmsOnboarding, normalizeSmsMobile, smsText } from '../engine/smsOnboarding.js';
+import { applyDisasterContext, disasterConditions, DISASTER_SCENARIO } from '../utils/disasterMode.js';
 import type { UserRecord, AlertRecord, AlertLevel, RiskContext, Locale } from '../types/index.js';
 
 const router = Router();
 
 // Hard cap at 155 chars — standard SMS is 160, 5-char buffer for carrier headers
 const sms = smsText;
-const SMS_BUILD_ID = 'sms-onboarding-schema-v6';
+const SMS_BUILD_ID = 'sms-disaster-mode-v7';
 
 interface SmsSituationRecord {
   id: string;

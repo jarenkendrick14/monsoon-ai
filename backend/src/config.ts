@@ -69,9 +69,10 @@ export const config = {
     phoneNumber: optional_env('TWILIO_PHONE_NUMBER', ''),
   },
 
-  sms: {
-    provider: optional_env('SMS_PROVIDER', 'semaphore') as 'semaphore' | 'httpsms' | 'twilio',
-  },
+	sms: {
+	  provider: optional_env('SMS_PROVIDER', 'semaphore') as 'semaphore' | 'httpsms' | 'twilio',
+	  disasterMode: optional_env('SMS_DISASTER_MODE', optional_env('DISASTER_MODE', 'off')) as 'critical' | 'off',
+	},
 
   semaphore: {
     apiKey: optional_env('SEMAPHORE_API_KEY', ''),
