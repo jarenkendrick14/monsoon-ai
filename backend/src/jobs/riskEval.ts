@@ -10,7 +10,7 @@ import type { FirmsHotspot } from '../integrations/firms.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { countHotspotsNear } from '../integrations/firms.js';
 import { sendSms } from '../integrations/sms.js';
-import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
+import { findNearestCenterNear, distanceKm } from '../integrations/evacCenters.js';
 
 export async function runRiskEval(): Promise<void> {
   logger.info('Running riskEval job');
@@ -68,7 +68,7 @@ export async function runRiskEval(): Promise<void> {
             });
 
             if (user.smsOptIn && user.mobile) {
-              const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+              const center = (user.lat && user.lng) ? await findNearestCenterNear(user.lat, user.lng) : null;
               const evacInfo = center && user.lat && user.lng
                 ? `Go to: ${center.name} (${distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1)}km).`
                 : 'Contact barangay hall for evac center.';

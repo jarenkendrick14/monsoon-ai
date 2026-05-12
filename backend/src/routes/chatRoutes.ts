@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { pbCall } from '../pb.js';
 import { chatbotReply } from '../integrations/gemini.js';
-import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
+import { findNearestCenterNear, distanceKm } from '../integrations/evacCenters.js';
 import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
 
 import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
@@ -39,7 +39,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     alertType = activeAlert.items[0]?.type ?? null;
   } catch { /* alerts collection may not exist yet */ }
 
-  const nearest = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+  const nearest = (user.lat && user.lng) ? await findNearestCenterNear(user.lat, user.lng) : null;
   const evacCenter = nearest && user.lat && user.lng ? {
     name: nearest.name,
     address: nearest.address,

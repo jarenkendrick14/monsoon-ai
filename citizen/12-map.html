@@ -144,15 +144,17 @@ function addEvacCenters(data) {
 
   centers.forEach(center => {
     if (!Number.isFinite(Number(center.lat)) || !Number.isFinite(Number(center.lng))) return;
+    const isCandidate = center.verificationStatus === 'candidate' || center.source === 'google_places';
     const marker = new google.maps.Marker({
       position: { lat: Number(center.lat), lng: Number(center.lng) },
       map,
       title: center.name || 'Evacuation center',
-      icon: markerIcon('#2E9D70', 'E'),
+      icon: markerIcon(isCandidate ? '#E67519' : '#2E9D70', 'E'),
     });
     const info = new google.maps.InfoWindow({
       content: '<strong>' + (center.name || 'Evacuation center') + '</strong><br/>' + (center.address || '') +
-        (center.capacity ? '<br/>Capacity: ' + center.capacity : ''),
+        (center.capacity ? '<br/>Capacity: ' + center.capacity : '') +
+        (isCandidate ? '<br/><span style="color:#E67519;font-weight:700;">Prototype evac candidate</span>' : ''),
     });
     marker.addListener('click', () => info.open({ anchor: marker, map }));
     evacMarkers.push(marker);
@@ -175,7 +177,7 @@ function addFloodZones(geojson) {
 async function loadMapData() {
   await loadConditionPills();
   const [centerResult, floodResult] = await Promise.allSettled([
-    apiFetch('/api/evac/centers'),
+    apiFetch(`/api/evac/centers?lat=${centerLat}&lng=${centerLng}`),
     apiFetch('/api/map/flood-zones'),
   ]);
   if (centerResult.status === 'fulfilled') addEvacCenters(centerResult.value);

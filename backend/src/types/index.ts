@@ -87,6 +87,9 @@ export interface EvacCenter {
   lng: number;
   capacity: number;
   type: string;
+  source?: 'static' | 'google_places';
+  verificationStatus?: 'verified' | 'candidate';
+  placeId?: string;
 }
 
 export interface EvacRoute {

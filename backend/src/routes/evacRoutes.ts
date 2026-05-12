@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
-import { findNearestCenter, getEvacCenters, distanceKm } from '../integrations/evacCenters.js';
+import { findNearestCenterNear, getEvacCentersNear, distanceKm } from '../integrations/evacCenters.js';
 import { computeEvacWindow } from '../engine/evacWindow.js';
 import { sendSms } from '../integrations/sms.js';
 import { computeGoogleWalkingRoute } from '../integrations/googleRoutes.js';
@@ -17,7 +17,7 @@ router.get('/api/evac/route', authMiddleware, async (req, res) => {
   }
 
   const user = req.user!;
-  const nearest = findNearestCenter(lat, lng);
+  const nearest = await findNearestCenterNear(lat, lng);
 
   if (!nearest) {
     res.json({
@@ -57,8 +57,14 @@ router.get('/api/evac/route', authMiddleware, async (req, res) => {
   });
 });
 
-router.get('/api/evac/centers', (_req, res) => {
-  res.json(getEvacCenters());
+router.get('/api/evac/centers', async (req, res) => {
+  const lat = parseFloat(req.query['lat'] as string);
+  const lng = parseFloat(req.query['lng'] as string);
+  const centers = await getEvacCentersNear(
+    Number.isFinite(lat) ? lat : undefined,
+    Number.isFinite(lng) ? lng : undefined
+  );
+  res.json(centers);
 });
 
 router.post('/api/sms/send-evac', authMiddleware, async (req, res) => {
@@ -68,7 +74,7 @@ router.post('/api/sms/send-evac', authMiddleware, async (req, res) => {
     return;
   }
 
-  const nearest = findNearestCenter(user.lat, user.lng);
+  const nearest = await findNearestCenterNear(user.lat, user.lng);
   const dist = nearest ? distanceKm(user.lat, user.lng, nearest.lat, nearest.lng) : 0;
   const { etaMinutes } = computeEvacWindow(dist, user);
 

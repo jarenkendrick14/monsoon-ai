@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getPb } from '../pb.js';
 import { isHttpSmsWebhook, normalizeInboundSms, sendSms, verifyHttpSmsWebhook } from '../integrations/sms.js';
 import { getLocalizedConditions } from '../utils/localConditions.js';
-import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
+import { findNearestCenterNear, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { smsReply } from '../integrations/gemini.js';
@@ -45,7 +45,7 @@ async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | 
     alertLevel = alerts.items[0]?.level ?? 'none';
   } catch { /* no alerts */ }
 
-  const center = (user?.lat && user?.lng) ? findNearestCenter(user.lat, user.lng) : null;
+  const center = (user?.lat && user?.lng) ? await findNearestCenterNear(user.lat, user.lng) : null;
   const conditions = user?.lat && user?.lng
     ? await getLocalizedConditions(user.lat, user.lng)
     : null;
@@ -140,7 +140,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
         const alert = alerts.items[0];
         if (alert) {
-          const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+          const center = (user.lat && user.lng) ? await findNearestCenterNear(user.lat, user.lng) : null;
           const evacInfo = center && user.lat && user.lng
             ? `Go to: ${center.name} (${distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1)}km).`
             : 'Contact barangay hall for evac center.';
@@ -156,7 +156,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
           reply = sms(['[MonsoonAI] Reply JOIN to register by SMS and save your nearest evac info.']);
           break;
         }
-        const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
+        const center = (user.lat && user.lng) ? await findNearestCenterNear(user.lat, user.lng) : null;
         if (center && user.lat && user.lng) {
           const dist = distanceKm(user.lat, user.lng, center.lat, center.lng);
           const eta = Math.ceil((dist / 4.0) * 60);

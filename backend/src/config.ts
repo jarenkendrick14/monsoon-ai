@@ -49,6 +49,7 @@ export const config = {
     browserKey: optional_env('GOOGLE_MAPS_BROWSER_KEY', optional_env('GOOGLE_MAPS_API_KEY', '')),
     geocodingBase: optional_env('GOOGLE_GEOCODING_BASE', 'https://maps.googleapis.com/maps/api/geocode/json'),
     routesBase: optional_env('GOOGLE_ROUTES_BASE', 'https://routes.googleapis.com/directions/v2:computeRoutes'),
+    placesBase: optional_env('GOOGLE_PLACES_BASE', 'https://places.googleapis.com/v1'),
   },
 
   mocks: {
