@@ -69,6 +69,15 @@ function buildUserContextBlock(userContext?: string, riskContext?: RiskContext):
     if (riskContext.evacCenter) {
       lines.push(`Nearest evacuation center: ${riskContext.evacCenter.name}, ${riskContext.evacCenter.address} (${riskContext.evacCenter.distKm} km away)`);
     }
+    if (riskContext.situation) {
+      const situationLines = [
+        riskContext.situation.companions?.length ? `People with user: ${riskContext.situation.companions.join(', ')}` : '',
+        riskContext.situation.needs?.length ? `Priority needs: ${riskContext.situation.needs.join(', ')}` : '',
+        riskContext.situation.waterLevel ? `Water level: ${riskContext.situation.waterLevel}` : '',
+        riskContext.situation.canLeaveSafely ? `Can leave safely: ${riskContext.situation.canLeaveSafely}` : '',
+      ].filter(Boolean);
+      if (situationLines.length) lines.push(...situationLines);
+    }
   }
 
   if (userContext) lines.push(`Recent messages: ${userContext}`);

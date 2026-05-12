@@ -176,6 +176,13 @@ export interface RiskContext {
     riskTier?: RiskTier | null;
     isOnRescueList?: boolean;
   } | null;
+  situation?: {
+    companions?: string[];
+    needs?: string[];
+    waterLevel?: string | null;
+    canLeaveSafely?: string | null;
+    notes?: string[];
+  } | null;
   evacCenter?: { name: string; address: string; distKm: string } | null;
   conditions?: {
     heatIndex: number;

@@ -13,6 +13,24 @@ const router = Router();
 
 const sessionHistory = new Map<string, ChatMessage[]>();
 
+function readSituationContext(req: { get(name: string): string | undefined }): RiskContext['situation'] {
+  const raw = req.get('x-monsoon-situation-context');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf-8')) as RiskContext['situation'];
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      companions: Array.isArray(parsed.companions) ? parsed.companions.filter(v => typeof v === 'string').slice(0, 6) : [],
+      needs: Array.isArray(parsed.needs) ? parsed.needs.filter(v => typeof v === 'string').slice(0, 8) : [],
+      waterLevel: typeof parsed.waterLevel === 'string' ? parsed.waterLevel : null,
+      canLeaveSafely: typeof parsed.canLeaveSafely === 'string' ? parsed.canLeaveSafely : null,
+      notes: Array.isArray(parsed.notes) ? parsed.notes.filter(v => typeof v === 'string').slice(0, 6) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 const ChatSchema = z.object({
   message: z.string().min(1).max(500),
   sessionId: z.string().min(1),
@@ -60,6 +78,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     alertLevel,
     trigger: alertType,
     location: user.address || 'Philippines',
+    situation: readSituationContext(req),
     household: {
       homeType: user.homeType,
       floor: user.floor,

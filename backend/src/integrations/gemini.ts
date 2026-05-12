@@ -83,7 +83,7 @@ function formatAlertSources(passages: ReturnType<typeof retrievePassages>): stri
   return passages.map((p, i) => `[SOURCE ${i + 1}: ${p.id} | ${p.topic}]\n${p.text}\n[END SOURCE ${i + 1}]`).join('\n\n');
 }
 
-function fallbackAlertDetailGuidance(user: UserRecord): AlertDetailGuidance {
+function fallbackAlertDetailGuidance(user: UserRecord, context?: RiskContext): AlertDetailGuidance {
   const householdNotes = [
     Number(user.floor) === 0 ? 'ground-floor home' : '',
     user.hasElderly ? 'elderly household member' : '',
@@ -91,28 +91,47 @@ function fallbackAlertDetailGuidance(user: UserRecord): AlertDetailGuidance {
     user.hasInfant ? 'infant' : '',
     user.hasPregnant ? 'pregnant household member' : '',
   ].filter(Boolean).join(', ');
+  const chatCompanions = context?.situation?.companions ?? [];
+  const chatNeeds = context?.situation?.needs ?? [];
+  const chatNotes = [...chatCompanions, ...chatNeeds].join(', ');
 
   return {
     headline: 'Evacuate within 45 min',
     reasons: [
       { title: 'Extreme 24-hour rainfall', detail: '248 mm/24h in the active disaster scenario.' },
       { title: 'Flood hazard at saved address', detail: `${user.address || 'Your saved address'} is being tested as a 25-year flood hazard zone.` },
-      { title: 'Household priority', detail: householdNotes ? `Prioritized because of ${householdNotes}.` : 'Prioritized because of flood exposure.' },
+      { title: 'Household priority', detail: chatNotes ? `Prioritized from chat: ${chatNotes}.` : householdNotes ? `Prioritized because of ${householdNotes}.` : 'Prioritized because of flood exposure.' },
     ],
     checklist: [
+      ...(chatNeeds.some(need => /medicine|med/i.test(need)) ? ['Pack diabetes/essential medicines where you can reach them quickly.'] : []),
+      ...(chatNeeds.some(need => /wheelchair|mobility/i.test(need)) ? ['Bring wheelchair or mobility aids and allow extra time leaving.'] : []),
+      ...(chatCompanions.some(person => /baby|infant/i.test(person)) ? ['Keep baby supplies, dry clothes, and feeding items together.'] : []),
       'Bring IDs, medicines, phone, charger, water, food, flashlight, and cash.',
       'Turn off electricity or gas only if it is safe to do so.',
       'Avoid walking or driving through floodwater.',
       'Follow the evacuation route and LGU instructions.',
       'Call 911 or local responders if trapped or in immediate danger.',
-    ],
+    ].slice(0, 5),
     sourceIds: ['rag-001', 'rag-018'],
   };
 }
 
+function formatSituationContext(context: RiskContext): string {
+  const situation = context.situation;
+  if (!situation) return 'Chat situation: none provided';
+  const lines = [
+    situation.companions?.length ? `People with user: ${situation.companions.join(', ')}` : '',
+    situation.needs?.length ? `Priority needs from chat: ${situation.needs.join(', ')}` : '',
+    situation.waterLevel ? `Water level from chat: ${situation.waterLevel}` : '',
+    situation.canLeaveSafely ? `Can leave safely: ${situation.canLeaveSafely}` : '',
+    situation.notes?.length ? `Other chat notes: ${situation.notes.join('; ')}` : '',
+  ].filter(Boolean);
+  return lines.length ? lines.join('\n') : 'Chat situation: none provided';
+}
+
 export async function generateAlertDetailGuidance(user: UserRecord, context: RiskContext): Promise<AlertDetailGuidance> {
   const passages = retrievePassages('flood evacuation emergency kit avoid floodwater typhoon shelter', 4);
-  if (!config.openai.apiKey || passages.length === 0) return fallbackAlertDetailGuidance(user);
+  if (!config.openai.apiKey || passages.length === 0) return fallbackAlertDetailGuidance(user, context);
 
   const householdContext = [
     `Name: ${user.name}`,
@@ -131,6 +150,7 @@ export async function generateAlertDetailGuidance(user: UserRecord, context: Ris
     `Rainfall: ${context.conditions?.rainfall ?? 'unknown'} mm/24h`,
     `River level: ${context.conditions?.riverLevel ?? 'unknown'} m NHWL`,
     context.evacCenter ? `Nearest evacuation center: ${context.evacCenter.name}, ${context.evacCenter.address} (${context.evacCenter.distKm} km)` : 'Nearest evacuation center: unknown',
+    formatSituationContext(context),
   ].join('\n');
 
   const model = getClient().getGenerativeModel({
@@ -149,7 +169,10 @@ Return JSON only.
 
 Rules:
 - Use ONLY the provided sources for safety advice and checklist actions.
-- Use household context only for personalization and prioritization.
+- Use household and chat situation context only for personalization and prioritization.
+- If chat situation lists companions or needs, reflect them directly in at least one reason and at least two checklist items when possible.
+- Treat diabetes medication, wheelchair, baby, elderly/grandma/grandparent, and mobility support as evacuation packing/assistance priorities, not as medical diagnosis.
+- Do not add symptom warnings unless the chat situation says someone has symptoms.
 - Do not invent sensor readings, evacuation centers, distances, medical advice, or structural safety claims.
 - reasons must contain 3 concise personalized reasons.
 - checklist must contain 5 concise practical items/actions grounded in the sources.
@@ -179,7 +202,7 @@ ${formatAlertSources(passages)}`;
       ? parsed.sourceIds.filter((id): id is string => typeof id === 'string' && validSourceIds.has(id))
       : [];
     if (!parsed.headline || typeof parsed.headline !== 'string' || reasons.length < 2 || checklist.length < 3 || sourceIds.length === 0) {
-      return fallbackAlertDetailGuidance(user);
+      return fallbackAlertDetailGuidance(user, context);
     }
     return {
       headline: parsed.headline.slice(0, 60),
@@ -189,7 +212,7 @@ ${formatAlertSources(passages)}`;
     };
   } catch (err) {
     logger.warn('Gemini alert detail generation failed', err instanceof Error ? err.message : err);
-    return fallbackAlertDetailGuidance(user);
+    return fallbackAlertDetailGuidance(user, context);
   }
 }
 

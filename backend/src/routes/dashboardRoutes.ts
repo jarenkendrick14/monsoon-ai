@@ -10,6 +10,24 @@ import type { AlertRecord, RiskContext } from '../types/index.js';
 
 const router = Router();
 
+function readSituationContext(req: { get(name: string): string | undefined }): RiskContext['situation'] {
+  const raw = req.get('x-monsoon-situation-context');
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf-8')) as RiskContext['situation'];
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      companions: Array.isArray(parsed.companions) ? parsed.companions.filter(v => typeof v === 'string').slice(0, 6) : [],
+      needs: Array.isArray(parsed.needs) ? parsed.needs.filter(v => typeof v === 'string').slice(0, 8) : [],
+      waterLevel: typeof parsed.waterLevel === 'string' ? parsed.waterLevel : null,
+      canLeaveSafely: typeof parsed.canLeaveSafely === 'string' ? parsed.canLeaveSafely : null,
+      notes: Array.isArray(parsed.notes) ? parsed.notes.filter(v => typeof v === 'string').slice(0, 6) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 router.get('/api/dashboard', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
@@ -58,6 +76,7 @@ router.get('/api/alerts/active', authMiddleware, async (req, res) => {
       alertLevel: alert.level,
       trigger: alert.type,
       location: user.address || 'Philippines',
+      situation: readSituationContext(req),
       evacCenter: null,
       conditions: null,
     });

@@ -138,19 +138,31 @@ if (!sessionId) {
   sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
   localStorage.setItem(_sessionKey, sessionId);
 }
+const _localHistoryKey = 'monsoon_chat_history_' + (_u?.id || 'guest') + '_' + sessionId;
+const _situationKey = 'monsoon_situation_context';
 
 /* Load history on open */
 (async () => {
   try {
     const data = await apiFetch('/api/chat/history?sessionId=' + encodeURIComponent(sessionId));
-	    (data.history || []).forEach(msg => {
+      const serverHistory = data.history || [];
+      const localHistory = loadLocalHistory();
+      const history = serverHistory.length ? serverHistory : localHistory;
+	    history.forEach(msg => {
 	      appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
 	        msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
 	        msg.role === 'assistant');
 	    });
-      if (chatDisasterScenario) appendDisasterContextBubble();
+	      if (serverHistory.length) saveLocalHistory(serverHistory);
+	      if (chatDisasterScenario && history.length === 0) appendDisasterContextBubble();
 	  } catch {
-      if (chatDisasterScenario) appendDisasterContextBubble();
+      const localHistory = loadLocalHistory();
+      localHistory.forEach(msg => {
+        appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
+          msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
+          msg.role === 'assistant');
+      });
+      if (chatDisasterScenario && localHistory.length === 0) appendDisasterContextBubble();
     }
 	})();
 
@@ -178,16 +190,64 @@ function appendBubble(who, content, isHtml = false) {
   }
   list.insertBefore(wrap, document.getElementById('typingIndicator'));
 	  document.getElementById('messagesArea').scrollTop = 99999;
+  return wrap;
 	}
 
 function appendDisasterContextBubble() {
-  appendBubble(
+  if (document.querySelector('[data-disaster-intro="true"]')) return;
+  const intro = appendBubble(
     'bot',
     `Disaster Mode is active for your saved area: ${chatDisasterScenario.rainfall24h} mm/24h rainfall, ${chatDisasterScenario.riverLevel} NHWL river level, Signal #${chatDisasterScenario.signal}. First: who is with you right now?`,
   );
+  if (intro) intro.dataset.disasterIntro = 'true';
   document.getElementById('cmdPills').innerHTML = ['STATUS', 'EVAC', 'Show evac route', 'View checklist', 'Call 911']
     .map(cmd => `<div class="cmd-pill" onclick="sendCommand('${escapeHtml(cmd)}')">${escapeHtml(cmd)}</div>`)
     .join('');
+}
+
+function loadLocalHistory() {
+  try { return JSON.parse(localStorage.getItem(_localHistoryKey) || '[]'); } catch { return []; }
+}
+
+function saveLocalHistory(history) {
+  localStorage.setItem(_localHistoryKey, JSON.stringify((history || []).slice(-20)));
+}
+
+function addLocalMessage(role, content) {
+  const history = loadLocalHistory();
+  history.push({ role, content });
+  saveLocalHistory(history);
+  if (role === 'user') updateSituationContext(content);
+}
+
+function updateSituationContext(text) {
+  const lower = String(text || '').toLowerCase();
+  let ctx;
+  try { ctx = JSON.parse(localStorage.getItem(_situationKey) || '{}'); } catch { ctx = {}; }
+  ctx.companions = Array.isArray(ctx.companions) ? ctx.companions : [];
+  ctx.needs = Array.isArray(ctx.needs) ? ctx.needs : [];
+  ctx.notes = Array.isArray(ctx.notes) ? ctx.notes : [];
+
+  const add = (key, value) => {
+    if (!ctx[key].includes(value)) ctx[key].push(value);
+  };
+
+  if (/\b(grandma|grandmother|lola|elderly|senior)\b/.test(lower)) add('companions', 'elderly family member');
+  if (/\b(baby|infant|newborn)\b/.test(lower)) add('companions', 'baby/infant');
+  if (/\b(child|kid|children)\b/.test(lower)) add('companions', 'child');
+  if (/\b(pwd|disabled|wheelchair|mobility)\b/.test(lower)) add('needs', 'wheelchair or mobility assistance');
+  if (/\b(diabetes|diabetic|insulin|maintenance meds?|medicine|medication|meds)\b/.test(lower)) add('needs', 'essential medicines');
+  if (/\b(power bank|charger|phone)\b/.test(lower)) add('needs', 'phone and charging supplies');
+  if (/\b(knee|ankle|cannot walk|can't walk|cant walk)\b/.test(lower)) add('needs', 'walking assistance');
+
+  const waterMatch = lower.match(/\b(ankle|knee|waist|chest)\s*[- ]?(deep|level)?\b|water (?:is |level is |about )([^.,;]+)/);
+  if (waterMatch) ctx.waterLevel = waterMatch[0].trim();
+  if (/\b(can leave|able to leave|we can leave|safe to leave)\b/.test(lower)) ctx.canLeaveSafely = 'yes';
+  if (/\b(cannot leave|can't leave|cant leave|trapped|stuck|not safe to leave)\b/.test(lower)) ctx.canLeaveSafely = 'no';
+
+  if (ctx.notes.length < 6 && text.trim()) ctx.notes.push(text.trim().slice(0, 160));
+  ctx.updatedAt = new Date().toISOString();
+  localStorage.setItem(_situationKey, JSON.stringify(ctx));
 }
 
 async function sendMessage() {
@@ -196,6 +256,7 @@ async function sendMessage() {
   if (!text) return;
   input.value = '';
   appendBubble('user', text);
+  addLocalMessage('user', text);
   await callChatAPI(text);
 }
 
@@ -221,6 +282,7 @@ async function callChatAPI(message) {
     });
     typing.style.display = 'none';
     appendBubble('bot', renderMarkdown(data.reply), true);
+    addLocalMessage('assistant', data.reply);
 
     if (data.attachments?.length) {
       data.attachments.forEach(a => {

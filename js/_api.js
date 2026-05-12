@@ -247,9 +247,11 @@ function _getToken() {
 
 function authHeaders(extra = {}) {
   const token = _getToken();
+  const situationContext = getMonsoonSituationContextHeader();
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(situationContext ? { 'X-Monsoon-Situation-Context': situationContext } : {}),
     ...extra,
   };
 }
@@ -296,6 +298,27 @@ function connectGovWS(onMessage) {
 
 function getUser() {
   try { return JSON.parse(localStorage.getItem('monsoon_user') || 'null'); } catch { return null; }
+}
+
+function _monsoonJsonBase64Url(value) {
+  try {
+    const json = JSON.stringify(value);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  } catch {
+    return '';
+  }
+}
+
+function getMonsoonSituationContext() {
+  try { return JSON.parse(localStorage.getItem('monsoon_situation_context') || 'null'); } catch { return null; }
+}
+
+function getMonsoonSituationContextHeader() {
+  const ctx = getMonsoonSituationContext();
+  return ctx ? _monsoonJsonBase64Url(ctx) : '';
 }
 
 function getGovOfficer() {
