@@ -149,9 +149,15 @@ function parseFloor(message: string): number | null {
   return Number.isInteger(value) && value >= 0 && value <= 10 ? value : null;
 }
 
+const VALID_STATES = new Set<string>(['language', 'address', 'household_size', 'vulnerabilities', 'home_type', 'floor', 'complete']);
+
+function isActiveState(state: unknown): state is SmsSessionState {
+  return typeof state === 'string' && VALID_STATES.has(state) && state !== 'complete';
+}
+
 async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord | null> {
   const fallback = fallbackSessions.get(mobile);
-  if (fallback && fallback.state !== 'complete') return fallback;
+  if (fallback && isActiveState(fallback.state)) return fallback;
 
   try {
     const result = await pb.collection('sms_onboarding_state').getList<SmsSessionRecord>(1, 1, {
@@ -159,7 +165,7 @@ async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRe
       sort: '-updated',
     });
     const session = result.items[0] ?? null;
-    if (session && session.state !== 'complete') {
+    if (session && isActiveState(session.state)) {
       const tagged = { ...session, collectionName: 'sms_onboarding_state' as const };
       fallbackSessions.set(mobile, tagged);
       return tagged;
@@ -173,7 +179,7 @@ async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRe
       filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-created',
     });
-    const session = result.items.find(item => item.state !== 'complete') ?? null;
+    const session = result.items.find(item => isActiveState(item.state)) ?? null;
     if (session) {
       const tagged = { ...session, collectionName: 'sms_sessions' as const };
       fallbackSessions.set(mobile, tagged);
@@ -438,8 +444,18 @@ export async function handleSmsOnboarding(
     case 'complete':
       return { handled: false, user };
 
-    default:
-      reply = REGISTER_PROMPT;
+    default: {
+      // Unrecognized state — treat as language so the user can proceed
+      const parsed = parseLocale(normalizedMessage) ?? parseLeadingLocaleChoice(normalizedMessage);
+      if (parsed) {
+        reply = ADDRESS_PROMPT;
+        patch = { state: 'address', locale: parsed };
+      } else {
+        reply = REGISTER_PROMPT;
+        patch = { state: 'language' };
+      }
+      break;
+    }
   }
 
   await updateSession(pb, session, patch, normalizedMessage, reply);
