@@ -138,31 +138,24 @@ if (!sessionId) {
   sessionId = 'sess_' + Math.random().toString(36).slice(2, 10);
   localStorage.setItem(_sessionKey, sessionId);
 }
-const _localHistoryKey = 'monsoon_chat_history_' + (_u?.id || 'guest') + '_' + sessionId;
 const _situationKey = 'monsoon_situation_context';
+Object.keys(localStorage)
+  .filter(key => key.startsWith('monsoon_chat_history_'))
+  .forEach(key => localStorage.removeItem(key));
 
 /* Load history on open */
 (async () => {
   try {
     const data = await apiFetch('/api/chat/history?sessionId=' + encodeURIComponent(sessionId));
-      const serverHistory = data.history || [];
-      const localHistory = loadLocalHistory();
-      const history = serverHistory.length ? serverHistory : localHistory;
+      const history = data.history || [];
 	    history.forEach(msg => {
 	      appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
 	        msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
 	        msg.role === 'assistant');
 	    });
-	      if (serverHistory.length) saveLocalHistory(serverHistory);
 	      if (chatDisasterScenario && history.length === 0) appendDisasterContextBubble();
 	  } catch {
-      const localHistory = loadLocalHistory();
-      localHistory.forEach(msg => {
-        appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
-          msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
-          msg.role === 'assistant');
-      });
-      if (chatDisasterScenario && localHistory.length === 0) appendDisasterContextBubble();
+      if (chatDisasterScenario) appendDisasterContextBubble();
     }
 	})();
 
@@ -205,21 +198,6 @@ function appendDisasterContextBubble() {
     .join('');
 }
 
-function loadLocalHistory() {
-  try { return JSON.parse(localStorage.getItem(_localHistoryKey) || '[]'); } catch { return []; }
-}
-
-function saveLocalHistory(history) {
-  localStorage.setItem(_localHistoryKey, JSON.stringify((history || []).slice(-20)));
-}
-
-function addLocalMessage(role, content) {
-  const history = loadLocalHistory();
-  history.push({ role, content });
-  saveLocalHistory(history);
-  if (role === 'user') updateSituationContext(content);
-}
-
 function updateSituationContext(text) {
   const lower = String(text || '').toLowerCase();
   let ctx;
@@ -256,7 +234,7 @@ async function sendMessage() {
   if (!text) return;
   input.value = '';
   appendBubble('user', text);
-  addLocalMessage('user', text);
+  updateSituationContext(text);
   await callChatAPI(text);
 }
 
@@ -282,7 +260,6 @@ async function callChatAPI(message) {
     });
     typing.style.display = 'none';
     appendBubble('bot', renderMarkdown(data.reply), true);
-    addLocalMessage('assistant', data.reply);
 
     if (data.attachments?.length) {
       data.attachments.forEach(a => {
