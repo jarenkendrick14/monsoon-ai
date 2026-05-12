@@ -187,7 +187,18 @@ function hasEmergencySignal(message: string): boolean {
     'dying', 'die', 'emergency', 'help',
     // aftermath
     'clean', 'cleanup', 'after the flood', 'after the typhoon',
-  ].some(w => lower.includes(w));
+	  ].some(w => lower.includes(w));
+}
+
+function hasCorpusSignal(message: string): boolean {
+  const lower = message.toLowerCase();
+  const tokens = new Set(tokenizeIntent(message));
+  return getCorpus().some(entry => entry.keywords.some(keyword => {
+    const keywordTokens = tokenizeIntent(keyword);
+    if (keywordTokens.length === 0) return false;
+    if (keywordTokens.length === 1) return tokens.has(keywordTokens[0]);
+    return lower.includes(keyword.toLowerCase()) || keywordTokens.every(token => tokens.has(token));
+  }));
 }
 
 function isVagueFollowUp(message: string): boolean {
@@ -203,9 +214,11 @@ function isVagueFollowUp(message: string): boolean {
     'u sure', 'you sure', 'are you sure', 'r u sure',
     'really', 'for real', 'seriously', 'you certain',
     // review / opinion follow-ups
-    'what do you think', 'how does that sound', 'is that okay', 'is that fine',
-    'is that enough', 'am i missing', 'did i forget', 'anything else',
-    'what else', 'is that good', 'thats good', "that's good", 'that is good',
+	    'what do you think', 'how does that sound', 'is that okay', 'is that fine',
+	    'is that enough', 'am i missing', 'did i forget', 'anything else',
+	    'any tips', 'tips', 'advice', 'suggestions', 'what should i know',
+	    'what should we know', 'what should i do next', 'what do i do next',
+	    'what else', 'is that good', 'thats good', "that's good", 'that is good',
     'good right', 'we good', 'are we good', 'how about that',
   ].some(p => lower.includes(p));
 }
@@ -220,6 +233,16 @@ function isEmergencyFollowUp(message: string): boolean {
     'pressure on it', 'bandaged it', 'i bandaged',
     'it stopped', 'stopped now', 'bleeding stopped',
     'still bleeding', 'still hurts', 'still pain',
+	  ].some(p => lower.includes(p));
+}
+
+function isAdviceFollowUp(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  if (tokenizeIntent(lower).length > 8) return false;
+  return [
+    'any tips', 'tips', 'advice', 'suggestions',
+    'what should i know', 'what should we know',
+    'anything else', 'what else',
   ].some(p => lower.includes(p));
 }
 
@@ -233,9 +256,9 @@ function buildRecentUserContext(message: string, history: ChatMessage[]): string
 }
 
 function messageMatchesIntent(message: string, intent: UserIntent): boolean {
-  if (intent === 'emergency_guidance') {
-    return isEvacuationPrepQuestion(message) || isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message);
-  }
+	  if (intent === 'emergency_guidance') {
+	    return isEvacuationPrepQuestion(message) || isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message) || hasCorpusSignal(message);
+	  }
   if (intent === 'live_conditions') {
     return isLiveConditionsQuestion(message) || isStatusQuestion(message);
   }
@@ -255,7 +278,7 @@ function buildInheritedContext(message: string, history: ChatMessage[], intent: 
 }
 
 function buildRagQuery(message: string, history: ChatMessage[]): string {
-  if (history.length === 0 || (!isVagueFollowUp(message) && !isEmergencyFollowUp(message))) {
+	  if (history.length === 0 || (!isVagueFollowUp(message) && !isEmergencyFollowUp(message) && !isAdviceFollowUp(message))) {
     return message;
   }
 
@@ -280,16 +303,17 @@ function inferHistoryIntent(history: ChatMessage[]): UserIntent | null {
 export function classifyChatIntent(message: string, history: ChatMessage[]): ClassifiedIntent {
   const ragQuery = buildRagQuery(message, history);
 
-  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery };
-  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery };
-  if (isEvacuationPrepQuestion(message)) return { intent: 'emergency_guidance', ragQuery };
+	  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery };
+	  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery };
+	  if (isAdviceFollowUp(message)) return { intent: 'emergency_guidance', ragQuery };
+	  if (isEvacuationPrepQuestion(message)) return { intent: 'emergency_guidance', ragQuery };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
-  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message)) {
-    return { intent: 'emergency_guidance', ragQuery };
-  }
+	  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message) || hasCorpusSignal(message)) {
+	    return { intent: 'emergency_guidance', ragQuery };
+	  }
 
   // Intent carryover for vague follow-ups
-  if (history.length > 0 && (isVagueFollowUp(message) || isEmergencyFollowUp(message))) {
+	  if (history.length > 0 && (isVagueFollowUp(message) || isEmergencyFollowUp(message) || isAdviceFollowUp(message))) {
     const inherited = inferHistoryIntent(history);
     // Emergency guidance wins — don't let combined-context live_conditions check override it
     if (inherited === 'emergency_guidance') return { intent: 'emergency_guidance', ragQuery };
@@ -305,12 +329,13 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
 }
 
 export function classifySmsIntent(message: string): ClassifiedIntent {
-  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message };
-  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message };
+	  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message };
+	  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message };
+	  if (isAdviceFollowUp(message)) return { intent: 'emergency_guidance', ragQuery: message };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message };
-  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message)) {
-    return { intent: 'emergency_guidance', ragQuery: message };
-  }
+	  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message) || hasCorpusSignal(message)) {
+	    return { intent: 'emergency_guidance', ragQuery: message };
+	  }
   return { intent: 'out_of_scope', ragQuery: message };
 }
 
