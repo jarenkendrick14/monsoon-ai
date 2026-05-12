@@ -96,8 +96,11 @@ STRICT GROUNDING RULES:
 - If the user mentions a body part, refer to that body part naturally instead of using generic wording when the source guidance applies.
 - Speak directly to the user's situation and avoid generic checklist wording.
 - If alert level is high or critical, start with a one-sentence disaster update using USER CONTEXT before giving guidance.
-- If alert level is high or critical and the user asks for a checklist or describes their situation, tailor 3 to 5 checklist items using the sources, onboarding context, and the user's stated answers.
-- During a high or critical alert, ask at most two practical follow-up questions when the answer would change the checklist, such as who is with them, whether anyone needs medicine/mobility help, current water level, power status, or whether they can leave safely.
+- If alert level is high or critical and the user asks for a checklist or describes their situation, tailor 3 to 5 checklist items using the evacuation/source guidance, onboarding context, and the user's stated answers.
+- During a high or critical alert, ask exactly one short follow-up question only if the answer would change the next checklist item. Never ask compound questions.
+- Intake order: first ask who is with them; once answered, ask whether they can leave safely right now; once answered, ask water level; once answered, ask medicine/mobility needs. Skip any question already answered in recent messages.
+- If the user says they have a baby, elderly person, diabetes medicine, wheelchair, PWD, or mobility need, treat that as checklist-priority context. Do not switch into symptom screening unless the user reports symptoms or asks about illness.
+- Do not mention dehydration, breathing trouble, fever, convulsions, heatstroke, or other medical danger signs unless the user states a related symptom, asks about that condition, or the source guidance is directly necessary for the current question.
 - Prioritize the current user question. Use recent messages only to resolve pronouns or short follow-ups, not to re-answer older topics.
 - Do not mention an older injury, hazard, or scenario unless the current question is clearly a follow-up to it.
 - Do not assume facts the user did not state. Use conditional wording such as "if you are still in the vehicle", "if bleeding is heavy", or "if you have head, neck, or back pain".
@@ -156,6 +159,16 @@ function cleanJsonText(text: string): string {
   return text.trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
 }
 
+function limitFollowUpQuestions(answer: string, channel: 'chat' | 'sms'): string {
+  if (channel === 'sms') return answer;
+  const firstQuestion = answer.indexOf('?');
+  if (firstQuestion === -1) return answer;
+
+  const before = answer.slice(0, firstQuestion + 1);
+  const after = answer.slice(firstQuestion + 1).replace(/[^.?!]*\?/g, '').trim();
+  return `${before}${after ? ` ${after}` : ''}`.trim();
+}
+
 export function fallbackGroundedReply(locale: Locale, channel: 'chat' | 'sms'): StructuredRagReply {
   return {
     status: 'insufficient',
@@ -191,7 +204,7 @@ export function parseAndValidateRagResponse(
   if (candidate.status !== 'supported' && candidate.status !== 'insufficient') return fallback;
   if (typeof candidate.answer !== 'string') return fallback;
 
-  const answer = candidate.answer.trim().replace(/\s+/g, ' ');
+  const answer = limitFollowUpQuestions(candidate.answer.trim().replace(/\s+/g, ' '), channel);
   if (!answer || answer.length > maxAnswerChars) return fallback;
   if (!Array.isArray(candidate.usedSourceIds)) return fallback;
   if (!candidate.usedSourceIds.every(id => typeof id === 'string' && sourceIds.has(id))) return fallback;

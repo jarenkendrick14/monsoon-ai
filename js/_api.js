@@ -156,7 +156,7 @@ function _mockApi(path, options = {}) {
     }
 
     return {
-      reply: `${base} Tell me who is with you, your current water level, and whether anyone needs medicine or mobility help so I can tailor your checklist.`,
+      reply: `${base} First: who is with you right now?`,
       suggestedCommands: ['View checklist', 'EVAC', 'Call 911'],
     };
   }
