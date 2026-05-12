@@ -177,21 +177,7 @@ async function findSession(_pb: PocketBase, mobile: string): Promise<SmsSessionR
     // Fall through to the legacy collection for older deployments.
   }
 
-  try {
-    const result = await pbCall(client => client.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
-      filter: `mobile="${escapePbString(mobile)}"`,
-      sort: '-created',
-    }));
-    const session = result.items.find(item => isActiveState(item.state)) ?? null;
-    if (session) {
-      const tagged = { ...session, collectionName: 'sms_sessions' as const };
-      fallbackSessions.set(mobile, tagged);
-      return tagged;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 async function createSession(_pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
@@ -212,16 +198,9 @@ async function createSession(_pb: PocketBase, mobile: string): Promise<SmsSessio
     // Fall back to the legacy collection, then memory if PocketBase is unavailable.
   }
 
-  try {
-    const session = await pbCall(client => client.collection('sms_sessions').create<SmsSessionRecord>(payload));
-    const tagged = { ...session, collectionName: 'sms_sessions' as const };
-    fallbackSessions.set(mobile, tagged);
-    return tagged;
-  } catch {
-    const session: SmsSessionRecord = { id: `memory:${mobile}`, collectionName: 'sms_onboarding_state', ...payload };
-    fallbackSessions.set(mobile, session);
-    return session;
-  }
+  const session: SmsSessionRecord = { id: `memory:${mobile}`, collectionName: 'sms_onboarding_state', ...payload };
+  fallbackSessions.set(mobile, session);
+  return session;
 }
 
 async function getOrCreateSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
@@ -345,9 +324,7 @@ export async function handleSmsOnboarding(
     if (keyword === 'EVAC') {
       return { handled: true, reply: '[MonsoonAI] Reply JOIN to register by SMS and save your nearest evac info.', user };
     }
-    // Unregistered users sending free-text (e.g. addresses mid-session after a restart)
-    // get a clear prompt to rejoin rather than falling through to the LLM.
-    return { handled: true, reply: '[MonsoonAI] Session expired. Reply JOIN to re-register.', user };
+    return { handled: true, reply: '[MonsoonAI] Reply JOIN to start SMS registration.', user };
   }
 
   const session = activeSession ?? await getOrCreateSession(pb, mobile);
