@@ -32,7 +32,7 @@ export function casualReply(locale: Locale): ChatReply {
 
 export function outOfScopeReply(locale: Locale): ChatReply {
   const replies: Record<Locale, string> = {
-    en: "I'm built for real-world disaster readiness, local alerts, evacuation, and emergency first aid. I can't help with that here.",
+    en: "I can't verify that here. Ask me about your local alert, evacuation, supplies, flood safety, utilities, or first aid.",
     tl: 'Nakatuon ako sa disaster readiness at emergency guidance, kaya hindi ko ma-verify ang general trivia rito. Magtanong tungkol sa local conditions, evacuation, o first aid.',
     vi: 'Tôi tập trung vào sẵn sàng ứng phó thiên tai và hướng dẫn khẩn cấp, nên không xác minh câu hỏi kiến thức chung ở đây. Hãy hỏi về điều kiện địa phương, sơ tán hoặc sơ cứu.',
   };
@@ -56,7 +56,7 @@ export function unsupportedEmergencyReply(locale: Locale): ChatReply {
 
 export function smsOutOfScopeReply(locale: Locale): string {
   const replies: Record<Locale, string> = {
-    en: "MonsoonAI handles real-world alerts, evacuation, and emergency first aid. I can't help with that here.",
+    en: "I can't verify that here. Ask about local alerts, evacuation, supplies, flood safety, utilities, or first aid.",
     tl: 'Para sa real-world alerts, evacuation, at first aid ang MonsoonAI. Hindi ako makakatulong diyan dito.',
     vi: 'MonsoonAI hỗ trợ cảnh báo thực tế, sơ tán và sơ cứu khẩn cấp. Tôi không thể hỗ trợ việc đó ở đây.',
   };

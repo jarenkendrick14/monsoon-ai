@@ -56,6 +56,16 @@ function buildUserContextBlock(userContext?: string, riskContext?: RiskContext):
     lines.push(`Alert level: ${riskContext.alertLevel}`);
     if (riskContext.trigger) lines.push(`Alert trigger: ${riskContext.trigger}`);
     if (riskContext.location) lines.push(`User location: ${riskContext.location}`);
+    if (riskContext.household) {
+      const vulnerable = [
+        riskContext.household.hasElderly ? 'elderly member' : '',
+        riskContext.household.hasPWD ? 'PWD member' : '',
+        riskContext.household.hasInfant ? 'infant' : '',
+        riskContext.household.hasPregnant ? 'pregnant member' : '',
+      ].filter(Boolean).join(', ') || 'none recorded';
+      lines.push(`Household: ${riskContext.household.householdSize ?? 'unknown'} people, ${riskContext.household.homeType ?? 'unknown'} home, floor ${riskContext.household.floor ?? 'unknown'}, vulnerable members: ${vulnerable}`);
+      if (riskContext.household.riskTier) lines.push(`Saved risk tier: ${riskContext.household.riskTier}`);
+    }
     if (riskContext.evacCenter) {
       lines.push(`Nearest evacuation center: ${riskContext.evacCenter.name}, ${riskContext.evacCenter.address} (${riskContext.evacCenter.distKm} km away)`);
     }
@@ -85,6 +95,9 @@ STRICT GROUNDING RULES:
 - User-provided details are context for wording and relevance only; safety instructions must still come from the sources.
 - If the user mentions a body part, refer to that body part naturally instead of using generic wording when the source guidance applies.
 - Speak directly to the user's situation and avoid generic checklist wording.
+- If alert level is high or critical, start with a one-sentence disaster update using USER CONTEXT before giving guidance.
+- If alert level is high or critical and the user asks for a checklist or describes their situation, tailor 3 to 5 checklist items using the sources, onboarding context, and the user's stated answers.
+- During a high or critical alert, ask at most two practical follow-up questions when the answer would change the checklist, such as who is with them, whether anyone needs medicine/mobility help, current water level, power status, or whether they can leave safely.
 - Prioritize the current user question. Use recent messages only to resolve pronouns or short follow-ups, not to re-answer older topics.
 - Do not mention an older injury, hazard, or scenario unless the current question is clearly a follow-up to it.
 - Do not assume facts the user did not state. Use conditional wording such as "if you are still in the vehicle", "if bleeding is heavy", or "if you have head, neck, or back pain".
@@ -222,7 +235,7 @@ export async function generateStructuredRagReply(
       responseSchema: buildRagResponseSchema(passages),
     },
   });
-  const wordLimit = channel === 'sms' ? 'Under 130 characters.' : 'Under 80 words.';
+  const wordLimit = channel === 'sms' ? 'Under 130 characters.' : 'Under 130 words.';
   const prompt = groundedRagPrompt(message, locale, passages, wordLimit, userContext, riskContext);
   const result = await model.generateContent(prompt);
   return parseAndValidateRagResponse(result.response.text(), passages, locale, channel);

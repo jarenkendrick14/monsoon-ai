@@ -60,6 +60,17 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     alertLevel,
     trigger: alertType,
     location: user.address || 'Philippines',
+    household: {
+      homeType: user.homeType,
+      floor: user.floor,
+      householdSize: user.householdSize,
+      hasPWD: user.hasPWD,
+      hasElderly: user.hasElderly,
+      hasInfant: user.hasInfant,
+      hasPregnant: user.hasPregnant,
+      riskTier: user.riskTier,
+      isOnRescueList: user.isOnRescueList,
+    },
     evacCenter,
     conditions: {
       heatIndex: liveConditions.heatIndex,

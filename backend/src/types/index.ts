@@ -165,6 +165,17 @@ export interface RiskContext {
   alertLevel: AlertLevel;
   trigger: RiskTrigger | null;
   location: string;
+  household?: {
+    homeType?: HomeType | null;
+    floor?: number | null;
+    householdSize?: number | null;
+    hasPWD?: boolean;
+    hasElderly?: boolean;
+    hasInfant?: boolean;
+    hasPregnant?: boolean;
+    riskTier?: RiskTier | null;
+    isOnRescueList?: boolean;
+  } | null;
   evacCenter?: { name: string; address: string; distKm: string } | null;
   conditions?: {
     heatIndex: number;

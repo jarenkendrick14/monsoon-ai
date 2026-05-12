@@ -2,8 +2,8 @@ import { GoogleGenerativeAI, SchemaType, type ResponseSchema } from '@google/gen
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import { AlertReason, ChatMessage, ChatReply, HazardTag, Locale, RiskContext, UserRecord } from '../types/index.js';
-import { classifyChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
-import { retrievePassages } from '../engine/ragRetrieval.js';
+import { classifyChatIntent, classifyDisasterChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
+import { retrieveDisasterPassages, retrievePassages } from '../engine/ragRetrieval.js';
 import {
   fallbackGroundedReply,
   generateStructuredRagReply,
@@ -301,7 +301,10 @@ export async function chatbotReply(
   context: RiskContext,
   history: ChatMessage[]
 ): Promise<ChatReply> {
-  const classified = classifyChatIntent(message, history);
+  const isActiveDisaster = context.alertLevel === 'critical' || context.alertLevel === 'high';
+  const classified = isActiveDisaster
+    ? classifyDisasterChatIntent(message, history)
+    : classifyChatIntent(message, history);
 
   if (classified.intent === 'casual') return casualReply(locale);
   if (classified.intent === 'out_of_scope') return outOfScopeReply(locale);
@@ -316,7 +319,9 @@ export async function chatbotReply(
 
   try {
     if (classified.intent === 'emergency_guidance') {
-      const passages = retrievePassages(classified.ragQuery, 4);
+      const passages = isActiveDisaster
+        ? retrieveDisasterPassages(classified.ragQuery, 4)
+        : retrievePassages(classified.ragQuery, 4);
       if (passages.length === 0) {
         const fallback = fallbackGroundedReply(locale, 'chat');
         return {

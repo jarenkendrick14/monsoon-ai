@@ -156,8 +156,8 @@ function _mockApi(path, options = {}) {
     }
 
     return {
-      reply: `${base} Ask STATUS, EVAC, or checklist and I will answer using the active disaster scenario.`,
-      suggestedCommands: ['STATUS', 'EVAC', 'View checklist'],
+      reply: `${base} Tell me who is with you, your current water level, and whether anyone needs medicine or mobility help so I can tailor your checklist.`,
+      suggestedCommands: ['View checklist', 'EVAC', 'Call 911'],
     };
   }
 

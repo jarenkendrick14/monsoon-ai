@@ -93,6 +93,17 @@ function scoreCorpus(message: string): ScoredCorpusEntry[] {
     .sort((a, b) => b.score - a.score);
 }
 
-export function retrievePassages(message: string, limit = 4): CorpusEntry[] {
-  return scoreCorpus(message).slice(0, limit).map(item => item.entry);
+export function retrievePassages(message: string, limit = 4, fallbackQuery?: string): CorpusEntry[] {
+  const scored = scoreCorpus(message);
+  if (scored.length > 0 || !fallbackQuery) return scored.slice(0, limit).map(item => item.entry);
+
+  return scoreCorpus(fallbackQuery).slice(0, limit).map(item => item.entry);
+}
+
+export function retrieveDisasterPassages(message: string, limit = 4): CorpusEntry[] {
+  return retrievePassages(
+    message,
+    limit,
+    `${message} flood evacuation emergency kit typhoon safe electricity food water medicine infant elderly pregnant pwd`
+  );
 }

@@ -183,7 +183,7 @@ function appendBubble(who, content, isHtml = false) {
 function appendDisasterContextBubble() {
   appendBubble(
     'bot',
-    `Disaster Mode is active. I'm using the typhoon scenario for your saved area: ${chatDisasterScenario.rainfall24h} mm/24h rainfall, ${chatDisasterScenario.riverLevel} NHWL river level, Signal #${chatDisasterScenario.signal}, evacuate within ${chatDisasterScenario.evacWithin} minutes if instructed.`,
+    `Disaster Mode is active for your saved area: ${chatDisasterScenario.rainfall24h} mm/24h rainfall, ${chatDisasterScenario.riverLevel} NHWL river level, Signal #${chatDisasterScenario.signal}. Tell me who is with you, your current water level, and whether anyone needs medicine or mobility help so I can tailor your checklist.`,
   );
   document.getElementById('cmdPills').innerHTML = ['STATUS', 'EVAC', 'Show evac route', 'View checklist', 'Call 911']
     .map(cmd => `<div class="cmd-pill" onclick="sendCommand('${escapeHtml(cmd)}')">${escapeHtml(cmd)}</div>`)

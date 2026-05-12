@@ -41,6 +41,19 @@ function isVirtualScenario(message: string): boolean {
     && (hasIntentPhrase(message, scenarioTerms) || !isLiveConditionsQuestion(message));
 }
 
+function isObviousGeneralTrivia(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  const triviaStarters = ['who is', 'who invented', 'when was', 'where is', 'why is'];
+  if (triviaStarters.some(starter => lower.startsWith(starter))) return true;
+  if (lower.startsWith('what is')) {
+    return !hasIntentPhrase(lower, [
+      'weather', 'rain', 'rainfall', 'alert', 'status', 'flood', 'typhoon', 'storm',
+      'earthquake', 'fire', 'evac', 'shelter', 'first aid', 'injury', 'safe',
+    ]);
+  }
+  return false;
+}
+
 function isEvacuationPrepQuestion(message: string): boolean {
   return hasIntentPhrase(message, [
     'go bag', 'gobag', 'emergency kit', 'evacuation kit',
@@ -172,13 +185,15 @@ function hasEmergencySignal(message: string): boolean {
     'choking', 'choke', 'drowning', 'drown', 'trapped', 'stuck',
     'sick', 'fever', 'dizzy', 'vomit', 'diarrhea', 'leptospirosis',
     // vulnerable people
-    'baby', 'infant', 'pregnant', 'elderly', 'child', 'children',
+    'baby', 'infant', 'pregnant', 'elderly', 'senior', 'pwd', 'disabled', 'lola', 'lolo', 'child', 'children',
     // safety / evacuation
     'safe', 'danger', 'dangerous', 'evacuate', 'evacuation', 'shelter',
-    'rescue', 'missing', 'lost',
+    'rescue', 'missing', 'lost', 'stranded',
     // everyday disaster safety
     'shower', 'bath', 'generator', 'cook', 'cooking', 'boil', 'tap', 'smell',
-    'electric', 'wire', 'gas', 'leak', 'charger', 'appliance',
+    'electric', 'wire', 'gas', 'leak', 'charger', 'appliance', 'outage', 'brownout',
+    'blackout', 'power', 'socket', 'extension', 'nebulizer', 'oxygen', 'fridge',
+    'food', 'medicine', 'insulin', 'documents', 'pets',
     // first aid follow-ups
     'cold pack', 'ice pack', 'cold compress', 'first aid', 'bandage', 'tourniquet',
     // structural
@@ -246,6 +261,16 @@ function isAdviceFollowUp(message: string): boolean {
   ].some(p => lower.includes(p));
 }
 
+function isUnsupportedVagueEmergencyAsk(message: string): boolean {
+  const lower = message.trim().toLowerCase();
+  return [
+    'help', 'help me', 'please help',
+    'what should i do', 'what do i do',
+    'what should we do', 'what do we do',
+    'what now',
+  ].includes(lower);
+}
+
 function buildRecentUserContext(message: string, history: ChatMessage[]): string {
   const recentUserMessages = history
     .filter(item => item.role === 'user')
@@ -308,6 +333,7 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
 	  if (isAdviceFollowUp(message)) return { intent: 'emergency_guidance', ragQuery };
 	  if (isEvacuationPrepQuestion(message)) return { intent: 'emergency_guidance', ragQuery };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery };
+  if (history.length === 0 && isUnsupportedVagueEmergencyAsk(message)) return { intent: 'unsupported_emergency', ragQuery };
 	  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message) || hasCorpusSignal(message)) {
 	    return { intent: 'emergency_guidance', ragQuery };
 	  }
@@ -328,11 +354,29 @@ export function classifyChatIntent(message: string, history: ChatMessage[]): Cla
   return { intent: 'out_of_scope', ragQuery };
 }
 
+export function classifyDisasterChatIntent(message: string, history: ChatMessage[]): ClassifiedIntent {
+  const classified = classifyChatIntent(message, history);
+  if (classified.intent === 'unsupported_emergency') return { intent: 'emergency_guidance', ragQuery: classified.ragQuery };
+  if (classified.intent !== 'out_of_scope') return classified;
+  if (isCasualGreeting(message) || isVirtualScenario(message) || isObviousGeneralTrivia(message)) return classified;
+
+  const ragQuery = buildRagQuery(message, history);
+  if (
+    isLiveConditionsQuestion(message) ||
+    isStatusQuestion(message) ||
+    hasIntentPhrase(message, ['how bad is it', 'is it getting worse', 'what is happening', "what's happening"])
+  ) {
+    return { intent: 'live_conditions', ragQuery };
+  }
+  return { intent: 'emergency_guidance', ragQuery };
+}
+
 export function classifySmsIntent(message: string): ClassifiedIntent {
 	  if (isCasualGreeting(message)) return { intent: 'casual', ragQuery: message };
 	  if (isVirtualScenario(message)) return { intent: 'out_of_scope', ragQuery: message };
 	  if (isAdviceFollowUp(message)) return { intent: 'emergency_guidance', ragQuery: message };
   if (isLiveConditionsQuestion(message) || isStatusQuestion(message)) return { intent: 'live_conditions', ragQuery: message };
+  if (isUnsupportedVagueEmergencyAsk(message)) return { intent: 'unsupported_emergency', ragQuery: message };
 	  if (isUnsupportedEmergencyQuestion(message) || hasEmergencySignal(message) || hasCorpusSignal(message)) {
 	    return { intent: 'emergency_guidance', ragQuery: message };
 	  }
