@@ -78,7 +78,17 @@ function escapePbString(value: string): string {
 }
 
 function parseLocale(message: string): Locale | null {
-  const normalized = message.trim().toLowerCase();
+  const normalized = message
+    .trim()
+    .toLowerCase()
+    .replace(/[^\S\r\n]+/g, ' ')
+    .replace(/[１]/g, '1')
+    .replace(/[２]/g, '2')
+    .replace(/[３]/g, '3');
+  const leadingChoice = normalized.match(/^([123])(?:\b|[^a-z0-9])/);
+  if (leadingChoice?.[1] === '1') return 'en';
+  if (leadingChoice?.[1] === '2') return 'tl';
+  if (leadingChoice?.[1] === '3') return 'vi';
   if (['1', 'en', 'english'].includes(normalized)) return 'en';
   if (['2', 'tl', 'filipino', 'tagalog'].includes(normalized)) return 'tl';
   if (['3', 'vi', 'vietnamese'].includes(normalized)) return 'vi';
@@ -258,6 +268,12 @@ export async function handleSmsOnboarding(
   if (!activeSession && ['JOIN', 'START', 'REGISTER'].includes(keyword)) {
     reply = REGISTER_PROMPT;
     await updateSession(pb, session, {}, normalizedMessage, reply);
+    return { handled: true, reply, user };
+  }
+
+  if ((!activeSession || session.state === 'language') && localeReplyWithoutSession) {
+    reply = ADDRESS_PROMPT;
+    await updateSession(pb, session, { state: 'address', locale: localeReplyWithoutSession }, normalizedMessage, reply);
     return { handled: true, reply, user };
   }
 
