@@ -137,6 +137,19 @@ export async function ensureCollections(): Promise<void> {
       ],
     },
     {
+      name: 'sms_sessions',
+      type: 'base',
+      schema: [
+        { name: 'mobile', type: 'text', required: true },
+        { name: 'userId', type: 'text', required: false },
+        { name: 'state', type: 'text', required: true },
+        { name: 'locale', type: 'text', required: false },
+        { name: 'partialProfile', type: 'json', required: false },
+        { name: 'history', type: 'json', required: false },
+        { name: 'lastMessageAt', type: 'text', required: false },
+      ],
+    },
+    {
       name: 'hazard_reports',
       type: 'base',
       schema: [

@@ -6,14 +6,56 @@ import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { smsReply } from '../integrations/gemini.js';
+import { handleSmsOnboarding, normalizeSmsMobile, smsText } from '../engine/smsOnboarding.js';
 import type { UserRecord, AlertRecord, AlertLevel, RiskContext, Locale } from '../types/index.js';
 
 const router = Router();
 
 // Hard cap at 155 chars — standard SMS is 160, 5-char buffer for carrier headers
-function sms(parts: string[]): string {
-  const msg = parts.filter(Boolean).join(' ');
-  return msg.length > 155 ? msg.slice(0, 152) + '...' : msg;
+const sms = smsText;
+
+function escapePbString(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+async function findSmsUser(mobile: string, originalMobile: string): Promise<UserRecord | null> {
+  const pb = getPb();
+  const candidates = Array.from(new Set([mobile, originalMobile].filter(Boolean)));
+
+  for (const candidate of candidates) {
+    try {
+      const result = await pb.collection('users').getList<UserRecord>(1, 1, {
+        filter: `mobile="${escapePbString(candidate)}"`,
+      });
+      if (result.items[0]) return result.items[0];
+    } catch { /* unknown sender */ }
+  }
+
+  return null;
+}
+
+async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | null): Promise<RiskContext> {
+  let alertLevel: AlertLevel = 'none';
+  try {
+    const alerts = user
+      ? await pb.collection('alerts').getList<AlertRecord>(1, 1, {
+        filter: `userId="${escapePbString(user.id)}" && resolved=false`,
+      })
+      : { items: [] as AlertRecord[] };
+    alertLevel = alerts.items[0]?.level ?? 'none';
+  } catch { /* no alerts */ }
+
+  const center = (user?.lat && user?.lng) ? findNearestCenter(user.lat, user.lng) : null;
+  return {
+    alertLevel,
+    trigger: null,
+    location: user?.address || 'Philippines',
+    evacCenter: center && user?.lat && user?.lng ? {
+      name: center.name,
+      address: center.address,
+      distKm: distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1),
+    } : null,
+  };
 }
 
 router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
@@ -28,7 +70,8 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
     return;
   }
 
-  const from = inbound.from;
+  const originalFrom = inbound.from;
+  const from = normalizeSmsMobile(originalFrom);
   const rawMessage = inbound.message;
   if (!from || !rawMessage.trim()) {
     res.status(400).json({ error: 'Missing SMS sender or message' });
@@ -43,19 +86,39 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
   try {
     const pb = getPb();
-    let user: UserRecord | null = null;
+    let user: UserRecord | null = await findSmsUser(from, originalFrom);
 
-    try {
-      const result = await pb.collection('users').getList<UserRecord>(1, 1, {
-        filter: `mobile="${from}"`,
-      });
-      user = result.items[0] ?? null;
-    } catch { /* unknown sender */ }
+    if (keyword === 'STOP') {
+      if (user) await getPb().collection('users').update(user.id, { smsOptIn: false });
+      reply = sms(['[MonsoonAI] Unsubscribed from alerts. Reply START to re-subscribe. Emergencies: call 911.']);
+      if (from) await sendSms(from, reply);
+      return;
+    }
+
+    const onboarding = await handleSmsOnboarding(pb, from, rawMessage, user);
+    if (onboarding.handled) {
+      if (onboarding.user) user = onboarding.user;
+      reply = onboarding.reply ?? '[MonsoonAI] Reply HELP for commands.';
+      if (from) await sendSms(from, reply);
+      return;
+    }
 
     switch (keyword) {
+      case 'ASK': {
+        const question = rawMessage.trim().replace(/^ASK\b/i, '').trim();
+        if (!question) {
+          reply = sms(['[MonsoonAI] Text ASK plus your question. Example: ASK what to do after a flood?']);
+          break;
+        }
+        const context = await buildSmsContext(pb, user);
+        const locale: Locale = (user?.locale as Locale) ?? 'en';
+        reply = await smsReply(question, locale, context);
+        break;
+      }
+
       case 'STATUS': {
         if (!user) {
-          reply = sms(['[MonsoonAI] Not registered yet. Register in the app to get risk status. Reply HELP for commands.']);
+          reply = sms(['[MonsoonAI] Not registered yet. Reply JOIN to register by SMS.']);
           break;
         }
         let alerts;
@@ -80,7 +143,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
       case 'EVAC': {
         if (!user) {
-          reply = sms(['[MonsoonAI] Not registered yet. Register in the app to find your evac center.']);
+          reply = sms(['[MonsoonAI] Reply JOIN to register by SMS and save your nearest evac info.']);
           break;
         }
         const center = (user.lat && user.lng) ? findNearestCenter(user.lat, user.lng) : null;
@@ -117,13 +180,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
       }
 
       case 'HELP': {
-        reply = sms(['[MonsoonAI] Commands: STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, START. Emergencies: call 911.']);
-        break;
-      }
-
-      case 'STOP': {
-        if (user) await getPb().collection('users').update(user.id, { smsOptIn: false });
-        reply = sms(['[MonsoonAI] Unsubscribed from alerts. Reply START to re-subscribe. Emergencies: call 911.']);
+        reply = sms(['[MonsoonAI] Commands: JOIN, ASK, STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, START. Call 911 for emergencies.']);
         break;
       }
 
@@ -135,25 +192,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
       default: {
         // Unknown keyword — try RAG + LLM
-        let alertLevel: AlertLevel = 'none';
-        try {
-          const alerts = await pb.collection('alerts').getList<AlertRecord>(1, 1, {
-            filter: user ? `userId="${user.id}" && resolved=false` : 'resolved=false',
-          });
-          alertLevel = alerts.items[0]?.level ?? 'none';
-        } catch { /* no alerts */ }
-
-        const center = (user?.lat && user?.lng) ? findNearestCenter(user.lat, user.lng) : null;
-        const context: RiskContext = {
-          alertLevel,
-          trigger: null,
-          location: user?.address || 'Philippines',
-          evacCenter: center && user?.lat && user?.lng ? {
-            name: center.name,
-            address: center.address,
-            distKm: distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1),
-          } : null,
-        };
+        const context = await buildSmsContext(pb, user);
 
         const locale: Locale = (user?.locale as Locale) ?? 'en';
         reply = await smsReply(rawMessage.trim(), locale, context);
