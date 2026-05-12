@@ -96,6 +96,19 @@ function parseLocale(message: string): Locale | null {
   return null;
 }
 
+function parseLeadingLocaleChoice(message: string): Locale | null {
+  const firstChoice = message
+    .trim()
+    .replace(/[１]/g, '1')
+    .replace(/[２]/g, '2')
+    .replace(/[３]/g, '3')
+    .match(/[123]/)?.[0];
+  if (firstChoice === '1') return 'en';
+  if (firstChoice === '2') return 'tl';
+  if (firstChoice === '3') return 'vi';
+  return null;
+}
+
 function parseHouseholdSize(message: string): number | null {
   const value = Number(message.trim());
   return Number.isInteger(value) && value >= 1 && value <= 30 ? value : null;
@@ -277,7 +290,7 @@ export async function handleSmsOnboarding(
     return { handled: false, user };
   }
 
-  const localeReplyWithoutSession = parseLocale(normalizedMessage);
+  const localeReplyWithoutSession = parseLocale(normalizedMessage) ?? parseLeadingLocaleChoice(normalizedMessage);
 
   if (!activeSession && !['JOIN', 'START', 'REGISTER'].includes(keyword) && !localeReplyWithoutSession) {
     if (keyword === 'STATUS') {
@@ -310,7 +323,7 @@ export async function handleSmsOnboarding(
 
   switch (session.state) {
     case 'language': {
-      const parsed = parseLocale(normalizedMessage);
+      const parsed = parseLocale(normalizedMessage) ?? parseLeadingLocaleChoice(normalizedMessage);
       if (!parsed) {
         reply = REGISTER_PROMPT;
         break;
