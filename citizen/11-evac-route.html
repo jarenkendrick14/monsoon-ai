@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MonsoonAI - Evacuate</title>
   <link rel="stylesheet" href="../_brand.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
@@ -15,33 +13,20 @@
       body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
       .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
     }
-
     .sub-nav { display: flex; align-items: center; gap: 10px; padding: 6px 18px 8px; }
     .back-btn { font-size: 22px; color: var(--ink); font-weight: 700; cursor: pointer; background: none; border: none; }
     .sub-nav-title { flex: 1; font-family: var(--font-display); font-weight: 800; font-size: 18px; color: var(--ink); }
-
-    .map-area { height: 280px; position: relative; overflow: hidden; flex-shrink: 0; }
+    .map-area { height: 280px; position: relative; overflow: hidden; flex-shrink: 0; background: #e8f0fe; }
     #evacMap { height: 280px; width: 100%; }
-
-    .map-info-card {
-      position: absolute; left: 14px; right: 14px; top: 12px; z-index: 1000;
-      padding: 12px; border-radius: 14px; background: rgba(255,255,255,.96);
-      border: 1px solid var(--hairline);
-    }
+    .map-info-card { position: absolute; left: 14px; right: 14px; top: 12px; z-index: 5; padding: 12px; border-radius: 14px; background: rgba(255,255,255,.96); border: 1px solid var(--hairline); }
     .map-info-label { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: .6px; text-transform: uppercase; }
     .map-info-eta { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; }
     .map-info-eta .big { font-family: var(--font-display); font-weight: 800; font-size: 24px; color: var(--ink); }
     .map-info-note { font-size: 11px; color: var(--ink-2); margin-top: 4px; line-height: 1.4; }
-
-    .route-step {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 12px; border-radius: 14px; background: #fff;
-      border: 1px solid var(--hairline); margin: 0 14px;
-    }
+    .route-step { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 14px; background: #fff; border: 1px solid var(--hairline); margin: 0 14px; }
     .step-num { width: 28px; height: 28px; border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
     .step-title { font-size: 13.5px; font-weight: 700; color: var(--ink); }
     .step-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
     .dest-step { background: var(--orange-tint); border-color: var(--orange-soft); margin: 0 14px; }
     .dest-step .step-num { background: var(--orange); }
     .dest-step .step-title { color: var(--orange-deep); }
@@ -50,7 +35,6 @@
 <body>
 
 <div class="app-shell">
-
   <div class="sub-nav">
     <button class="back-btn" onclick="history.back()">&lsaquo;</button>
     <span class="sub-nav-title">Evacuate</span>
@@ -60,7 +44,7 @@
   <div class="map-area">
     <div id="evacMap"></div>
     <div class="map-info-card">
-      <div class="map-info-label">Walking route</div>
+      <div class="map-info-label">Google Maps walking route</div>
       <div class="map-info-eta">
         <span class="big" id="etaMinutes">--</span>
         <span style="font-size:12px;color:var(--ink-2);font-weight:600;">min</span>
@@ -71,9 +55,7 @@
   </div>
 
   <div class="scroll-area" style="padding:12px 0 96px;display:flex;flex-direction:column;gap:8px;">
-
     <div id="stepsContainer"></div>
-
     <div class="route-step dest-step">
       <div class="step-num">&#9733;</div>
       <div>
@@ -81,17 +63,14 @@
         <div class="step-sub" id="destDetail"></div>
       </div>
     </div>
-
     <div style="display:flex;gap:8px;padding:6px 14px 0;">
       <button class="btn btn-primary btn-full" onclick="startNavigation()">Start navigation</button>
       <button class="btn btn-secondary" onclick="shareRoute()">Share</button>
     </div>
-
     <div style="margin:4px 14px;padding:10px 14px;border-radius:12px;background:var(--orange-tint);border:1px solid var(--orange-soft);">
-      <div style="font-size:11px;font-weight:800;color:var(--orange-deep);text-transform:uppercase;letter-spacing:.4px;">Works offline</div>
-      <p style="font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.4;">Route is cached on your device. No internet required to follow the steps above.</p>
+      <div style="font-size:11px;font-weight:800;color:var(--orange-deep);text-transform:uppercase;letter-spacing:.4px;">Check the path</div>
+      <p style="font-size:11.5px;color:var(--ink-2);margin-top:3px;line-height:1.4;">Google walking directions may not know flooded or blocked roads. Follow local responders.</p>
     </div>
-
   </div>
 
   <nav class="bottom-nav">
@@ -101,48 +80,58 @@
     <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
     <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
   </nav>
-
 </div>
 
 <script>
 let destCoords = { lat: 15.1620, lng: 120.5880 };
 let evacMap;
 
-async function initEvacMap(userLat, userLng, dLat, dLng) {
-  evacMap = L.map('evacMap', { zoomControl: false }).setView([(userLat + dLat) / 2, (userLng + dLng) / 2], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(evacMap);
-
-  const orangeIcon = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);"></div>', iconSize: [14, 14] });
-  const destIcon = L.divIcon({ className: '', html: '<div style="width:24px;height:24px;border-radius:50%;background:var(--ok);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;">&#10003;</div>', iconSize: [24, 24] });
-  L.marker([userLat, userLng], { icon: orangeIcon }).addTo(evacMap);
-  L.marker([dLat, dLng], { icon: destIcon }).addTo(evacMap);
-
+async function initEvacMap(userLat, userLng, dLat, dLng, routePolyline) {
   try {
-    const r = await fetch(`https://router.project-osrm.org/route/v1/foot/${userLng},${userLat};${dLng},${dLat}?geometries=geojson&overview=full`);
-    const rd = await r.json();
-    const coords = rd.routes && rd.routes[0] && rd.routes[0].geometry && rd.routes[0].geometry.coordinates;
-    if (coords && coords.length) {
-      const latLngs = coords.map(function(c) { return [c[1], c[0]]; });
-      const line = L.polyline(latLngs, { color: '#E86A1A', weight: 4 }).addTo(evacMap);
-      evacMap.fitBounds(line.getBounds(), { padding: [30, 30] });
-      return;
-    }
-  } catch(e) { /* fall through to straight line */ }
+    await loadGoogleMaps();
+    const origin = { lat: userLat, lng: userLng };
+    const destination = { lat: dLat, lng: dLng };
+    evacMap = new google.maps.Map(document.getElementById('evacMap'), {
+      center: { lat: (userLat + dLat) / 2, lng: (userLng + dLng) / 2 },
+      zoom: 14,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+    });
+    new google.maps.Marker({ position: origin, map: evacMap, title: 'Your location' });
+    new google.maps.Marker({ position: destination, map: evacMap, title: 'Evacuation center' });
 
-  const line = L.polyline([[userLat, userLng], [dLat, dLng]], { color: '#E86A1A', weight: 4, dashArray: '8 8' }).addTo(evacMap);
-  evacMap.fitBounds(line.getBounds(), { padding: [30, 30] });
+    const path = Array.isArray(routePolyline) && routePolyline.length
+      ? routePolyline.map(p => ({ lat: Number(p[0]), lng: Number(p[1]) }))
+      : [origin, destination];
+    const routeLine = new google.maps.Polyline({
+      path,
+      geodesic: false,
+      strokeColor: '#E86A1A',
+      strokeOpacity: 1,
+      strokeWeight: 5,
+      map: evacMap,
+    });
+    const bounds = new google.maps.LatLngBounds();
+    path.forEach(point => bounds.extend(point));
+    evacMap.fitBounds(bounds, 36);
+  } catch {
+    document.getElementById('evacMap').innerHTML = '<div style="padding:18px;font-size:12px;color:var(--ink-2);">Google Maps is not configured yet.</div>';
+  }
 }
 
 async function loadEvacRoute() {
   const user = getUser();
-  const lat = (user && user.lat) ? user.lat : 15.1463;
-  const lng = (user && user.lng) ? user.lng : 120.5796;
+  const lat = (user && user.lat) ? Number(user.lat) : 15.1463;
+  const lng = (user && user.lng) ? Number(user.lng) : 120.5796;
+  let routePolyline = null;
 
   try {
     const data = await apiFetch('/api/evac/route?lat=' + lat + '&lng=' + lng);
     document.getElementById('etaMinutes').textContent = data.etaMinutes != null ? data.etaMinutes : '--';
-    document.getElementById('distanceLabel').textContent = data.distanceKm ? '· ' + data.distanceKm + ' km · foot mode' : '';
+    document.getElementById('distanceLabel').textContent = data.distanceKm ? ' - ' + data.distanceKm + ' km' : '';
     document.getElementById('routeNote').textContent = data.routingNote || '';
+    routePolyline = data.routePolyline || null;
 
     if (data.destination) {
       destCoords = { lat: data.destination.lat || destCoords.lat, lng: data.destination.lng || destCoords.lng };
@@ -152,41 +141,29 @@ async function loadEvacRoute() {
 
     if (data.steps && data.steps.length) {
       const colors = ['var(--ok)', 'var(--orange)', '#E67519'];
-      document.getElementById('stepsContainer').innerHTML = data.steps.map(function(s, i) {
-        const text = typeof s === 'string' ? s : (s.instruction || '');
-        const sub = typeof s === 'string' ? '' : (s.detail || '');
+      document.getElementById('stepsContainer').innerHTML = data.steps.slice(0, 8).map(function(step, i) {
+        const text = typeof step === 'string' ? step : (step.instruction || '');
         return '<div class="route-step">' +
           '<div class="step-num" style="background:' + colors[i % colors.length] + ';">' + (i + 1) + '</div>' +
-          '<div><div class="step-title">' + text + '</div>' + (sub ? '<div class="step-sub">' + sub + '</div>' : '') + '</div>' +
+          '<div><div class="step-title">' + text + '</div></div>' +
           '</div>';
       }).join('');
     }
-  } catch(e) { /* keep defaults */ }
+  } catch { /* keep defaults */ }
 
-  await initEvacMap(lat, lng, destCoords.lat, destCoords.lng);
+  await initEvacMap(lat, lng, destCoords.lat, destCoords.lng, routePolyline);
 }
 
 function startNavigation() {
-  var lat = destCoords.lat, lng = destCoords.lng;
-  var gmaps = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking';
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  var isAndroid = /Android/.test(navigator.userAgent);
-  if (isIOS) {
-    window.location.href = 'maps://maps.apple.com/?daddr=' + lat + ',' + lng;
-    setTimeout(function() { window.location.href = gmaps; }, 1000);
-  } else if (isAndroid) {
-    window.location.href = 'geo:' + lat + ',' + lng + '?q=' + lat + ',' + lng;
-    setTimeout(function() { window.location.href = gmaps; }, 1000);
-  } else {
-    window.location.href = gmaps;
-  }
+  const lat = destCoords.lat;
+  const lng = destCoords.lng;
+  window.location.href = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng + '&travelmode=walking';
 }
 
 function shareRoute() {
-  var text = document.getElementById('stepsContainer').innerText + '\n-> ' + document.getElementById('destName').textContent;
-  if (navigator.share) {
-    navigator.share({ title: 'MonsoonAI Evacuation Route', text: text });
-  } else {
+  const text = document.getElementById('stepsContainer').innerText + '\n-> ' + document.getElementById('destName').textContent;
+  if (navigator.share) navigator.share({ title: 'MonsoonAI Evacuation Route', text });
+  else {
     apiFetch('/api/sms/send-evac', { method: 'POST' }).catch(function() {});
     alert('Evacuation route sent to your registered mobile number.');
   }
@@ -194,6 +171,5 @@ function shareRoute() {
 
 loadEvacRoute();
 </script>
-
 </body>
 </html>

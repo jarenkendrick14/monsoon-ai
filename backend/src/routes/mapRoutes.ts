@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getCondition, getCurrentConditions } from '../utils/conditionsCache.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { getEvacCenters } from '../integrations/evacCenters.js';
+import { config } from '../config.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +11,13 @@ import type { FirmsHotspot } from '../integrations/firms.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const router = Router();
+
+router.get('/api/maps/config', (_req, res) => {
+  res.json({
+    provider: 'google',
+    apiKey: config.googleMaps.browserKey,
+  });
+});
 
 router.get('/api/map/flood-zones', (_req, res) => {
   try {

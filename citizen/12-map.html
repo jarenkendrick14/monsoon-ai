@@ -3,233 +3,186 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MonsoonAI — Map</title>
+  <title>MonsoonAI - Map</title>
   <link rel="stylesheet" href="../_brand.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="../js/_api.js"></script>
   <style>
     html, body { height: 100%; background: #fff; }
-    .app-shell {
-      max-width: 430px; min-height: 100vh; margin: 0 auto;
-      background: #fff; display: flex; flex-direction: column;
-    }
+    .app-shell { max-width: 430px; min-height: 100vh; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
     @media (min-width: 768px) {
       body { background: var(--warm-bg); display: flex; align-items: center; justify-content: center; }
       .app-shell { min-height: unset; height: 780px; border-radius: 44px; box-shadow: 0 24px 80px rgba(0,0,0,.18); overflow: hidden; }
     }
-
-    /* Map fills remaining flex space */
     .map-container { flex: 1; position: relative; overflow: hidden; min-height: 300px; }
-    #mainMap { position: absolute; inset: 0; }
-
-    /* Condition pills — top-left overlay */
-    .map-pills {
-      position: absolute; top: 14px; left: 14px; z-index: 1000;
-      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-    }
-    .map-pill {
-      display: flex; align-items: center; gap: 8px; background: #fff;
-      padding: 6px 12px 6px 6px; border-radius: 999px;
-      border: 1px solid var(--hairline); box-shadow: 0 4px 10px rgba(0,0,0,.06);
-      pointer-events: auto;
-    }
+    #mainMap { position: absolute; inset: 0; background: #e8f0fe; }
+    .map-pills { position: absolute; top: 14px; left: 14px; z-index: 5; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .map-pill { display: flex; align-items: center; gap: 8px; background: #fff; padding: 6px 12px 6px 6px; border-radius: 999px; border: 1px solid var(--hairline); box-shadow: 0 4px 10px rgba(0,0,0,.06); pointer-events: auto; }
     .map-pill-dot { width: 28px; height: 28px; border-radius: 999px; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; }
     .map-pill-val { font-family: var(--font-display); font-weight: 800; font-size: 14px; color: var(--ink); line-height: 1; }
     .map-pill-sub { font-size: 10px; color: var(--muted); }
-
-    /* Legend — top-right overlay */
-    .map-legend {
-      position: absolute; top: 14px; right: 14px; z-index: 1000;
-      background: #fff; border-radius: 14px; border: 1px solid var(--hairline); padding: 10px; font-size: 10.5px;
-    }
+    .map-legend { position: absolute; top: 14px; right: 14px; z-index: 5; background: #fff; border-radius: 14px; border: 1px solid var(--hairline); padding: 10px; font-size: 10.5px; }
     .legend-title { font-weight: 800; color: var(--ink); margin-bottom: 4px; }
     .legend-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
-
-    /* Ensure nav sits above Leaflet tiles/controls */
-    .bottom-nav { z-index: 2000 !important; }
-
-    /* Layer toggles — bottom overlay, above the 74px fixed nav */
-    .layer-strip {
-      position: absolute; bottom: 84px; left: 14px; right: 14px; z-index: 1000;
-      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
-    }
+    .bottom-nav { z-index: 20 !important; }
+    .layer-strip { position: absolute; bottom: 84px; left: 14px; right: 14px; z-index: 5; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
     .layer-strip::-webkit-scrollbar { display: none; }
-    .layer-btn {
-      flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 999px;
-      background: #fff; border: 1.5px solid var(--hairline);
-      font-size: 12px; font-weight: 700; color: var(--ink);
-      cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
-    }
+    .layer-btn { flex: 0 0 auto; height: 34px; padding: 0 14px; border-radius: 999px; background: #fff; border: 1.5px solid var(--hairline); font-size: 12px; font-weight: 700; color: var(--ink); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,.1); }
     .layer-btn.active { background: var(--orange); color: #fff; border-color: var(--orange); }
   </style>
 </head>
 <body>
 
 <div class="app-shell">
-
   <div class="app-header">
     <div class="app-logo">
       <img src="../assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
       <span class="app-logo-name">MONSOON<span> AI</span></span>
     </div>
-    <div class="flood-pill pill-ok" id="statusPill">
-      <span class="dot"></span>
-      <span id="statusPillText">ALL CLEAR</span>
-    </div>
+    <div class="flood-pill pill-ok" id="statusPill"><span class="dot"></span><span id="statusPillText">ALL CLEAR</span></div>
   </div>
 
   <div class="map-container" id="mapContainer">
-
     <div id="mainMap"></div>
-
     <div class="map-pills">
-      <div class="map-pill">
-        <div class="map-pill-dot" style="background:var(--warn);">H</div>
-        <div>
-          <div class="map-pill-val" id="mapHeatPill">—</div>
-          <div class="map-pill-sub">Heat index</div>
-        </div>
-      </div>
-      <div class="map-pill">
-        <div class="map-pill-dot" style="background:var(--ok);">A</div>
-        <div>
-          <div class="map-pill-val" id="mapAqiPill">—</div>
-          <div class="map-pill-sub">Air quality</div>
-        </div>
-      </div>
-      <div class="map-pill">
-        <div class="map-pill-dot" style="background:var(--critical);">R</div>
-        <div>
-          <div class="map-pill-val" id="mapRiverPill">—</div>
-          <div class="map-pill-sub">River level</div>
-        </div>
-      </div>
+      <div class="map-pill"><div class="map-pill-dot" style="background:var(--warn);">H</div><div><div class="map-pill-val" id="mapHeatPill">--</div><div class="map-pill-sub">Heat index</div></div></div>
+      <div class="map-pill"><div class="map-pill-dot" style="background:var(--ok);">A</div><div><div class="map-pill-val" id="mapAqiPill">--</div><div class="map-pill-sub">Air quality</div></div></div>
+      <div class="map-pill"><div class="map-pill-dot" style="background:var(--critical);">R</div><div><div class="map-pill-val" id="mapRiverPill">--</div><div class="map-pill-sub">River level</div></div></div>
     </div>
-
     <div class="map-legend">
       <div class="legend-title">Flood zones</div>
-      <div class="legend-row">
-        <div class="legend-dot" style="background:rgba(232,58,44,.6);"></div>
-        <span style="color:var(--ink-2);">25-yr return</span>
-      </div>
-      <div class="legend-row">
-        <div class="legend-dot" style="background:rgba(230,117,25,.5);border:1px dashed var(--warn);"></div>
-        <span style="color:var(--ink-2);">100-yr return</span>
-      </div>
+      <div class="legend-row"><div class="legend-dot" style="background:rgba(232,58,44,.6);"></div><span style="color:var(--ink-2);">25-yr return</span></div>
+      <div class="legend-row"><div class="legend-dot" style="background:rgba(230,117,25,.5);border:1px dashed var(--warn);"></div><span style="color:var(--ink-2);">100-yr return</span></div>
     </div>
-
     <div class="layer-strip">
       <button class="layer-btn active" id="btnEvac" onclick="toggleLayer(this,'evac')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 21V10l9-7 9 7v11"/></svg>
         Evac centres
       </button>
-      <button class="layer-btn" id="btnFlood" onclick="toggleLayer(this,'flood')">
-        Flood zones
-      </button>
-      <button class="layer-btn" onclick="location.href='13-air-quality.html'">
-        Air &amp; haze
-      </button>
+      <button class="layer-btn" id="btnFlood" onclick="toggleLayer(this,'flood')">Flood zones</button>
+      <button class="layer-btn" onclick="location.href='13-air-quality.html'">Air &amp; haze</button>
     </div>
-
-  </div><!-- /map-container -->
+  </div>
 
   <nav class="bottom-nav">
-    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'">
-      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div>
-      <span class="nav-label">Home</span>
-    </div>
-    <div class="nav-item active" onclick="location.href='12-map.html'">
-      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div>
-      <span class="nav-label">Map</span>
-    </div>
-    <div class="nav-center">
-      <div class="nav-center-btn" onclick="location.href='14-chatbot.html'">
-        <img src="../assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;" />
-      </div>
-      <span class="nav-center-label">Chat now</span>
-    </div>
-    <div class="nav-item" onclick="location.href='16-profile.html'">
-      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div>
-      <span class="nav-label">Profile</span>
-    </div>
-    <div class="nav-item" onclick="location.href='17-more.html'">
-      <div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div>
-      <span class="nav-label">More</span>
-    </div>
+    <div class="nav-item" onclick="location.href='08-dashboard-calm.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2" stroke-linecap="round"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg></div><span class="nav-label">Home</span></div>
+    <div class="nav-item active" onclick="location.href='12-map.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14"/><path d="M15 6v14"/></svg></div><span class="nav-label">Map</span></div>
+    <div class="nav-center"><div class="nav-center-btn" onclick="location.href='14-chatbot.html'"><img src="../assets/short_logo.png" alt="" width="42" height="42" style="object-fit:contain;" /></div><span class="nav-center-label">Chat now</span></div>
+    <div class="nav-item" onclick="location.href='16-profile.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 5-6 8-6s7 2 8 6"/></svg></div><span class="nav-label">Profile</span></div>
+    <div class="nav-item" onclick="location.href='17-more.html'"><div class="nav-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--ink-2)" stroke-width="2"><circle cx="6" cy="6" r="1.5"/><circle cx="12" cy="6" r="1.5"/><circle cx="18" cy="6" r="1.5"/><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/><circle cx="6" cy="18" r="1.5"/><circle cx="12" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg></div><span class="nav-label">More</span></div>
   </nav>
-
 </div>
 
 <script>
 const u = getUser();
-const centerLat = (u?.lat && isFinite(u.lat)) ? u.lat : 15.1348;
-const centerLng = (u?.lng && isFinite(u.lng)) ? u.lng : 120.5869;
+const centerLat = (u && u.lat && isFinite(u.lat)) ? Number(u.lat) : 15.1348;
+const centerLng = (u && u.lng && isFinite(u.lng)) ? Number(u.lng) : 120.5869;
+let map;
+const evacMarkers = [];
+const floodShapes = [];
 
-const map = L.map('mainMap', { zoomControl: true }).setView([centerLat, centerLng], 14);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19,
-}).addTo(map);
-
-const userIcon = L.divIcon({
-  className: '',
-  html: '<div style="width:14px;height:14px;border-radius:50%;background:var(--orange);border:2.5px solid #fff;box-shadow:0 2px 8px rgba(242,107,31,.5);"></div>',
-  iconSize: [14, 14], iconAnchor: [7, 7],
-});
-L.marker([centerLat, centerLng], { icon: userIcon }).addTo(map).bindPopup('Your location');
-
-const evacLayer = L.layerGroup().addTo(map);
-let floodLayer = null;
+function markerIcon(color, label) {
+  return {
+    path: google.maps.SymbolPath.CIRCLE,
+    fillColor: color,
+    fillOpacity: 1,
+    strokeColor: '#fff',
+    strokeWeight: 2,
+    scale: label === 'E' ? 11 : 7,
+  };
+}
 
 function toggleLayer(btn, layer) {
   btn.classList.toggle('active');
-  if (layer === 'evac') {
-    btn.classList.contains('active') ? evacLayer.addTo(map) : map.removeLayer(evacLayer);
-  } else if (layer === 'flood' && floodLayer) {
-    btn.classList.contains('active') ? floodLayer.addTo(map) : map.removeLayer(floodLayer);
+  const visible = btn.classList.contains('active');
+  if (layer === 'evac') evacMarkers.forEach(marker => marker.setMap(visible ? map : null));
+  if (layer === 'flood') floodShapes.forEach(shape => shape.setMap(visible ? map : null));
+}
+
+async function initMap() {
+  try {
+    await loadGoogleMaps();
+    map = new google.maps.Map(document.getElementById('mainMap'), {
+      center: { lat: centerLat, lng: centerLng },
+      zoom: 14,
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false,
+    });
+    new google.maps.Marker({
+      position: { lat: centerLat, lng: centerLng },
+      map,
+      title: 'Your location',
+      icon: markerIcon('#E86A1A', 'U'),
+    });
+    await loadMapData();
+  } catch {
+    document.getElementById('mainMap').innerHTML = '<div style="padding:18px;font-size:12px;color:var(--ink-2);">Google Maps is not configured yet.</div>';
+    await loadConditionPills();
   }
 }
 
-async function loadMapData() {
-  const [condResult, centerResult] = await Promise.allSettled([
-    apiFetch('/api/conditions/current'),
-    apiFetch('/api/evac/centers'),
-  ]);
-
-  if (condResult.status === 'fulfilled') {
-    const c = condResult.value;
-    if (c.heatIndex != null) document.getElementById('mapHeatPill').textContent = c.heatIndex + '°C';
+async function loadConditionPills() {
+  try {
+    const c = await apiFetch('/api/conditions/current');
+    if (c.heatIndex != null) document.getElementById('mapHeatPill').textContent = c.heatIndex + ' C';
     if (c.airQuality != null) document.getElementById('mapAqiPill').textContent = c.airQuality + ' AQI';
     if (c.riverLevel != null) document.getElementById('mapRiverPill').textContent = Number(c.riverLevel).toFixed(1) + ' NHWL';
-    if (c.riverLevel?.status === 'critical' || c.critical) {
+    if (c.glofasCritical || c.critical || Number(c.riverLevel) >= 3) {
       document.getElementById('statusPill').className = 'flood-pill pill-critical mm-blink';
       document.getElementById('statusPillText').textContent = 'FLOOD WARNING';
     }
-  }
-
-  if (centerResult.status === 'fulfilled' && centerResult.value?.features) {
-    centerResult.value.features.forEach(f => {
-      const [lng, lat] = f.geometry.coordinates;
-      const p = f.properties;
-      const pct = p.capacity ? Math.round((p.occupied / p.capacity) * 100) : null;
-      const col = pct != null && pct > 80 ? 'var(--warn)' : 'var(--ok)';
-      const icon = L.divIcon({
-        className: '',
-        html: `<div style="width:28px;height:28px;border-radius:50%;background:${col};border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;">E</div>`,
-        iconSize: [28, 28], iconAnchor: [14, 14],
-      });
-      L.marker([lat, lng], { icon }).addTo(evacLayer)
-        .bindPopup(`<strong>${p.name}</strong><br/>${p.address || ''}<br/>${pct != null ? pct + '% occupied' : ''}`);
-    });
-  }
+  } catch { /* keep placeholders */ }
 }
 
-setTimeout(() => map.invalidateSize(), 100);
-loadMapData();
-</script>
+function addEvacCenters(data) {
+  const centers = Array.isArray(data) ? data : (data.features || []).map(f => ({
+    ...(f.properties || {}),
+    lng: f.geometry.coordinates[0],
+    lat: f.geometry.coordinates[1],
+  }));
 
+  centers.forEach(center => {
+    if (!Number.isFinite(Number(center.lat)) || !Number.isFinite(Number(center.lng))) return;
+    const marker = new google.maps.Marker({
+      position: { lat: Number(center.lat), lng: Number(center.lng) },
+      map,
+      title: center.name || 'Evacuation center',
+      icon: markerIcon('#2E9D70', 'E'),
+    });
+    const info = new google.maps.InfoWindow({
+      content: '<strong>' + (center.name || 'Evacuation center') + '</strong><br/>' + (center.address || '') +
+        (center.capacity ? '<br/>Capacity: ' + center.capacity : ''),
+    });
+    marker.addListener('click', () => info.open({ anchor: marker, map }));
+    evacMarkers.push(marker);
+  });
+}
+
+function addFloodZones(geojson) {
+  if (!geojson || !geojson.features) return;
+  map.data.addGeoJson(geojson);
+  map.data.setStyle({
+    fillColor: '#E83A2C',
+    fillOpacity: 0.22,
+    strokeColor: '#E67519',
+    strokeWeight: 2,
+  });
+  floodShapes.push(map.data);
+  map.data.setMap(null);
+}
+
+async function loadMapData() {
+  await loadConditionPills();
+  const [centerResult, floodResult] = await Promise.allSettled([
+    apiFetch('/api/evac/centers'),
+    apiFetch('/api/map/flood-zones'),
+  ]);
+  if (centerResult.status === 'fulfilled') addEvacCenters(centerResult.value);
+  if (floodResult.status === 'fulfilled') addFloodZones(floodResult.value);
+}
+
+initMap();
+</script>
 </body>
 </html>

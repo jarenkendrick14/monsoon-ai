@@ -54,3 +54,41 @@ function getUser() {
 function getGovOfficer() {
   try { return JSON.parse(localStorage.getItem('monsoon_gov_officer') || 'null'); } catch { return null; }
 }
+
+let _googleMapsLoadPromise = null;
+
+async function loadGoogleMaps(libraries = []) {
+  if (window.google && window.google.maps) return window.google.maps;
+  if (_googleMapsLoadPromise) return _googleMapsLoadPromise;
+
+  _googleMapsLoadPromise = (async () => {
+    const cfg = await apiFetch('/api/maps/config');
+    if (!cfg.apiKey) throw new Error('Google Maps API key is not configured.');
+
+    await new Promise((resolve, reject) => {
+      const callbackName = '__monsoonGoogleMapsReady';
+      window[callbackName] = () => {
+        delete window[callbackName];
+        resolve();
+      };
+
+      const params = new URLSearchParams({
+        key: cfg.apiKey,
+        callback: callbackName,
+        v: 'weekly',
+      });
+      if (libraries.length) params.set('libraries', Array.from(new Set(libraries)).join(','));
+
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => reject(new Error('Failed to load Google Maps.'));
+      document.head.appendChild(script);
+    });
+
+    return window.google.maps;
+  })();
+
+  return _googleMapsLoadPromise;
+}

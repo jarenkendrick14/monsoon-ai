@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { findNearestCenter, getEvacCenters, distanceKm } from '../integrations/evacCenters.js';
 import { computeEvacWindow } from '../engine/evacWindow.js';
 import { sendSms } from '../integrations/sms.js';
+import { computeGoogleWalkingRoute } from '../integrations/googleRoutes.js';
 
 const router = Router();
 
@@ -31,8 +32,12 @@ router.get('/api/evac/route', authMiddleware, async (req, res) => {
 
   const dist = distanceKm(lat, lng, nearest.lat, nearest.lng);
   const { etaMinutes, routingNote } = computeEvacWindow(dist, user);
+  const googleRoute = await computeGoogleWalkingRoute(
+    { lat, lng },
+    { lat: nearest.lat, lng: nearest.lng }
+  );
 
-  const steps = [
+  const fallbackSteps = [
     `Head toward ${nearest.name}`,
     `Distance: ${dist.toFixed(1)} km`,
     `Estimated arrival: ${etaMinutes} minutes walking`,
@@ -42,11 +47,13 @@ router.get('/api/evac/route', authMiddleware, async (req, res) => {
   ];
 
   res.json({
-    etaMinutes,
-    distanceKm: parseFloat(dist.toFixed(2)),
-    routingNote,
+    etaMinutes: googleRoute?.etaMinutes ?? etaMinutes,
+    distanceKm: googleRoute?.distanceKm ?? parseFloat(dist.toFixed(2)),
+    routingNote: googleRoute ? 'Google Maps walking route. Avoid flooded or blocked roads.' : routingNote,
     destination: nearest,
-    steps,
+    routePolyline: googleRoute?.polyline ?? [[lat, lng], [nearest.lat, nearest.lng]],
+    routeProvider: googleRoute ? 'google_routes' : 'straight_line',
+    steps: googleRoute?.steps?.length ? googleRoute.steps : fallbackSteps,
   });
 });
 

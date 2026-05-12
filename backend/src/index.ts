@@ -34,9 +34,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      'script-src': ["'self'", "'unsafe-eval'", 'unpkg.com', '*.unpkg.com'],
-      'img-src': ["'self'", 'data:', '*.tile.openstreetmap.org'],
-      'style-src': ["'self'", "'unsafe-inline'", 'unpkg.com', '*.unpkg.com'],
+      'script-src': ["'self'", "'unsafe-eval'", "'unsafe-inline'", 'unpkg.com', '*.unpkg.com', 'maps.googleapis.com', 'maps.gstatic.com'],
+      'img-src': ["'self'", 'data:', 'maps.gstatic.com', 'maps.googleapis.com', '*.googleapis.com', '*.ggpht.com'],
+      'style-src': ["'self'", "'unsafe-inline'", 'unpkg.com', '*.unpkg.com', 'fonts.googleapis.com'],
+      'connect-src': ["'self'", 'maps.googleapis.com', 'routes.googleapis.com'],
+      'font-src': ["'self'", 'fonts.gstatic.com'],
     },
   },
 }));

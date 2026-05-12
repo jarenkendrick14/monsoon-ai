@@ -44,6 +44,13 @@ export const config = {
     base: optional_env('NOMINATIM_BASE', 'https://nominatim.openstreetmap.org'),
   },
 
+  googleMaps: {
+    apiKey: optional_env('GOOGLE_MAPS_API_KEY', ''),
+    browserKey: optional_env('GOOGLE_MAPS_BROWSER_KEY', optional_env('GOOGLE_MAPS_API_KEY', '')),
+    geocodingBase: optional_env('GOOGLE_GEOCODING_BASE', 'https://maps.googleapis.com/maps/api/geocode/json'),
+    routesBase: optional_env('GOOGLE_ROUTES_BASE', 'https://routes.googleapis.com/directions/v2:computeRoutes'),
+  },
+
   mocks: {
     glofasScenario: optional_env('GLOFAS_MOCK_SCENARIO', 'normal') as 'normal' | 'critical',
     tropomiAai: parseFloat(optional_env('TROPOMI_MOCK_AAI', '1.2')),
