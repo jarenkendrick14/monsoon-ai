@@ -250,6 +250,18 @@ async function sendMessage() {
 }
 
 function sendCommand(cmd) {
+  if (cmd === 'View checklist') {
+    location.href = '10-alert-detail.html#checklist';
+    return;
+  }
+  if (cmd === 'Show evac route') {
+    location.href = '11-evac-route.html';
+    return;
+  }
+  if (cmd === 'Call 911' || cmd === 'Contact emergency services') {
+    location.href = 'tel:911';
+    return;
+  }
   document.getElementById('chatInput').value = cmd;
   sendMessage();
 }
