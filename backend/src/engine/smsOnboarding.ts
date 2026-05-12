@@ -56,6 +56,7 @@ const VULNERABILITY_PROMPT = '[MonsoonAI] Any elderly, baby, pregnant, or PWD? R
 const HOME_TYPE_PROMPT = '[MonsoonAI] Home type? Reply 1 concrete/house, 2 apartment/condo, 3 light materials/nipa.';
 const FLOOR_PROMPT = '[MonsoonAI] What floor do you sleep on? Reply 0 ground, 1, 2, 3, or 4.';
 const COMPLETE_PROMPT = '[MonsoonAI] Registered. Commands: STATUS, EVAC, FLOOD, HAZE, TEMP, STOP, HELP.';
+const fallbackSessions = new Map<string, SmsSessionRecord>();
 
 export function smsText(parts: string[]): string {
   const msg = parts.filter(Boolean).join(' ');
@@ -131,25 +132,40 @@ function parseFloor(message: string): number | null {
 }
 
 async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord | null> {
+  const fallback = fallbackSessions.get(mobile);
+  if (fallback && fallback.state !== 'complete') return fallback;
+
   try {
     const result = await pb.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
       filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-created',
     });
-    return result.items.find(session => session.state !== 'complete') ?? null;
+    const session = result.items.find(item => item.state !== 'complete') ?? null;
+    if (session) fallbackSessions.set(mobile, session);
+    return session;
   } catch {
     return null;
   }
 }
 
 async function createSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
-  return pb.collection('sms_sessions').create<SmsSessionRecord>({
+  const payload = {
     mobile,
     state: 'language',
     partialProfile: {},
     history: [],
     lastMessageAt: new Date().toISOString(),
-  });
+  } satisfies Omit<SmsSessionRecord, 'id'>;
+
+  try {
+    const session = await pb.collection('sms_sessions').create<SmsSessionRecord>(payload);
+    fallbackSessions.set(mobile, session);
+    return session;
+  } catch {
+    const session: SmsSessionRecord = { id: `memory:${mobile}`, ...payload };
+    fallbackSessions.set(mobile, session);
+    return session;
+  }
 }
 
 async function getOrCreateSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
@@ -170,11 +186,25 @@ async function updateSession(
     { role: 'assistant' as const, content: reply, at: now },
   ].slice(-6);
 
-  await pb.collection('sms_sessions').update(session.id, {
+  const nextSession: SmsSessionRecord = {
+    ...session,
     ...patch,
     history,
     lastMessageAt: now,
-  });
+  };
+  fallbackSessions.set(session.mobile, nextSession);
+
+  if (session.id.startsWith('memory:')) return;
+
+  try {
+    await pb.collection('sms_sessions').update(session.id, {
+      ...patch,
+      history,
+      lastMessageAt: now,
+    });
+  } catch {
+    // PocketBase persistence is best-effort during SMS onboarding; fallbackSessions keeps the current flow coherent.
+  }
 }
 
 function buildSmsUser(mobile: string, locale: Locale, partial: SmsPartialProfile): Omit<UserRecord, 'id' | 'created' | 'updated'> & { password: string; passwordConfirm: string } {
@@ -234,6 +264,7 @@ export async function handleSmsOnboarding(
         state: 'complete',
         lastMessageAt: new Date().toISOString(),
       });
+      fallbackSessions.set(mobile, { ...session, state: 'complete', lastMessageAt: new Date().toISOString() });
     }
     return { handled: true, reply: '[MonsoonAI] SMS registration cancelled. Reply JOIN to start again.', user };
   }
