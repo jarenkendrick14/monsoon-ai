@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { evaluateRisk } from '../engine/riskEngine.js';
-import { getCurrentConditions } from '../utils/conditionsCache.js';
+import { getLocalizedConditions } from '../utils/localConditions.js';
 import { getPb } from '../pb.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { getCondition } from '../utils/conditionsCache.js';
@@ -18,7 +18,7 @@ router.post('/api/risk/score', authMiddleware, async (req, res) => {
   const pagasa = await getCondition<PagasaData>('pagasa');
   const firms = await getCondition<FirmsHotspot[]>('firms') ?? [];
   const tropomi = getTropomiData();
-  const weather = await getCurrentConditions();
+  const weather = await getLocalizedConditions(user.lat, user.lng);
   const cached = await getCondition<{ glofasCritical: boolean }>('conditions');
   const firePts = countHotspotsNear(firms, user.lat, user.lng);
 

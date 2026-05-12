@@ -118,11 +118,15 @@
   <script>
   async function loadConditions() {
     try {
+      const u = getUser();
+      const near = (u && Number.isFinite(Number(u.lat)) && Number.isFinite(Number(u.lng)))
+        ? `?near=${Number(u.lat)},${Number(u.lng)}`
+        : '';
       const [air, heat] = await Promise.all([
-        apiFetch('/api/conditions/air'),
-        apiFetch('/api/conditions/heat'),
+        apiFetch('/api/conditions/air' + near),
+        apiFetch('/api/conditions/heat' + near),
       ]);
-      if (air?.aqi != null) document.getElementById('aqiVal').textContent = air.aqi;
+      if (air?.airQuality != null) document.getElementById('aqiVal').textContent = Math.round(air.airQuality);
       if (heat?.heatIndex != null) document.getElementById('heatVal').textContent = heat.heatIndex + '°C';
     } catch { /* keep static values */ }
   }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getCondition, getCurrentConditions } from '../utils/conditionsCache.js';
+import { getLocalizedConditions, parseNear } from '../utils/localConditions.js';
 import { getTropomiData } from '../integrations/tropomi.js';
 import { getEvacCenters } from '../integrations/evacCenters.js';
 import { config } from '../config.js';
@@ -30,24 +31,30 @@ router.get('/api/map/flood-zones', (_req, res) => {
 });
 
 router.get('/api/conditions/rivers', async (req, res) => {
-  const near = (req.query['near'] as string)?.split(',');
+  const near = parseNear(req.query['near']);
   const conditions = await getCurrentConditions();
   res.json({
     riverLevel: conditions.riverLevel,
-    lat: near ? parseFloat(near[0]) : null,
-    lng: near ? parseFloat(near[1]) : null,
+    lat: near?.lat ?? null,
+    lng: near?.lng ?? null,
     status: conditions.riverLevel > 3 ? 'critical' : conditions.riverLevel > 2 ? 'high' : 'normal',
     fetchedAt: conditions.fetchedAt,
   });
 });
 
-router.get('/api/conditions/current', async (_req, res) => {
-  const conditions = await getCurrentConditions();
+router.get('/api/conditions/current', async (req, res) => {
+  const near = parseNear(req.query['near']);
+  const conditions = near
+    ? await getLocalizedConditions(near.lat, near.lng)
+    : await getCurrentConditions();
   res.json(conditions);
 });
 
-router.get('/api/conditions/air', async (_req, res) => {
-  const conditions = await getCurrentConditions();
+router.get('/api/conditions/air', async (req, res) => {
+  const near = parseNear(req.query['near']);
+  const conditions = near
+    ? await getLocalizedConditions(near.lat, near.lng)
+    : await getCurrentConditions();
   res.json({
     airQuality: conditions.airQuality,
     pm25: Math.round(conditions.airQuality * 0.45),
@@ -59,8 +66,11 @@ router.get('/api/conditions/air', async (_req, res) => {
   });
 });
 
-router.get('/api/conditions/heat', async (_req, res) => {
-  const conditions = await getCurrentConditions();
+router.get('/api/conditions/heat', async (req, res) => {
+  const near = parseNear(req.query['near']);
+  const conditions = near
+    ? await getLocalizedConditions(near.lat, near.lng)
+    : await getCurrentConditions();
   const hi = conditions.heatIndex;
   res.json({
     heatIndex: hi,

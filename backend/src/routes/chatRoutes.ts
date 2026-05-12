@@ -4,8 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { pbCall } from '../pb.js';
 import { chatbotReply } from '../integrations/gemini.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
-import { getCurrentConditions, getCondition } from '../utils/conditionsCache.js';
-import type { OpenMeteoData } from '../integrations/openmeteo.js';
+import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
 
 import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
 
@@ -48,15 +47,11 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
   } : null;
 
   const [liveConditions, weather] = await Promise.all([
-    getCurrentConditions(),
-    getCondition<OpenMeteoData>('weather'),
+    getLocalizedConditions(user.lat, user.lng),
+    getLocalWeather(user.lat, user.lng),
   ]);
 
-  const forecast7day = (weather?.forecast7day ?? []).map(d => ({
-    day: d.day,
-    riskLevel: d.precipSum > 50 ? 'critical' : d.precipSum > 30 ? 'high' : d.precipSum > 10 ? 'medium' : 'low',
-    temp: Math.round(d.tempMax),
-  }));
+  const forecast7day = toForecastPreview(weather);
 
   const context: RiskContext = {
     alertLevel,

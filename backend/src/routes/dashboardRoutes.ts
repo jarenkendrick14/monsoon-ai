@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
-import { getCondition, getCurrentConditions } from '../utils/conditionsCache.js';
-import type { OpenMeteoData } from '../integrations/openmeteo.js';
+import { getCondition } from '../utils/conditionsCache.js';
+import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
 import type { PagasaData } from '../integrations/pagasa.js';
 import type { AlertRecord } from '../types/index.js';
 
@@ -12,8 +12,10 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
 
-  const weather = await getCondition<OpenMeteoData>('weather');
-  const conditions = await getCurrentConditions();
+  const [weather, conditions] = await Promise.all([
+    getLocalWeather(user.lat, user.lng),
+    getLocalizedConditions(user.lat, user.lng),
+  ]);
 
   let alertLevel = 'none';
   try {
@@ -26,11 +28,7 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
     // alerts collection may not exist yet or field missing — treat as no alert
   }
 
-  const forecast7day = (weather?.forecast7day ?? []).map(day => ({
-    day: day.day,
-    riskLevel: day.precipSum > 50 ? 'critical' : day.precipSum > 30 ? 'high' : day.precipSum > 10 ? 'medium' : 'low',
-    temp: Math.round(day.tempMax),
-  }));
+  const forecast7day = toForecastPreview(weather);
 
   res.json({
     user: {

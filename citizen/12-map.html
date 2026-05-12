@@ -124,7 +124,7 @@ async function initMap() {
 
 async function loadConditionPills() {
   try {
-    const c = await apiFetch('/api/conditions/current');
+    const c = await apiFetch(`/api/conditions/current?near=${centerLat},${centerLng}`);
     if (c.heatIndex != null) document.getElementById('mapHeatPill').textContent = c.heatIndex + ' C';
     if (c.airQuality != null) document.getElementById('mapAqiPill').textContent = c.airQuality + ' AQI';
     if (c.riverLevel != null) document.getElementById('mapRiverPill').textContent = Number(c.riverLevel).toFixed(1) + ' NHWL';

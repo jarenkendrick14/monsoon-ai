@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getPb } from '../pb.js';
 import { isHttpSmsWebhook, normalizeInboundSms, sendSms, verifyHttpSmsWebhook } from '../integrations/sms.js';
-import { getCurrentConditions } from '../utils/conditionsCache.js';
+import { getLocalizedConditions } from '../utils/localConditions.js';
 import { findNearestCenter, distanceKm } from '../integrations/evacCenters.js';
 import { smsWebhookLimiter } from '../middleware/rateLimiter.js';
 import { getTropomiData } from '../integrations/tropomi.js';
@@ -46,6 +46,9 @@ async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | 
   } catch { /* no alerts */ }
 
   const center = (user?.lat && user?.lng) ? findNearestCenter(user.lat, user.lng) : null;
+  const conditions = user?.lat && user?.lng
+    ? await getLocalizedConditions(user.lat, user.lng)
+    : null;
   return {
     alertLevel,
     trigger: null,
@@ -54,6 +57,13 @@ async function buildSmsContext(pb: ReturnType<typeof getPb>, user: UserRecord | 
       name: center.name,
       address: center.address,
       distKm: distanceKm(user.lat, user.lng, center.lat, center.lng).toFixed(1),
+    } : null,
+    conditions: conditions ? {
+      heatIndex: conditions.heatIndex,
+      airQuality: conditions.airQuality,
+      riverLevel: conditions.riverLevel,
+      rainfall: conditions.rainfall,
+      forecast7day: [],
     } : null,
   };
 }
@@ -158,7 +168,7 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
       }
 
       case 'FLOOD': {
-        const cond = await getCurrentConditions();
+        const cond = await getLocalizedConditions(user?.lat, user?.lng);
         const status = cond.glofasCritical ? 'CRITICAL river discharge!' : cond.riverLevel >= 2.0 ? 'River level HIGH.' : 'River level normal.';
         reply = sms([`[MonsoonAI] Rain: ${cond.rainfall}mm. River: ${cond.riverLevel}m.`, status, 'Reply EVAC if flooding.']);
         break;
@@ -166,14 +176,14 @@ router.post('/api/sms/inbound', smsWebhookLimiter, async (req, res) => {
 
       case 'HAZE': {
         const tropomi = getTropomiData();
-        const cond = await getCurrentConditions();
+        const cond = await getLocalizedConditions(user?.lat, user?.lng);
         const aqiStatus = cond.airQuality >= 150 ? 'UNHEALTHY - stay indoors, use N95.' : cond.airQuality >= 100 ? 'Sensitive groups avoid outdoors.' : 'Air quality acceptable.';
         reply = sms([`[MonsoonAI] AQI: ${cond.airQuality}. AOD: ${tropomi.aerosolOpticalDepth}.`, aqiStatus]);
         break;
       }
 
       case 'TEMP': {
-        const cond = await getCurrentConditions();
+        const cond = await getLocalizedConditions(user?.lat, user?.lng);
         const cat = cond.heatIndex >= 42 ? 'DANGER - limit outdoors, hydrate.' : cond.heatIndex >= 33 ? 'CAUTION - rest often, drink water.' : 'Safe. Stay hydrated.';
         reply = sms([`[MonsoonAI] Heat index: ${cond.heatIndex}C.`, cat]);
         break;
