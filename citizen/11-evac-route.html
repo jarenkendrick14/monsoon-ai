@@ -44,7 +44,7 @@
   <div class="map-area">
     <div id="evacMap"></div>
     <div class="map-info-card">
-      <div class="map-info-label">Google Maps walking route</div>
+      <div class="map-info-label" id="routeProviderLabel">Loading route</div>
       <div class="map-info-eta">
         <span class="big" id="etaMinutes">--</span>
         <span style="font-size:12px;color:var(--ink-2);font-weight:600;">min</span>
@@ -131,6 +131,8 @@ async function loadEvacRoute() {
     document.getElementById('etaMinutes').textContent = data.etaMinutes != null ? data.etaMinutes : '--';
     document.getElementById('distanceLabel').textContent = data.distanceKm ? ' - ' + data.distanceKm + ' km' : '';
     document.getElementById('routeNote').textContent = data.routingNote || '';
+    document.getElementById('routeProviderLabel').textContent =
+      data.routeProvider === 'google_routes' ? 'Google Maps walking route' : 'Estimated straight-line route';
     routePolyline = data.routePolyline || null;
 
     if (data.destination) {

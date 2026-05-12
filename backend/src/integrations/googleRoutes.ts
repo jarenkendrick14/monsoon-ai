@@ -9,6 +9,27 @@ export interface GoogleRouteResult {
   steps: string[];
 }
 
+const GOOGLE_ROUTES_COMPUTE_ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+
+function getComputeRoutesUrl(): string {
+  const configured = config.googleMaps.routesBase.trim();
+
+  if (!configured) return GOOGLE_ROUTES_COMPUTE_ROUTES_URL;
+
+  try {
+    const url = new URL(configured);
+    const isGoogleRoutesHost = url.hostname === 'routes.googleapis.com';
+    const isComputeRoutesPath = url.pathname === '/directions/v2:computeRoutes';
+    if (isGoogleRoutesHost && isComputeRoutesPath) return configured;
+
+    logger.warn(`Ignoring invalid GOOGLE_ROUTES_BASE=${configured}; using ${GOOGLE_ROUTES_COMPUTE_ROUTES_URL}`);
+    return GOOGLE_ROUTES_COMPUTE_ROUTES_URL;
+  } catch {
+    logger.warn(`Ignoring malformed GOOGLE_ROUTES_BASE=${configured}; using ${GOOGLE_ROUTES_COMPUTE_ROUTES_URL}`);
+    return GOOGLE_ROUTES_COMPUTE_ROUTES_URL;
+  }
+}
+
 function parseDurationSeconds(value: unknown): number | null {
   if (typeof value !== 'string') return null;
   const match = value.match(/^([\d.]+)s$/);
@@ -30,7 +51,7 @@ export async function computeGoogleWalkingRoute(
 
   try {
     const resp = await axios.post(
-      config.googleMaps.routesBase,
+      getComputeRoutesUrl(),
       {
         origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
         destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
@@ -85,7 +106,11 @@ export async function computeGoogleWalkingRoute(
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status;
     const msg = (err as Error)?.message?.split('\n')[0] ?? String(err);
-    logger.warn(`Google Routes computeRoutes failed (${status ?? 'no response'}): ${msg}`);
+    const responseData = (err as { response?: { data?: unknown } })?.response?.data;
+    const detail = responseData
+      ? ` body=${JSON.stringify(responseData).slice(0, 500)}`
+      : '';
+    logger.warn(`Google Routes computeRoutes failed (${status ?? 'no response'}) url=${getComputeRoutesUrl()}: ${msg}${detail}`);
     return null;
   }
 }
