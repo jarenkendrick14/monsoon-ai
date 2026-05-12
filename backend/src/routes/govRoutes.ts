@@ -7,7 +7,7 @@ import { getPb } from '../pb.js';
 import { config } from '../config.js';
 import { computeInaSAFEScore } from '../engine/inasafeScore.js';
 import { broadcastGov } from '../ws.js';
-import type { UserRecord } from '../types/index.js';
+import type { HazardReportRecord, UserRecord } from '../types/index.js';
 
 const router = Router();
 
@@ -164,17 +164,64 @@ router.patch('/api/gov/households/:id/status', govAuthMiddleware, async (req, re
 
 router.get('/api/gov/stats', govAuthMiddleware, async (_req, res) => {
   const pb = getPb();
-  const [totalUsers, criticalAlerts, highAlerts, dispatched] = await Promise.all([
+  const [totalUsers, criticalAlerts, highAlerts, dispatched, hazardReports] = await Promise.all([
     pb.collection('users').getList(1, 1, { requestKey: 'stats_users' }),
     pb.collection('alerts').getList(1, 1, { filter: 'level="critical" && resolved=false', requestKey: 'stats_critical' }),
     pb.collection('alerts').getList(1, 1, { filter: 'level="high" && resolved=false', requestKey: 'stats_high' }),
     pb.collection('gov_households').getList(1, 1, { filter: 'status="dispatched"', requestKey: 'stats_dispatched' }),
+    pb.collection('hazard_reports').getList(1, 1, { requestKey: 'stats_hazard_reports' }),
   ]);
   res.json({
     totalRegistered: totalUsers.totalItems,
     critical: criticalAlerts.totalItems,
     high: highAlerts.totalItems,
     teamsDeployed: dispatched.totalItems,
+    hazardReports: hazardReports.totalItems,
+  });
+});
+
+router.get('/api/gov/hazard-reports', govAuthMiddleware, async (req, res) => {
+  const page = parseInt((req.query['page'] as string) ?? '1', 10);
+  const perPage = Math.min(parseInt((req.query['perPage'] as string) ?? '20', 10), 50);
+  const pb = getPb();
+
+  const reports = await pb.collection('hazard_reports').getList<HazardReportRecord>(page, perPage, {
+    sort: '-created',
+  });
+
+  const userIds = Array.from(new Set(reports.items.map(report => report.userId).filter(Boolean)));
+  const usersById = new Map<string, UserRecord>();
+  await Promise.all(userIds.map(async (userId) => {
+    try {
+      const user = await pb.collection('users').getOne<UserRecord>(userId, { requestKey: `hazard_user_${userId}` });
+      usersById.set(userId, user);
+    } catch { /* report can still be shown without profile details */ }
+  }));
+
+  res.json({
+    page: reports.page,
+    totalPages: reports.totalPages,
+    totalItems: reports.totalItems,
+    reports: reports.items.map(report => {
+      const user = usersById.get(report.userId);
+      const rawPhoto = (report as unknown as Record<string, unknown>)['photo'];
+      const filename = Array.isArray(rawPhoto) ? String(rawPhoto[0] ?? '') : String(rawPhoto ?? '');
+      return {
+        id: report.id,
+        userId: report.userId,
+        photoUrl: filename ? pb.files.getUrl(report, filename) : '',
+        householdName: user?.name ?? 'Unknown household',
+        address: user?.address ?? '',
+        mobile: user?.mobile ? user.mobile.slice(0, 4) + '****' + user.mobile.slice(-2) : '',
+        hazards: report.hazards ?? [],
+        confidence: report.confidence ?? 'low',
+        needsHumanReview: report.needsHumanReview !== false,
+        note: report.note ?? '',
+        lat: report.lat ?? user?.lat ?? null,
+        lng: report.lng ?? user?.lng ?? null,
+        created: report.created,
+      };
+    }),
   });
 });
 

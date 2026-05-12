@@ -124,7 +124,12 @@
 const _u = getUser();
 const _rawName = _u?.name?.split(' ')[0] || _u?.firstName || 'there';
 const _firstName = _rawName.charAt(0).toUpperCase() + _rawName.slice(1);
+const chatDisasterScenario = getDisasterScenario();
 document.getElementById('chatGreeting').textContent = `Hello ${_firstName},`;
+if (chatDisasterScenario) {
+  document.getElementById('statusPill').className = 'flood-pill pill-critical mm-blink';
+  document.getElementById('statusText').textContent = 'FLOOD WARNING';
+}
 
 /* Stable session ID per user, persisted across page loads */
 const _sessionKey = 'monsoon_chat_session_' + (_u?.id || 'guest');
@@ -138,13 +143,16 @@ if (!sessionId) {
 (async () => {
   try {
     const data = await apiFetch('/api/chat/history?sessionId=' + encodeURIComponent(sessionId));
-    (data.history || []).forEach(msg => {
-      appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
-        msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
-        msg.role === 'assistant');
-    });
-  } catch { /* no history yet */ }
-})();
+	    (data.history || []).forEach(msg => {
+	      appendBubble(msg.role === 'assistant' ? 'bot' : 'user',
+	        msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content,
+	        msg.role === 'assistant');
+	    });
+      if (chatDisasterScenario) appendDisasterContextBubble();
+	  } catch {
+      if (chatDisasterScenario) appendDisasterContextBubble();
+    }
+	})();
 
 function escapeHtml(t) {
   return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -169,7 +177,17 @@ function appendBubble(who, content, isHtml = false) {
       <div class="bubble">${isHtml ? content : escapeHtml(content)}</div>`;
   }
   list.insertBefore(wrap, document.getElementById('typingIndicator'));
-  document.getElementById('messagesArea').scrollTop = 99999;
+	  document.getElementById('messagesArea').scrollTop = 99999;
+	}
+
+function appendDisasterContextBubble() {
+  appendBubble(
+    'bot',
+    `Disaster Mode is active. I'm using the typhoon scenario for your saved area: ${chatDisasterScenario.rainfall24h} mm/24h rainfall, ${chatDisasterScenario.riverLevel} NHWL river level, Signal #${chatDisasterScenario.signal}, evacuate within ${chatDisasterScenario.evacWithin} minutes if instructed.`,
+  );
+  document.getElementById('cmdPills').innerHTML = ['STATUS', 'EVAC', 'Show evac route', 'View checklist', 'Call 911']
+    .map(cmd => `<div class="cmd-pill" onclick="sendCommand('${escapeHtml(cmd)}')">${escapeHtml(cmd)}</div>`)
+    .join('');
 }
 
 async function sendMessage() {
@@ -194,7 +212,12 @@ async function callChatAPI(message) {
   try {
     const data = await apiFetch('/api/chat/message', {
       method: 'POST',
-      body: JSON.stringify({ message, sessionId, locale: _u?.locale || 'en' }),
+      body: JSON.stringify({
+        message,
+        sessionId,
+        locale: _u?.locale || 'en',
+        disasterMode: getDisasterScenario() ? 'critical' : undefined,
+      }),
     });
     typing.style.display = 'none';
     appendBubble('bot', renderMarkdown(data.reply), true);

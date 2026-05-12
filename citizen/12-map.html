@@ -80,6 +80,13 @@ const centerLng = (u && u.lng && isFinite(u.lng)) ? Number(u.lng) : 120.5869;
 let map;
 const evacMarkers = [];
 const floodShapes = [];
+const disasterScenario = getDisasterScenario();
+
+if (disasterScenario) {
+  document.getElementById('statusPill').className = 'flood-pill pill-critical mm-blink';
+  document.getElementById('statusPillText').textContent = 'FLOOD WARNING';
+  document.getElementById('btnFlood').classList.add('active');
+}
 
 function markerIcon(color, label) {
   return {
@@ -171,7 +178,9 @@ function addFloodZones(geojson) {
     strokeWeight: 2,
   });
   floodShapes.push(map.data);
-  map.data.setMap(null);
+  if (!document.getElementById('btnFlood').classList.contains('active')) {
+    map.data.setMap(null);
+  }
 }
 
 async function loadMapData() {

@@ -4,6 +4,15 @@ export type HomeType = 'bungalow' | 'standalone' | 'townhouse' | 'apartment' | '
 export type RiskTier = 'critical' | 'high' | 'medium' | 'low';
 export type AlertLevel = 'critical' | 'high' | 'medium' | 'low' | 'none';
 export type HouseholdStatus = 'pending' | 'dispatched' | 'evacuated' | 'safe';
+export type HazardTag =
+  | 'Flood Water'
+  | 'Exposed Wires'
+  | 'Fallen Tree'
+  | 'Collapsed Roof'
+  | 'Fire'
+  | 'Debris Blockage'
+  | 'Structural Damage'
+  | 'Landslide';
 
 export type RiskTrigger =
   | 'CRITICAL_FLOOD'
@@ -112,6 +121,20 @@ export interface GovHousehold {
   name: string;
   address: string;
   phone: string;
+}
+
+export interface HazardReportRecord {
+  id: string;
+  userId: string;
+  photo?: string | string[];
+  hazards: HazardTag[];
+  confidence: 'low' | 'medium' | 'high';
+  needsHumanReview: boolean;
+  note: string;
+  lat: number;
+  lng: number;
+  created: string;
+  updated: string;
 }
 
 export interface RiskEngineInput {

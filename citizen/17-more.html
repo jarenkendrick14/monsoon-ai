@@ -37,7 +37,7 @@
        Ask Monsoon    → 14-chatbot.html
        Evac centres   → 12-map.html?layer=evac
        Emergency call → tel:911
-       Report incident → POST /api/incidents { type, coords, description }
+       Report hazard   → 18-report-hazard.html
        Checklist      → 10-alert-detail.html#checklist
        SMS commands   → 15-sms-commands.html
        Family chat    → External: Viber/WhatsApp deeplink (no backend needed)
@@ -95,13 +95,12 @@
         <span class="service-label">Emergency call</span>
       </div>
 
-      <!-- Report incident -->
-      <!-- BACKEND: POST /api/incidents { type: 'flood'|'road_blocked'|'injury', coords, description } -->
-      <div class="service-item" onclick="reportIncident()">
+      <!-- Report hazard -->
+      <div class="service-item" onclick="location.href='18-report-hazard.html'">
         <div class="service-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16.5" r=".8" fill="var(--orange)"/></svg>
         </div>
-        <span class="service-label">Report incident</span>
+        <span class="service-label">Report hazard</span>
       </div>
 
       <!-- Checklist -->
@@ -184,12 +183,6 @@
 </div>
 
 <script>
-function reportIncident() {
-  // BACKEND: Show incident report modal / navigate to report screen
-  // POST /api/incidents { type, coords: [lat,lng], description, photos[] }
-  alert('[DEV] Incident report modal — POST /api/incidents');
-}
-
 function openFamilyChat() {
   // Open Viber group, or deep-link to WhatsApp
   // No backend needed — this is a client-side native app deeplink

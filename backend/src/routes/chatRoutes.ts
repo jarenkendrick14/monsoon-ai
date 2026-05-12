@@ -16,7 +16,18 @@ const ChatSchema = z.object({
   message: z.string().min(1).max(500),
   sessionId: z.string().min(1),
   locale: z.enum(['en', 'tl', 'vi']).default('en'),
+  disasterMode: z.enum(['critical', 'off']).optional(),
 });
+
+const DISASTER_FORECAST = [
+  { day: 'Wed', temp: 29, riskLevel: 'critical' },
+  { day: 'Thu', temp: 29, riskLevel: 'critical' },
+  { day: 'Fri', temp: 30, riskLevel: 'high' },
+  { day: 'Sat', temp: 31, riskLevel: 'medium' },
+  { day: 'Sun', temp: 32, riskLevel: 'low' },
+  { day: 'Mon', temp: 32, riskLevel: 'low' },
+  { day: 'Tue', temp: 33, riskLevel: 'medium' },
+];
 
 router.post('/api/chat/message', authMiddleware, async (req, res) => {
   const parsed = ChatSchema.safeParse(req.body);
@@ -25,8 +36,10 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     return;
   }
 
-  const { message, sessionId, locale } = parsed.data;
+  const { message, sessionId, locale, disasterMode: bodyDisasterMode } = parsed.data;
   const user = req.user!;
+  const headerDisasterMode = req.get('x-monsoon-disaster-mode');
+  const disasterMode = bodyDisasterMode === 'critical' || headerDisasterMode === 'critical';
 
   let alertLevel: AlertLevel = 'none';
   let alertType: AlertRecord['type'] | null = null;
@@ -66,6 +79,18 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
       forecast7day,
     },
   };
+
+  if (disasterMode) {
+    context.alertLevel = 'critical';
+    context.trigger = 'CRITICAL_FLOOD';
+    context.conditions = {
+      heatIndex: 29,
+      airQuality: 54,
+      riverLevel: 3.7,
+      rainfall: 248,
+      forecast7day: DISASTER_FORECAST,
+    };
+  }
 
   const sessionKey = `${user.id}:${sessionId}`;
   let history: ChatMessage[] = sessionHistory.get(sessionKey) ?? [];

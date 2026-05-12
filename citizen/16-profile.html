@@ -71,7 +71,7 @@
       <img src="../assets/short_logo.png" alt="" width="32" height="32" style="object-fit:contain;" />
       <span class="app-logo-name">MONSOON<span> AI</span></span>
     </div>
-    <div class="flood-pill pill-ok"><span class="dot"></span>ALL CLEAR</div>
+    <div class="flood-pill pill-ok" id="profileStatusPill"><span class="dot"></span><span id="profileStatusText">ALL CLEAR</span></div>
   </div>
 
   <div class="scroll-area" style="padding:8px 16px 40px;">
@@ -181,6 +181,12 @@ const HOME_LABELS = {
 };
 const LOCALE_LABELS = { en: 'English', tl: 'Filipino', vi: 'Vietnamese' };
 const TIER_LABELS = { critical: 'CRITICAL', high: 'HIGH PRIORITY', medium: 'MEDIUM RISK', low: 'LOW RISK' };
+const disasterScenario = getDisasterScenario();
+
+if (disasterScenario) {
+  document.getElementById('profileStatusPill').className = 'flood-pill pill-critical mm-blink';
+  document.getElementById('profileStatusText').textContent = 'FLOOD WARNING';
+}
 
 function setGauge(score0to100, color) {
   const r = 36, C = 2 * Math.PI * r;
@@ -213,6 +219,22 @@ function needsLabel(d) {
   return flags.length ? flags.join(', ') : 'None';
 }
 
+function scenarioRisk(baseScore, d) {
+  if (!disasterScenario) return { score: baseScore, tier: d.risk?.riskTier || 'low', rescueList: d.risk?.isOnRescueList };
+
+  let score = 72;
+  if (Number(d.floor) === 0) score += 10;
+  if (['nipa_hut', 'bungalow', 'standalone'].includes(d.homeType)) score += 6;
+  if (d.hasElderly || d.hasPWD || d.hasInfant || d.hasPregnant) score += 8;
+  if ((d.householdSize || 0) >= 4) score += 4;
+
+  return {
+    score: Math.min(100, Math.max(Math.round(baseScore || 0), score)),
+    tier: 'critical',
+    rescueList: true,
+  };
+}
+
 function applyProfile(d) {
   const parts = (d.name || '').trim().split(' ');
   const initials = parts.length >= 2
@@ -239,13 +261,21 @@ function applyProfile(d) {
     d.householdSize ? `${d.householdSize} occupant${d.householdSize !== 1 ? 's' : ''}` : 'Not set';
   document.getElementById('profileNeeds').textContent = needsLabel(d);
 
-  const score100 = d.risk?.riskScore ?? d.risk?.inasafeScore ?? 0;
-  const tier = d.risk?.riskTier || 'low';
+  const baseScore = d.risk?.riskScore ?? d.risk?.inasafeScore ?? 0;
+  const adjustedRisk = scenarioRisk(baseScore, d);
+  const score100 = adjustedRisk.score;
+  const tier = adjustedRisk.tier;
   document.getElementById('riskScore').textContent = `${Math.round(score100)} / 100`;
 
   const tierText = TIER_LABELS[tier] || tier.toUpperCase();
   document.getElementById('riskTierRow').textContent =
     d.risk?.isOnRescueList ? `${tierText} · pre-storm rescue list` : tierText;
+
+  if (adjustedRisk.rescueList) {
+    document.getElementById('riskTierRow').textContent = `${tierText} - pre-storm rescue list`;
+  }
+  document.getElementById('riskTierRow').className =
+    'val ' + (tier === 'critical' ? 'critical' : tier === 'high' ? 'warn' : '');
 
   const gColor = tier === 'critical' ? 'var(--critical)' : tier === 'high' ? 'var(--warn)' : 'var(--ok)';
   setGauge(score100, gColor);

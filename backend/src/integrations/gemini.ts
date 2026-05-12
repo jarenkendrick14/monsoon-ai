@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
-import { ChatMessage, ChatReply, Locale, RiskContext } from '../types/index.js';
+import { ChatMessage, ChatReply, HazardTag, Locale, RiskContext } from '../types/index.js';
 import { classifyChatIntent, classifySmsIntent } from '../engine/intentClassifier.js';
 import { retrievePassages } from '../engine/ragRetrieval.js';
 import {
@@ -21,9 +21,13 @@ import {
 const ALLOWED_HAZARDS = [
   'Flood Water', 'Exposed Wires', 'Fallen Tree', 'Collapsed Roof',
   'Fire', 'Debris Blockage', 'Structural Damage', 'Landslide',
-] as const;
+] as const satisfies readonly HazardTag[];
 
-export type HazardTag = typeof ALLOWED_HAZARDS[number];
+export interface HazardTaggingResult {
+  hazards: HazardTag[];
+  confidence: 'low' | 'medium' | 'high';
+  needsHumanReview: true;
+}
 
 let client: GoogleGenerativeAI | null = null;
 
@@ -34,24 +38,51 @@ function getClient(): GoogleGenerativeAI {
   return client;
 }
 
-export async function tagHazards(imageBase64: string, mimeType: string): Promise<HazardTag[]> {
-  if (!config.openai.apiKey) return [];
+export async function tagHazards(imageBase64: string, mimeType: string): Promise<HazardTaggingResult> {
+  if (!config.openai.apiKey) return emptyHazardTaggingResult();
 
   try {
     const model = getClient().getGenerativeModel({ model: config.openai.model });
-    const prompt = `Return ONLY a JSON array of hazards visible in this image, chosen exclusively from this list:\n${JSON.stringify(ALLOWED_HAZARDS)}\nIf none match, return [].\nDo not describe the image. Do not add any text outside the JSON array.`;
+    const prompt = `You are an object tagger for an LGU disaster dashboard, not a safety advisor or structural engineer.
+
+Return ONLY valid JSON in this exact shape:
+{"hazards":[],"confidence":"low","needsHumanReview":true}
+
+Rules:
+- hazards must contain only labels chosen from this list: ${JSON.stringify(ALLOWED_HAZARDS)}
+- include a label only when it is visibly present in the image
+- do not infer hidden electrical, structural, chemical, medical, or engineering risk
+- do not say whether anything is safe or unsafe
+- confidence must be "low", "medium", or "high"
+- needsHumanReview must always be true
+- if no allowed hazard is visible, return {"hazards":[],"confidence":"low","needsHumanReview":true}`;
 
     const result = await model.generateContent([
       prompt,
       { inlineData: { mimeType, data: imageBase64 } },
     ]);
     const text = result.response.text().trim().replace(/^```json\n?/, '').replace(/\n?```$/, '');
-    const parsed = JSON.parse(text) as string[];
-    return parsed.filter((h): h is HazardTag => (ALLOWED_HAZARDS as readonly string[]).includes(h));
+    return parseHazardTaggingResult(text);
   } catch (err) {
     logger.warn('Gemini hazard tag failed', err instanceof Error ? err.message : err);
-    return [];
+    return emptyHazardTaggingResult();
   }
+}
+
+function emptyHazardTaggingResult(): HazardTaggingResult {
+  return { hazards: [], confidence: 'low', needsHumanReview: true };
+}
+
+function parseHazardTaggingResult(text: string): HazardTaggingResult {
+  const parsed = JSON.parse(text) as Partial<HazardTaggingResult> | HazardTag[];
+  const sourceHazards = Array.isArray(parsed) ? parsed : parsed.hazards;
+  const hazards = Array.isArray(sourceHazards)
+    ? sourceHazards.filter((h): h is HazardTag => (ALLOWED_HAZARDS as readonly string[]).includes(h))
+    : [];
+  const confidence = !Array.isArray(parsed) && ['low', 'medium', 'high'].includes(String(parsed.confidence))
+    ? parsed.confidence as 'low' | 'medium' | 'high'
+    : hazards.length ? 'medium' : 'low';
+  return { hazards, confidence, needsHumanReview: true };
 }
 
 export async function smsReply(

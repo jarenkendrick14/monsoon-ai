@@ -154,7 +154,20 @@ export async function ensureCollections(): Promise<void> {
       type: 'base',
       schema: [
         { name: 'userId', type: 'text', required: true },
+        {
+          name: 'photo',
+          type: 'file',
+          required: false,
+          options: {
+            maxSelect: 1,
+            maxSize: 10 * 1024 * 1024,
+            mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+          },
+        },
         { name: 'hazards', type: 'json', required: false },
+        { name: 'confidence', type: 'text', required: false },
+        { name: 'needsHumanReview', type: 'bool', required: false },
+        { name: 'note', type: 'text', required: false },
         { name: 'lat', type: 'number', required: false },
         { name: 'lng', type: 'number', required: false },
       ],
