@@ -23,6 +23,12 @@ const ALLOWED_HAZARDS = [
   'Fire', 'Debris Blockage', 'Structural Damage', 'Landslide',
 ] as const satisfies readonly HazardTag[];
 
+const FAMILY_TERMS = [
+  'dad', 'father', 'mom', 'mother', 'grandma', 'grandmother', 'grandpa', 'grandfather',
+  'lola', 'lolo', 'cousin', 'sibling', 'brother', 'sister', 'uncle', 'aunt',
+  'baby', 'infant', 'child', 'kid', 'wife', 'husband', 'partner',
+];
+
 export interface HazardTaggingResult {
   hazards: HazardTag[];
   confidence: 'low' | 'medium' | 'high';
@@ -263,6 +269,33 @@ function parseHazardTaggingResult(text: string): HazardTaggingResult {
   return { hazards, confidence, needsHumanReview: true };
 }
 
+function isFamilyIntakeAnswer(message: string): boolean {
+  const lower = message.toLowerCase();
+  const tokens = lower.split(/\W+/).filter(Boolean);
+  if (tokens.length === 0 || tokens.length > 14) return false;
+  const familyHits = FAMILY_TERMS.filter(term => lower.includes(term));
+  return familyHits.length > 0 && !/[?]/.test(message);
+}
+
+function summarizeFamily(message: string): string {
+  const lower = message.toLowerCase();
+  const found = FAMILY_TERMS.filter(term => lower.includes(term));
+  if (found.length === 0) return 'your household';
+  return Array.from(new Set(found)).slice(0, 5).join(', ');
+}
+
+function disasterIntakeReply(message: string, context: RiskContext): ChatReply | null {
+  const isActiveDisaster = context.alertLevel === 'critical' || context.alertLevel === 'high';
+  if (!isActiveDisaster || !isFamilyIntakeAnswer(message)) return null;
+
+  const people = summarizeFamily(message);
+  const center = context.evacCenter ? ` Head to ${context.evacCenter.name}.` : '';
+  return {
+    reply: `Got it: ${people}. Because this is a critical flood alert, keep everyone together and prioritize grandma/children for leaving first.${center} Next: can everyone leave safely right now?`,
+    suggestedCommands: ['Yes, we can leave', "No, we're stuck", 'View checklist'],
+  };
+}
+
 export async function smsReply(
   message: string,
   locale: Locale,
@@ -325,6 +358,9 @@ export async function chatbotReply(
   history: ChatMessage[]
 ): Promise<ChatReply> {
   const isActiveDisaster = context.alertLevel === 'critical' || context.alertLevel === 'high';
+  const intakeReply = disasterIntakeReply(message, context);
+  if (intakeReply) return intakeReply;
+
   const classified = isActiveDisaster
     ? classifyDisasterChatIntent(message, history)
     : classifyChatIntent(message, history);
