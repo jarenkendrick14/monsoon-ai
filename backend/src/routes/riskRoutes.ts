@@ -9,6 +9,7 @@ import { countHotspotsNear } from '../integrations/firms.js';
 import type { FirmsHotspot } from '../integrations/firms.js';
 import type { PagasaData } from '../integrations/pagasa.js';
 import type { ConditionsSnapshot } from '../types/index.js';
+import { disasterConditions, isDisasterMode } from '../utils/disasterMode.js';
 
 const router = Router();
 
@@ -22,14 +23,16 @@ router.post('/api/risk/score', authMiddleware, async (req, res) => {
   const cached = await getCondition<{ glofasCritical: boolean }>('conditions');
   const firePts = countHotspotsNear(firms, user.lat, user.lng);
 
-  const conditions: ConditionsSnapshot = {
-    ...weather,
-    aerosolOpticalDepth: tropomi.aerosolOpticalDepth,
-    firePts,
-    pagasaSignal: pagasa?.signal ?? 0,
-    glofasCritical: cached?.glofasCritical ?? false,
-    fetchedAt: new Date().toISOString(),
-  };
+  const conditions: ConditionsSnapshot = isDisasterMode(req)
+    ? disasterConditions()
+    : {
+        ...weather,
+        aerosolOpticalDepth: tropomi.aerosolOpticalDepth,
+        firePts,
+        pagasaSignal: pagasa?.signal ?? 0,
+        glofasCritical: cached?.glofasCritical ?? false,
+        fetchedAt: new Date().toISOString(),
+      };
 
   const result = evaluateRisk({ user, conditions });
 

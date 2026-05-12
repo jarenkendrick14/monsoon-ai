@@ -185,10 +185,10 @@ function addFloodZones(geojson) {
 
 async function loadMapData() {
   await loadConditionPills();
-  const [centerResult, floodResult] = await Promise.allSettled([
-    apiFetch(`/api/evac/centers?lat=${centerLat}&lng=${centerLng}`),
-    apiFetch('/api/map/flood-zones'),
-  ]);
+	  const [centerResult, floodResult] = await Promise.allSettled([
+	    apiFetch(`/api/evac/centers?lat=${centerLat}&lng=${centerLng}`),
+	    apiFetch(`/api/map/flood-zones?near=${centerLat},${centerLng}`),
+	  ]);
   if (centerResult.status === 'fulfilled') addEvacCenters(centerResult.value);
   if (floodResult.status === 'fulfilled') addFloodZones(floodResult.value);
 }

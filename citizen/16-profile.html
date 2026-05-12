@@ -31,9 +31,15 @@
     .profile-row .val.warn { color: var(--warn); }
     .profile-row .val.mono { font-family: var(--font-mono); font-size: 11px; }
 
-    /* Risk gauge SVG */
-    .gauge-wrap { width: 86px; height: 86px; flex-shrink: 0; }
-  </style>
+	    /* Risk gauge SVG */
+	    .gauge-wrap { width: 86px; height: 86px; flex-shrink: 0; }
+	    .switch { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+	    .switch input { opacity: 0; width: 0; height: 0; }
+	    .slider { position: absolute; cursor: pointer; inset: 0; background: var(--hairline); border-radius: 999px; transition: .18s; }
+	    .slider::before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 999px; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: .18s; }
+	    .switch input:checked + .slider { background: var(--critical); }
+	    .switch input:checked + .slider::before { transform: translateX(20px); }
+	  </style>
 </head>
 <body>
 
@@ -146,8 +152,15 @@
     <!-- Account actions -->
     <div class="profile-section">
       <div class="profile-section-title">Account</div>
-      <div class="profile-card">
-        <div class="profile-row" onclick="location.href='15-sms-commands.html'" style="cursor:pointer;">
+	    <div class="profile-card">
+	        <div class="profile-row">
+	          <span class="key">Disaster Mode</span>
+	          <label class="switch" title="Toggle typhoon disaster test mode">
+	            <input type="checkbox" id="disasterToggle" onchange="toggleDisasterMode(this.checked)" />
+	            <span class="slider"></span>
+	          </label>
+	        </div>
+	        <div class="profile-row" onclick="location.href='15-sms-commands.html'" style="cursor:pointer;">
           <span class="key">SMS commands reference</span>
           <span style="color:var(--orange);">›</span>
         </div>
@@ -186,6 +199,18 @@ const disasterScenario = getDisasterScenario();
 if (disasterScenario) {
   document.getElementById('profileStatusPill').className = 'flood-pill pill-critical mm-blink';
   document.getElementById('profileStatusText').textContent = 'FLOOD WARNING';
+}
+document.getElementById('disasterToggle').checked = !!disasterScenario;
+
+function toggleDisasterMode(enabled) {
+  if (enabled) {
+    localStorage.setItem('monsoon_disaster_mode', 'critical');
+    localStorage.setItem('monsoon_demo_mode', 'critical');
+  } else {
+    localStorage.removeItem('monsoon_disaster_mode');
+    localStorage.removeItem('monsoon_demo_mode');
+  }
+  location.href = '16-profile.html';
 }
 
 function setGauge(score0to100, color) {

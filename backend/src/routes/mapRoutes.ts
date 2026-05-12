@@ -8,6 +8,7 @@ import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import type { FirmsHotspot } from '../integrations/firms.js';
+import { DISASTER_SCENARIO, disasterConditions, isDisasterMode } from '../utils/disasterMode.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,7 +21,38 @@ router.get('/api/maps/config', (_req, res) => {
   });
 });
 
-router.get('/api/map/flood-zones', (_req, res) => {
+function disasterFloodZones(lat = 15.1348, lng = 120.5869) {
+  const dLat = 0.010;
+  const dLng = 0.012;
+  return {
+    type: 'FeatureCollection',
+    features: [{
+      type: 'Feature',
+      properties: {
+        name: 'Disaster Mode 25-year flood extent',
+        returnPeriod: '25-year',
+        scenario: DISASTER_SCENARIO.bulletinTitle,
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [lng - dLng, lat - dLat],
+          [lng + dLng, lat - dLat * 0.8],
+          [lng + dLng * 0.9, lat + dLat],
+          [lng - dLng * 0.7, lat + dLat * 0.8],
+          [lng - dLng, lat - dLat],
+        ]],
+      },
+    }],
+  };
+}
+
+router.get('/api/map/flood-zones', (req, res) => {
+  if (isDisasterMode(req)) {
+    const near = parseNear(req.query['near']);
+    res.json(disasterFloodZones(near?.lat, near?.lng));
+    return;
+  }
   try {
     const raw = readFileSync(join(__dirname, '../../data/flood-zones-25yr.geojson'), 'utf8');
     res.setHeader('Content-Type', 'application/json');
@@ -32,6 +64,17 @@ router.get('/api/map/flood-zones', (_req, res) => {
 
 router.get('/api/conditions/rivers', async (req, res) => {
   const near = parseNear(req.query['near']);
+  if (isDisasterMode(req)) {
+    const conditions = disasterConditions();
+    res.json({
+      riverLevel: conditions.riverLevel,
+      lat: near?.lat ?? null,
+      lng: near?.lng ?? null,
+      status: 'critical',
+      fetchedAt: conditions.fetchedAt,
+    });
+    return;
+  }
   const conditions = await getCurrentConditions();
   res.json({
     riverLevel: conditions.riverLevel,
@@ -43,6 +86,10 @@ router.get('/api/conditions/rivers', async (req, res) => {
 });
 
 router.get('/api/conditions/current', async (req, res) => {
+  if (isDisasterMode(req)) {
+    res.json(disasterConditions());
+    return;
+  }
   const near = parseNear(req.query['near']);
   const conditions = near
     ? await getLocalizedConditions(near.lat, near.lng)
@@ -51,6 +98,16 @@ router.get('/api/conditions/current', async (req, res) => {
 });
 
 router.get('/api/conditions/air', async (req, res) => {
+  if (isDisasterMode(req)) {
+    const conditions = disasterConditions();
+    res.json({
+      airQuality: conditions.airQuality,
+      pm25: Math.round(conditions.airQuality * 0.45),
+      category: 'Moderate',
+      fetchedAt: conditions.fetchedAt,
+    });
+    return;
+  }
   const near = parseNear(req.query['near']);
   const conditions = near
     ? await getLocalizedConditions(near.lat, near.lng)
@@ -67,6 +124,16 @@ router.get('/api/conditions/air', async (req, res) => {
 });
 
 router.get('/api/conditions/heat', async (req, res) => {
+  if (isDisasterMode(req)) {
+    const conditions = disasterConditions();
+    res.json({
+      heatIndex: conditions.heatIndex,
+      category: 'Safe',
+      wbgt: Math.round(conditions.heatIndex * 0.72),
+      fetchedAt: conditions.fetchedAt,
+    });
+    return;
+  }
   const near = parseNear(req.query['near']);
   const conditions = near
     ? await getLocalizedConditions(near.lat, near.lng)
@@ -80,7 +147,18 @@ router.get('/api/conditions/heat', async (req, res) => {
   });
 });
 
-router.get('/api/conditions/haze', async (_req, res) => {
+router.get('/api/conditions/haze', async (req, res) => {
+  if (isDisasterMode(req)) {
+    const conditions = disasterConditions();
+    res.json({
+      aerosolOpticalDepth: conditions.aerosolOpticalDepth,
+      smokeCritical: false,
+      firePts: 0,
+      source: 'Disaster Mode scenario',
+      fetchedAt: conditions.fetchedAt,
+    });
+    return;
+  }
   const tropomi = getTropomiData();
   const firms = await getCondition<FirmsHotspot[]>('firms') ?? [];
 

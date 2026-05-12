@@ -220,6 +220,24 @@ function _mockApi(path, options = {}) {
   return null;
 }
 
+function _backendDisasterPath(path) {
+  const cleanPath = path.split('?')[0];
+  return cleanPath === '/api/dashboard'
+    || cleanPath === '/api/alerts/active'
+    || cleanPath === '/api/alerts/active-storm'
+    || cleanPath.startsWith('/api/alerts/')
+    || cleanPath === '/api/conditions/current'
+    || cleanPath === '/api/conditions/rivers'
+    || cleanPath === '/api/conditions/air'
+    || cleanPath === '/api/conditions/heat'
+    || cleanPath === '/api/conditions/haze'
+    || cleanPath === '/api/map/flood-zones'
+    || cleanPath === '/api/chat/message'
+    || cleanPath === '/api/user/profile'
+    || cleanPath === '/api/user/risk-summary'
+    || cleanPath === '/api/risk/score';
+}
+
 function _getToken() {
   if (window.location.pathname.includes('/gov/')) {
     return localStorage.getItem('monsoon_gov_token') || '';
@@ -238,7 +256,7 @@ function authHeaders(extra = {}) {
 
 async function apiFetch(path, options = {}) {
   const disasterMode = getDisasterMode();
-  if (disasterMode === 'critical') {
+  if (disasterMode === 'critical' && !_backendDisasterPath(path)) {
     const mocked = _mockApi(path, options);
     if (mocked) return Promise.resolve(mocked);
   }

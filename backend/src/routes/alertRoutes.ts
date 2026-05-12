@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
+import { disasterAlert, isDisasterMode } from '../utils/disasterMode.js';
 import type { AlertRecord } from '../types/index.js';
 
 const router = Router();
@@ -8,6 +9,19 @@ const router = Router();
 router.get('/api/alerts/:alertId', authMiddleware, async (req, res) => {
   const { alertId } = req.params;
   const pb = getPb();
+  if (isDisasterMode(req) && alertId === 'disaster-mode-critical-flood') {
+    const alert = disasterAlert(req.user!);
+    res.json({
+      alertId: alert.id,
+      level: alert.level,
+      type: alert.type,
+      reasons: alert.reasons,
+      checklist: alert.checklist,
+      issuedAt: alert.issuedAt,
+      reEvalAt: alert.reEvalAt,
+    });
+    return;
+  }
 
   try {
     const alert = await pb.collection('alerts').getOne<AlertRecord>(alertId);

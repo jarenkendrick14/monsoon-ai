@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { getCondition } from '../utils/conditionsCache.js';
 import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
+import { DISASTER_FORECAST, DISASTER_SCENARIO, disasterAlert, isDisasterMode } from '../utils/disasterMode.js';
 import type { PagasaData } from '../integrations/pagasa.js';
 import type { AlertRecord } from '../types/index.js';
 
@@ -11,6 +12,7 @@ const router = Router();
 router.get('/api/dashboard', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
+  const disasterMode = isDisasterMode(req);
 
   const [weather, conditions] = await Promise.all([
     getLocalWeather(user.lat, user.lng),
@@ -35,12 +37,13 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
       firstName: user.name?.split(' ')[0] ?? user.name ?? '',
       address: user.address ?? '',
     },
-    alertLevel,
-    forecast7day,
+    alertLevel: disasterMode ? 'critical' : alertLevel,
+    forecast7day: disasterMode ? DISASTER_FORECAST : forecast7day,
     conditions: {
-      riverLevel: conditions.riverLevel,
-      airQuality: conditions.airQuality,
-      heatIndex: conditions.heatIndex,
+      riverLevel: disasterMode ? DISASTER_SCENARIO.riverLevel : conditions.riverLevel,
+      airQuality: disasterMode ? DISASTER_SCENARIO.airQuality : conditions.airQuality,
+      heatIndex: disasterMode ? DISASTER_SCENARIO.heatIndex : conditions.heatIndex,
+      rainfall: disasterMode ? DISASTER_SCENARIO.rainfall24h : undefined,
     },
   });
 });
@@ -48,6 +51,22 @@ router.get('/api/dashboard', authMiddleware, async (req, res) => {
 router.get('/api/alerts/active', authMiddleware, async (req, res) => {
   const user = req.user!;
   const pb = getPb();
+  if (isDisasterMode(req)) {
+    const alert = disasterAlert(user);
+    res.json({
+      alertId: alert.id,
+      level: alert.level,
+      evacuateWithin: alert.evacuateWithin,
+      rainfall: alert.rainfall,
+      floodZone: alert.floodZone,
+      riverDischarge: alert.riverDischarge,
+      issuedAt: alert.issuedAt,
+      reEvalAt: alert.reEvalAt,
+      reasons: alert.reasons,
+      checklist: alert.checklist,
+    });
+    return;
+  }
 
   let result;
   try {
@@ -78,7 +97,15 @@ router.get('/api/alerts/active', authMiddleware, async (req, res) => {
   });
 });
 
-router.get('/api/alerts/active-storm', async (_req, res) => {
+router.get('/api/alerts/active-storm', async (req, res) => {
+  if (isDisasterMode(req)) {
+    res.json({
+      signal: DISASTER_SCENARIO.signal,
+      bulletinTitle: DISASTER_SCENARIO.bulletinTitle,
+      issuedAt: new Date().toISOString(),
+    });
+    return;
+  }
   const pagasa = await getCondition<PagasaData>('pagasa');
   res.json({
     signal: pagasa?.signal ?? 0,

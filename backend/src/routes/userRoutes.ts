@@ -4,6 +4,7 @@ import { ClientResponseError } from 'pocketbase';
 import { authMiddleware } from '../middleware/auth.js';
 import { getPb } from '../pb.js';
 import { computeInaSAFEScore } from '../engine/inasafeScore.js';
+import { isDisasterMode } from '../utils/disasterMode.js';
 import type { UserRecord } from '../types/index.js';
 
 const router = Router();
@@ -15,6 +16,14 @@ function isMissingPocketBaseRecord(err: unknown): boolean {
 router.get('/api/user/profile', authMiddleware, async (req, res) => {
   const user = req.user!;
   const { score } = computeInaSAFEScore(user);
+  const disasterMode = isDisasterMode(req);
+  const scenarioScore = Math.min(100,
+    72 +
+    (Number(user.floor) === 0 ? 10 : 0) +
+    (['nipa_hut', 'bungalow', 'standalone'].includes(user.homeType) ? 6 : 0) +
+    (user.hasElderly || user.hasPWD || user.hasInfant || user.hasPregnant ? 8 : 0) +
+    ((user.householdSize || 0) >= 4 ? 4 : 0)
+  );
 
   res.json({
     id: user.id,
@@ -36,10 +45,10 @@ router.get('/api/user/profile', authMiddleware, async (req, res) => {
     smsOptIn: user.smsOptIn,
     created: user.created,
     risk: {
-      riskScore: user.riskScore,
-      riskTier: user.riskTier,
+      riskScore: disasterMode ? Math.max(user.riskScore ?? 0, scenarioScore) : user.riskScore,
+      riskTier: disasterMode ? 'critical' : user.riskTier,
       inasafeScore: score,
-      isOnRescueList: user.isOnRescueList,
+      isOnRescueList: disasterMode ? true : user.isOnRescueList,
     },
   });
 });
@@ -163,6 +172,14 @@ router.patch('/api/user/household', authMiddleware, async (req, res) => {
 router.get('/api/user/risk-summary', authMiddleware, async (req, res) => {
   const user = req.user!;
   const { score, tier, riskFactors } = computeInaSAFEScore(user);
+  const disasterMode = isDisasterMode(req);
+  const scenarioScore = Math.min(100,
+    72 +
+    (Number(user.floor) === 0 ? 10 : 0) +
+    (['nipa_hut', 'bungalow', 'standalone'].includes(user.homeType) ? 6 : 0) +
+    (user.hasElderly || user.hasPWD || user.hasInfant || user.hasPregnant ? 8 : 0) +
+    ((user.householdSize || 0) >= 4 ? 4 : 0)
+  );
 
   res.json({
     user: {
@@ -170,9 +187,9 @@ router.get('/api/user/risk-summary', authMiddleware, async (req, res) => {
       address: user.address,
       mobile: user.mobile,
     },
-    riskScore: score,
-    riskTier: tier,
-    vulnerabilityFlags: riskFactors,
+    riskScore: disasterMode ? Math.max(score, scenarioScore) : score,
+    riskTier: disasterMode ? 'critical' : tier,
+    vulnerabilityFlags: disasterMode ? [...riskFactors, 'active typhoon flood scenario'] : riskFactors,
   });
 });
 

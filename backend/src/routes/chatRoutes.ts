@@ -5,6 +5,7 @@ import { pbCall } from '../pb.js';
 import { chatbotReply } from '../integrations/gemini.js';
 import { findNearestCenterNear, distanceKm } from '../integrations/evacCenters.js';
 import { getLocalWeather, getLocalizedConditions, toForecastPreview } from '../utils/localConditions.js';
+import { applyDisasterContext, isDisasterMode } from '../utils/disasterMode.js';
 
 import type { AlertLevel, AlertRecord, ChatMessage, Locale, RiskContext } from '../types/index.js';
 
@@ -19,16 +20,6 @@ const ChatSchema = z.object({
   disasterMode: z.enum(['critical', 'off']).optional(),
 });
 
-const DISASTER_FORECAST = [
-  { day: 'Wed', temp: 29, riskLevel: 'critical' },
-  { day: 'Thu', temp: 29, riskLevel: 'critical' },
-  { day: 'Fri', temp: 30, riskLevel: 'high' },
-  { day: 'Sat', temp: 31, riskLevel: 'medium' },
-  { day: 'Sun', temp: 32, riskLevel: 'low' },
-  { day: 'Mon', temp: 32, riskLevel: 'low' },
-  { day: 'Tue', temp: 33, riskLevel: 'medium' },
-];
-
 router.post('/api/chat/message', authMiddleware, async (req, res) => {
   const parsed = ChatSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -36,10 +27,9 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     return;
   }
 
-  const { message, sessionId, locale, disasterMode: bodyDisasterMode } = parsed.data;
+  const { message, sessionId, locale } = parsed.data;
   const user = req.user!;
-  const headerDisasterMode = req.get('x-monsoon-disaster-mode');
-  const disasterMode = bodyDisasterMode === 'critical' || headerDisasterMode === 'critical';
+  const disasterMode = isDisasterMode(req);
 
   let alertLevel: AlertLevel = 'none';
   let alertType: AlertRecord['type'] | null = null;
@@ -66,7 +56,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
 
   const forecast7day = toForecastPreview(weather);
 
-  const context: RiskContext = {
+  let context: RiskContext = {
     alertLevel,
     trigger: alertType,
     location: user.address || 'Philippines',
@@ -80,17 +70,7 @@ router.post('/api/chat/message', authMiddleware, async (req, res) => {
     },
   };
 
-  if (disasterMode) {
-    context.alertLevel = 'critical';
-    context.trigger = 'CRITICAL_FLOOD';
-    context.conditions = {
-      heatIndex: 29,
-      airQuality: 54,
-      riverLevel: 3.7,
-      rainfall: 248,
-      forecast7day: DISASTER_FORECAST,
-    };
-  }
+  if (disasterMode) context = applyDisasterContext(context);
 
   const sessionKey = `${user.id}:${sessionId}`;
   let history: ChatMessage[] = sessionHistory.get(sessionKey) ?? [];
