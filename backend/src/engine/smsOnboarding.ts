@@ -41,6 +41,7 @@ export interface SmsSessionRecord {
   partialProfile?: SmsPartialProfile;
   history?: SmsTurn[];
   lastMessageAt?: string;
+  collectionName?: 'sms_onboarding_state' | 'sms_sessions';
 }
 
 export interface SmsOnboardingResult {
@@ -153,13 +154,32 @@ async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRe
   if (fallback && fallback.state !== 'complete') return fallback;
 
   try {
+    const result = await pb.collection('sms_onboarding_state').getList<SmsSessionRecord>(1, 1, {
+      filter: `mobile="${escapePbString(mobile)}"`,
+      sort: '-updated',
+    });
+    const session = result.items[0] ?? null;
+    if (session && session.state !== 'complete') {
+      const tagged = { ...session, collectionName: 'sms_onboarding_state' as const };
+      fallbackSessions.set(mobile, tagged);
+      return tagged;
+    }
+  } catch {
+    // Fall through to the legacy collection for older deployments.
+  }
+
+  try {
     const result = await pb.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
       filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-created',
     });
     const session = result.items.find(item => item.state !== 'complete') ?? null;
-    if (session) fallbackSessions.set(mobile, session);
-    return session;
+    if (session) {
+      const tagged = { ...session, collectionName: 'sms_sessions' as const };
+      fallbackSessions.set(mobile, tagged);
+      return tagged;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -175,11 +195,21 @@ async function createSession(pb: PocketBase, mobile: string): Promise<SmsSession
   } satisfies Omit<SmsSessionRecord, 'id'>;
 
   try {
-    const session = await pb.collection('sms_sessions').create<SmsSessionRecord>(payload);
-    fallbackSessions.set(mobile, session);
-    return session;
+    const session = await pb.collection('sms_onboarding_state').create<SmsSessionRecord>(payload);
+    const tagged = { ...session, collectionName: 'sms_onboarding_state' as const };
+    fallbackSessions.set(mobile, tagged);
+    return tagged;
   } catch {
-    const session: SmsSessionRecord = { id: `memory:${mobile}`, ...payload };
+    // Fall back to the legacy collection, then memory if PocketBase is unavailable.
+  }
+
+  try {
+    const session = await pb.collection('sms_sessions').create<SmsSessionRecord>(payload);
+    const tagged = { ...session, collectionName: 'sms_sessions' as const };
+    fallbackSessions.set(mobile, tagged);
+    return tagged;
+  } catch {
+    const session: SmsSessionRecord = { id: `memory:${mobile}`, collectionName: 'sms_onboarding_state', ...payload };
     fallbackSessions.set(mobile, session);
     return session;
   }
@@ -213,8 +243,9 @@ async function updateSession(
 
   if (session.id.startsWith('memory:')) return;
 
+  const collectionName = session.collectionName ?? 'sms_onboarding_state';
   try {
-    await pb.collection('sms_sessions').update(session.id, {
+    await pb.collection(collectionName).update(session.id, {
       ...patch,
       history,
       lastMessageAt: now,
@@ -277,10 +308,12 @@ export async function handleSmsOnboarding(
   if (keyword === 'CANCEL') {
     const session = await findSession(pb, mobile);
     if (session) {
-      await pb.collection('sms_sessions').update(session.id, {
-        state: 'complete',
-        lastMessageAt: new Date().toISOString(),
-      });
+      if (!session.id.startsWith('memory:')) {
+        await pb.collection(session.collectionName ?? 'sms_onboarding_state').update(session.id, {
+          state: 'complete',
+          lastMessageAt: new Date().toISOString(),
+        });
+      }
       fallbackSessions.set(mobile, { ...session, state: 'complete', lastMessageAt: new Date().toISOString() });
     }
     return { handled: true, reply: '[MonsoonAI] SMS registration cancelled. Reply JOIN to start again.', user };
