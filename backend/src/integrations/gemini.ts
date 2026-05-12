@@ -26,8 +26,21 @@ const ALLOWED_HAZARDS = [
 const FAMILY_TERMS = [
   'dad', 'father', 'mom', 'mother', 'grandma', 'grandmother', 'grandpa', 'grandfather',
   'lola', 'lolo', 'cousin', 'sibling', 'brother', 'sister', 'uncle', 'aunt',
-  'baby', 'infant', 'child', 'kid', 'wife', 'husband', 'partner',
+  'baby', 'infant', 'child', 'kid', 'wife', 'husband', 'partner', 'neighbor',
+  'dog', 'cat', 'pet',
 ];
+
+const FAMILY_LABELS: Record<string, string> = {
+  father: 'dad',
+  mother: 'mom',
+  grandmother: 'grandma',
+  grandfather: 'grandpa',
+  lola: 'grandma',
+  lolo: 'grandpa',
+  infant: 'baby',
+  kid: 'child',
+  pet: 'pet',
+};
 
 export interface HazardTaggingResult {
   hazards: HazardTag[];
@@ -279,9 +292,25 @@ function isFamilyIntakeAnswer(message: string): boolean {
 
 function summarizeFamily(message: string): string {
   const lower = message.toLowerCase();
-  const found = FAMILY_TERMS.filter(term => lower.includes(term));
+  const found = FAMILY_TERMS
+    .filter(term => new RegExp(`\\b${term}\\b`).test(lower))
+    .map(term => FAMILY_LABELS[term] ?? term);
   if (found.length === 0) return 'your household';
   return Array.from(new Set(found)).slice(0, 5).join(', ');
+}
+
+function profilePriorityNote(context: RiskContext): string {
+  const household = context.household;
+  if (!household) return '';
+  const priorities = [
+    household.hasElderly ? 'elderly member' : '',
+    household.hasInfant ? 'baby/child' : '',
+    household.hasPWD ? 'PWD or mobility need' : '',
+    household.hasPregnant ? 'pregnant member' : '',
+  ].filter(Boolean);
+  return priorities.length
+    ? ` Your saved profile also flags: ${priorities.join(', ')}.`
+    : '';
 }
 
 function disasterIntakeReply(message: string, context: RiskContext): ChatReply | null {
@@ -290,8 +319,9 @@ function disasterIntakeReply(message: string, context: RiskContext): ChatReply |
 
   const people = summarizeFamily(message);
   const center = context.evacCenter ? ` Head to ${context.evacCenter.name}.` : '';
+  const profileNote = profilePriorityNote(context);
   return {
-    reply: `Got it: ${people}. Because this is a critical flood alert, keep everyone together and prioritize grandma/children for leaving first.${center} Next: can everyone leave safely right now?`,
+    reply: `Got it: ${people}. Keep everyone together for evacuation.${profileNote}${center} Next: can everyone leave safely right now?`,
     suggestedCommands: ['Yes, we can leave', "No, we're stuck", 'View checklist'],
   };
 }

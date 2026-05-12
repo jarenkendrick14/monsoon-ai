@@ -213,6 +213,8 @@ function updateSituationContext(text) {
   if (/\b(grandma|grandmother|lola|elderly|senior)\b/.test(lower)) add('companions', 'elderly family member');
   if (/\b(dad|father|mom|mother|parent|parents)\b/.test(lower)) add('companions', 'parent/adult family member');
   if (/\b(cousin|sibling|brother|sister|uncle|aunt)\b/.test(lower)) add('companions', 'other family member');
+  if (/\b(neighbor|neighbour)\b/.test(lower)) add('companions', 'neighbor');
+  if (/\b(dog|cat|pet)\b/.test(lower)) add('companions', 'pet');
   if (/\b(baby|infant|newborn)\b/.test(lower)) add('companions', 'baby/infant');
   if (/\b(child|kid|children)\b/.test(lower)) add('companions', 'child');
   if (/\b(pwd|disabled|wheelchair|mobility)\b/.test(lower)) add('needs', 'wheelchair or mobility assistance');
