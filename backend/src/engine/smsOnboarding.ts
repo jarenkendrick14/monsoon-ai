@@ -158,15 +158,15 @@ function isActiveState(state: unknown): state is SmsSessionState {
   return typeof state === 'string' && VALID_STATES.has(state) && state !== 'complete';
 }
 
-async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord | null> {
+async function findSession(_pb: PocketBase, mobile: string): Promise<SmsSessionRecord | null> {
   const fallback = fallbackSessions.get(mobile);
   if (fallback && isActiveState(fallback.state)) return fallback;
 
   try {
-    const result = await pb.collection('sms_onboarding_state').getList<SmsSessionRecord>(1, 1, {
+    const result = await pbCall(client => client.collection('sms_onboarding_state').getList<SmsSessionRecord>(1, 1, {
       filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-updated',
-    });
+    }));
     const session = result.items[0] ?? null;
     if (session && isActiveState(session.state)) {
       const tagged = { ...session, collectionName: 'sms_onboarding_state' as const };
@@ -178,10 +178,10 @@ async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRe
   }
 
   try {
-    const result = await pb.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
+    const result = await pbCall(client => client.collection('sms_sessions').getList<SmsSessionRecord>(1, 10, {
       filter: `mobile="${escapePbString(mobile)}"`,
       sort: '-created',
-    });
+    }));
     const session = result.items.find(item => isActiveState(item.state)) ?? null;
     if (session) {
       const tagged = { ...session, collectionName: 'sms_sessions' as const };
@@ -194,7 +194,7 @@ async function findSession(pb: PocketBase, mobile: string): Promise<SmsSessionRe
   }
 }
 
-async function createSession(pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
+async function createSession(_pb: PocketBase, mobile: string): Promise<SmsSessionRecord> {
   const payload = {
     mobile,
     state: 'language',
@@ -204,7 +204,7 @@ async function createSession(pb: PocketBase, mobile: string): Promise<SmsSession
   } satisfies Omit<SmsSessionRecord, 'id'>;
 
   try {
-    const session = await pb.collection('sms_onboarding_state').create<SmsSessionRecord>(payload);
+    const session = await pbCall(client => client.collection('sms_onboarding_state').create<SmsSessionRecord>(payload));
     const tagged = { ...session, collectionName: 'sms_onboarding_state' as const };
     fallbackSessions.set(mobile, tagged);
     return tagged;
@@ -213,7 +213,7 @@ async function createSession(pb: PocketBase, mobile: string): Promise<SmsSession
   }
 
   try {
-    const session = await pb.collection('sms_sessions').create<SmsSessionRecord>(payload);
+    const session = await pbCall(client => client.collection('sms_sessions').create<SmsSessionRecord>(payload));
     const tagged = { ...session, collectionName: 'sms_sessions' as const };
     fallbackSessions.set(mobile, tagged);
     return tagged;
@@ -345,7 +345,9 @@ export async function handleSmsOnboarding(
     if (keyword === 'EVAC') {
       return { handled: true, reply: '[MonsoonAI] Reply JOIN to register by SMS and save your nearest evac info.', user };
     }
-    return { handled: false, user };
+    // Unregistered users sending free-text (e.g. addresses mid-session after a restart)
+    // get a clear prompt to rejoin rather than falling through to the LLM.
+    return { handled: true, reply: '[MonsoonAI] Session expired. Reply JOIN to re-register.', user };
   }
 
   const session = activeSession ?? await getOrCreateSession(pb, mobile);
