@@ -1,5 +1,6 @@
 import { randomBytes } from 'crypto';
 import type PocketBase from 'pocketbase';
+import { pbCall } from '../pb.js';
 import { computeInaSAFEScore } from './inasafeScore.js';
 import { geocodeAddress } from '../integrations/geocoder.js';
 import type { HomeType, Locale, RiskTier, UserRecord } from '../types/index.js';
@@ -100,10 +101,12 @@ function parseLocale(message: string): Locale | null {
 }
 
 function parseLeadingLocaleChoice(message: string): Locale | null {
+  // Addresses, sentences, etc. cannot be locale choices — only short inputs qualify
+  if (message.trim().length > 20) return null;
   const firstChoice = message
     .normalize('NFKC')
     .trim()
-    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[​-‍﻿]/g, '')
     .replace(/[１]/g, '1')
     .replace(/[２]/g, '2')
     .replace(/[３]/g, '3')
@@ -226,7 +229,7 @@ async function getOrCreateSession(pb: PocketBase, mobile: string): Promise<SmsSe
 }
 
 async function updateSession(
-  pb: PocketBase,
+  _pb: PocketBase,
   session: SmsSessionRecord,
   patch: Partial<SmsSessionRecord>,
   userMessage: string,
@@ -251,11 +254,11 @@ async function updateSession(
 
   const collectionName = session.collectionName ?? 'sms_onboarding_state';
   try {
-    await pb.collection(collectionName).update(session.id, {
+    await pbCall(client => client.collection(collectionName).update(session.id, {
       ...patch,
       history,
       lastMessageAt: now,
-    });
+    }));
   } catch {
     // PocketBase persistence is best-effort during SMS onboarding; fallbackSessions keeps the current flow coherent.
   }
@@ -358,7 +361,7 @@ export async function handleSmsOnboarding(
     return { handled: true, reply, user };
   }
 
-  if ((!activeSession || session.state === 'language') && localeReplyWithoutSession) {
+  if (!activeSession && localeReplyWithoutSession) {
     reply = ADDRESS_PROMPT;
     await updateSession(pb, session, { state: 'address', locale: localeReplyWithoutSession }, normalizedMessage, reply);
     return { handled: true, reply, user };
