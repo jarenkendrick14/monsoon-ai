@@ -44,7 +44,7 @@ router.get('/api/gov/manifest', govAuthMiddleware, async (req, res) => {
   const pb = getPb();
 
   const listOptions: Record<string, unknown> = { sort: '-riskScore' };
-  if (tier) listOptions['filter'] = `tier="${tier}"`;
+  if (tier) listOptions['filter'] = `riskTier="${tier}"`;
 
   const users = await pb.collection('users').getList<UserRecord>(page, perPage, listOptions);
 
